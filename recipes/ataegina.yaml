@@ -1,0 +1,48 @@
+# erbina recipe — proof of concept #1
+# A recipe is a four-part contract an agent executes: detect -> install ->
+# configure -> verify. See SCHEMA.md for the full schema.
+id: ataegina
+kind: cli-tool # cli-tool | mcp-server
+title: "ataegina — collision-free dev environments per git worktree"
+description: >
+  Zero-dependency bash CLI that gives every git worktree a stable index N and
+  derives non-colliding ports (5173+N / 8000+N), a per-worktree database, and
+  tracked dev processes from it — so parallel agents/branches never stomp each
+  other. https://github.com/noahhyden/ataegina-cli
+
+# 1. DETECT — runs FIRST. exit == expect_exit ⇒ already installed ⇒ skip install.
+detect:
+  command: "ataegina --version"
+  expect_exit: 0
+
+# 2. INSTALL — only if detect failed. First method whose `when:` guard exits 0 wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install noahhyden/tap/ataegina"
+    - id: curl
+      when: "command -v curl"
+      run: "curl -fsSL https://raw.githubusercontent.com/noahhyden/ataegina-cli/main/install.sh | sh"
+
+# 3. CONFIGURE — tool-specific wiring. `ataegina init` detects the stack and
+# writes ataegina.config.sh; it needs to run inside the target repo, so it is
+# gated on a supplied project_dir and is optional (a fresh checkout may have
+# nothing to detect yet).
+configure:
+  steps:
+    - run: "ataegina init --yes"
+      needs_project_dir: true
+      optional: true
+
+# 4. VERIFY — every command must exit `expect_exit` (default 0) or the bootstrap
+# is reported failed. Prove it actually runs, not merely that a file was written.
+verify:
+  - command: "ataegina --version"
+    expect_exit: 0
+  - command: "ataegina doctor"
+    expect_exit: 0
+    optional: true # doctor is meaningful only inside a configured worktree
+
+# scope is informational for cli-tool recipes; load-bearing for mcp-server recipes.
+scope: user
