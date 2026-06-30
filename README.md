@@ -13,8 +13,10 @@ threshold a tool crosses to become part of your environment. Sibling to
 [ataegina](https://github.com/noahhyden/ataegina-cli) (goddess of rebirth), which
 is also erbina's proof-of-concept recipe #1.
 
-> **Status: proof of concept.** One server, four tools, one recipe. It works
-> end-to-end; the registry is deliberately tiny.
+> **Status: proof of concept.** One server, four tools, two recipes — a
+> `cli-tool` ([ataegina](recipes/ataegina.yaml)) and a scope-wiring `mcp-server`
+> ([fetch](recipes/fetch.yaml)). Both work end-to-end; the registry is
+> deliberately tiny.
 
 ## Why this exists
 
@@ -86,8 +88,12 @@ configure: { steps: [ { run: "ataegina init --yes", needs_project_dir: true, opt
 verify:   [ { command: "ataegina --version", expect_exit: 0 } ]
 ```
 
-The full schema — including the `local`/`project`/`user` scope model for
-MCP-server recipes — is in [SCHEMA.md](SCHEMA.md).
+A `kind: mcp-server` recipe instead wires a server into a chosen scope — its
+configure step is `claude mcp add <name> --scope ${scope} -- …`, where `${scope}`
+is substituted from the `scope` you pass to `bootstrap`. See
+[`recipes/fetch.yaml`](recipes/fetch.yaml). The full schema — including the
+`local`/`project`/`user` scope model and command placeholders — is in
+[SCHEMA.md](SCHEMA.md).
 
 ## Adding a recipe
 

@@ -19,6 +19,8 @@ description: <one paragraph; what it is and why>
 detect:
   command: "<shell command>"
   expect_exit: 0           # optional, default 0
+  needs_project_dir: false # optional; run the check inside project_dir (e.g. a
+                           # project-scope mcp-server resolves by cwd)
 
 # 2. INSTALL — runs only when detect failed.
 #    Methods are tried in order; the FIRST whose `when:` guard exits 0 is used.
@@ -47,11 +49,31 @@ verify:
   - command: "<command>"
     expect_exit: 0
     optional: false
+    needs_project_dir: false   # optional; run the check inside project_dir
 
 # scope this recipe targets when wiring an mcp-server (local | project | user).
 # Informational for cli-tool recipes.
 scope: user
 ```
+
+## Placeholders
+
+Any command string (`detect`, `install.methods[].run`, `configure.steps[].run`,
+`verify[].command`) may use:
+
+| placeholder | expands to |
+|---|---|
+| `${scope}` | the resolved `local` \| `project` \| `user` scope passed to `bootstrap` |
+| `${project_dir}` | the supplied `project_dir` (or `.` if none) |
+
+`${scope}` is what makes a `kind: mcp-server` recipe scope-aware — its
+`configure` step is typically `claude mcp add <name> --scope ${scope} -- <cmd>`,
+so the same recipe wires into `local` / `project` / `user` depending on the
+`scope` argument. See [`recipes/fetch.yaml`](recipes/fetch.yaml) for a worked
+mcp-server example (and [`recipes/ataegina.yaml`](recipes/ataegina.yaml) for a
+cli-tool). For `project` scope, set `needs_project_dir: true` on the detect /
+configure / verify steps so the entry lands in (and is read back from) the
+target repo's `.mcp.json`.
 
 ## Why these four phases
 

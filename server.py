@@ -80,6 +80,17 @@ def _guard_ok(when: str | None) -> bool:
     return _run(when, timeout=15)["exit"] == 0
 
 
+def _subst(cmd: str | None, scope: str, project_dir: str | None) -> str:
+    """Expand recipe placeholders in a command string.
+
+    ${scope}        -> the resolved local|project|user scope (mcp-server wiring)
+    ${project_dir}  -> the supplied project dir (or '.' if none)
+    """
+    if not cmd:
+        return ""
+    return cmd.replace("${scope}", scope).replace("${project_dir}", project_dir or ".")
+
+
 def _load_recipe(recipe_id: str) -> dict[str, Any]:
     safe = Path(recipe_id).name  # no path traversal
     path = RECIPES_DIR / f"{safe}.yaml"
@@ -109,17 +120,20 @@ def _plan(recipe: dict[str, Any], scope: str, project_dir: str | None) -> dict[s
     """The consent surface: exactly what bootstrap would do, running nothing destructive."""
     method = _pick_install_method(recipe)
     return {
-        "detect": recipe.get("detect", {}).get("command"),
+        "detect": _subst(recipe.get("detect", {}).get("command"), scope, project_dir) or None,
         "install": {
             "chosen_method": method.get("id") if method else None,
-            "command": method.get("run") if method else None,
+            "command": _subst(method.get("run"), scope, project_dir) if method else None,
             "all_methods": [
-                {"id": m.get("id"), "when": m.get("when"), "run": m.get("run")}
+                {"id": m.get("id"), "when": m.get("when"), "run": _subst(m.get("run"), scope, project_dir)}
                 for m in recipe.get("install", {}).get("methods", [])
             ],
         },
-        "configure": recipe.get("configure", {}).get("steps", []),
-        "verify": [v.get("command") for v in recipe.get("verify", [])],
+        "configure": [
+            {**s, "run": _subst(s.get("run"), scope, project_dir)}
+            for s in recipe.get("configure", {}).get("steps", [])
+        ],
+        "verify": [_subst(v.get("command"), scope, project_dir) for v in recipe.get("verify", [])],
         "scope": scope,
         "project_dir": project_dir,
     }
@@ -217,7 +231,8 @@ def bootstrap(
     det_spec = recipe.get("detect", {})
     detected = False
     if det_spec.get("command"):
-        det = _run(det_spec["command"], timeout=30)
+        det_cwd = project_dir if det_spec.get("needs_project_dir") else None
+        det = _run(_subst(det_spec["command"], scope, project_dir), cwd=det_cwd, timeout=30)
         detected = det["exit"] == det_spec.get("expect_exit", 0)
         report["phases"]["detect"] = {"present": detected, **det}
 
@@ -261,7 +276,7 @@ def bootstrap(
                     {"cmd": step.get("run"), "status": "skipped", "reason": "no project_dir supplied"}
                 )
                 continue
-            res = _run(step["run"], cwd=cwd)
+            res = _run(_subst(step["run"], scope, project_dir), cwd=cwd)
             ok = res["exit"] == 0 or step.get("optional")
             results.append({"status": "ok" if ok else "failed", **res})
         report["phases"]["configure"] = {"steps": results}
@@ -270,7 +285,8 @@ def bootstrap(
     verify_results = []
     all_ok = True
     for v in recipe.get("verify", []):
-        res = _run(v["command"], timeout=30)
+        v_cwd = project_dir if v.get("needs_project_dir") else None
+        res = _run(_subst(v["command"], scope, project_dir), cwd=v_cwd, timeout=30)
         ok = res["exit"] == v.get("expect_exit", 0)
         if not ok and not v.get("optional"):
             all_ok = False
