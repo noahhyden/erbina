@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shlex
 import subprocess
 from pathlib import Path
@@ -42,7 +43,9 @@ mcp = FastMCP(
     instructions=(
         "erbina bootstraps a developer's environment from curated recipes. Use it to "
         "INSTALL, CONFIGURE, and VERIFY CLI tools and other MCP servers for Claude Code, "
-        "and to AUDIT where MCP servers live across local/project/user scopes.\n\n"
+        "to AUDIT where MCP servers live across local/project/user scopes, and to find "
+        "and REMOVE stale/dead MCP servers that no longer connect (`find_dead_mcps` then "
+        "`remove_mcp`).\n\n"
         "Always call `inspect_recipe` (or `bootstrap` with dry_run=true) FIRST and show the "
         "user exactly what will run before executing — erbina shells out to package managers "
         "with real privileges. Recipes are idempotent: `bootstrap` detects an already-present "
@@ -147,6 +150,53 @@ def _claude_json() -> dict[str, Any]:
         return json.loads(p.read_text())
     except Exception:  # noqa: BLE001
         return {}
+
+
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _scope_map(project_dir: str | None = None) -> dict[str, list[str]]:
+    """name -> the list of scopes that configure an MCP server with that name."""
+    cj = _claude_json()
+    proj_root = Path(project_dir).resolve() if project_dir else Path.cwd()
+    out: dict[str, list[str]] = {}
+
+    def add(names: Any, scope: str) -> None:
+        for n in names:
+            out.setdefault(n, []).append(scope)
+
+    add((cj.get("mcpServers") or {}).keys(), "user")
+    local_entry = (cj.get("projects") or {}).get(str(proj_root), {})
+    add((local_entry.get("mcpServers") or {}).keys(), "local")
+    mcp_json = proj_root / ".mcp.json"
+    if mcp_json.exists():
+        try:
+            add((json.loads(mcp_json.read_text()).get("mcpServers") or {}).keys(), "project")
+        except Exception:  # noqa: BLE001
+            pass
+    return out
+
+
+def _parse_mcp_list(project_dir: str | None = None) -> list[dict[str, Any]]:
+    """Run `claude mcp list` (the live health check) and parse per-server status.
+
+    Lines look like:  `name: <command> - ✔ Connected`  /  `... - ✘ Failed to connect`
+    """
+    res = _run("claude mcp list", cwd=project_dir, timeout=120)
+    servers: list[dict[str, Any]] = []
+    for raw in res["stdout"].splitlines():
+        line = _ANSI.sub("", raw).strip()
+        if not line or ":" not in line:
+            continue
+        name, _, rest = line.partition(":")
+        name, rest = name.strip(), rest.strip()
+        connected = ("✔" in rest) or ("Connected" in rest and "Failed" not in rest)
+        failed = ("✘" in rest) or ("Failed to connect" in rest)
+        if not (connected or failed):
+            continue  # header / summary line, not a server status
+        command = rest.rsplit(" - ", 1)[0].strip()
+        servers.append({"name": name, "connected": connected and not failed, "command": command})
+    return servers
 
 
 # --------------------------------------------------------------------------- #
@@ -340,6 +390,64 @@ def audit_scopes(project_dir: str | None = None) -> dict[str, Any]:
         },
         "shadowed": shadowed or "none — no server name is defined in more than one scope",
         "total_distinct": len(by_name),
+    }
+
+
+@mcp.tool
+def find_dead_mcps(project_dir: str | None = None) -> dict[str, Any]:
+    """
+    Health-check every configured MCP server (via `claude mcp list`) and report
+    which ones fail to connect — stale/dead servers that are candidates for
+    removal. Each result is annotated with the scope(s) it lives in, so removal
+    knows where to delete it. Read-only.
+    """
+    servers = _parse_mcp_list(project_dir)
+    smap = _scope_map(project_dir)
+    for s in servers:
+        s["scopes"] = smap.get(s["name"], [])
+    dead = [s for s in servers if not s["connected"]]
+    return {
+        "checked": len(servers),
+        "alive": [s["name"] for s in servers if s["connected"]],
+        "dead": dead,
+        "hint": (
+            "Show the user the dead servers and confirm before deleting, then call "
+            "remove_mcp(name) for each one to delete."
+            if dead
+            else "No dead servers — everything connects."
+        ),
+    }
+
+
+@mcp.tool
+def remove_mcp(name: str, scope: str | None = None, dry_run: bool = False) -> dict[str, Any]:
+    """
+    Remove a configured MCP server by name (e.g. a dead one surfaced by
+    `find_dead_mcps`). If `scope` is omitted, erbina resolves which scope holds
+    it; pass it explicitly if the same name exists in more than one scope.
+
+    Destructive — run `find_dead_mcps` and confirm with the user first. Set
+    dry_run=true to see the exact `claude mcp remove` command without running it.
+    """
+    if scope is None:
+        scopes = _scope_map().get(name, [])
+        if not scopes:
+            return {"error": f"no MCP server named '{name}' found in any scope"}
+        if len(scopes) > 1:
+            return {"error": f"'{name}' exists in multiple scopes {scopes}; pass `scope` explicitly"}
+        scope = scopes[0]
+    if scope not in VALID_SCOPES:
+        return {"error": f"scope must be one of {VALID_SCOPES}"}
+
+    cmd = f"claude mcp remove {shlex.quote(name)} -s {scope}"
+    if dry_run:
+        return {"would_run": cmd, "scope": scope, "note": "Dry run — nothing was removed."}
+    res = _run(cmd)
+    return {
+        "removed": name if res["exit"] == 0 else None,
+        "scope": scope,
+        "status": "ok" if res["exit"] == 0 else "failed",
+        **res,
     }
 
 
