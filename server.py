@@ -37,6 +37,17 @@ from fastmcp import FastMCP
 HERE = Path(__file__).resolve().parent
 RECIPES_DIR = HERE / "recipes"
 VALID_SCOPES = ("local", "project", "user")
+VALID_KINDS = ("cli-tool", "mcp-server")
+
+# The closed set of top-level keys SCHEMA.md defines. `_path` is injected by the
+# loader AFTER validation, so it is not part of the recipe's authored contract.
+TOP_LEVEL_KEYS = frozenset(
+    {"id", "kind", "title", "description", "detect", "install", "configure", "verify", "scope"}
+)
+# The only placeholders `_subst` expands; any other ${...} token would pass through
+# into an executed command literally, so it is a recipe bug.
+KNOWN_PLACEHOLDERS = frozenset({"scope", "project_dir"})
+_PLACEHOLDER_RE = re.compile(r"\$\{([^}]*)\}")
 
 mcp = FastMCP(
     "erbina",
@@ -94,6 +105,133 @@ def _subst(cmd: str | None, scope: str, project_dir: str | None) -> str:
     return cmd.replace("${scope}", scope).replace("${project_dir}", project_dir or ".")
 
 
+def _check_placeholders(text: Any, where: str, errors: list[str]) -> None:
+    """Flag any ${...} token that `_subst` would NOT expand (e.g. a typo'd
+    `${scopee}`), since it would otherwise pass through into an executed command
+    string literally."""
+    if not isinstance(text, str):
+        return
+    for tok in _PLACEHOLDER_RE.findall(text):
+        if tok not in KNOWN_PLACEHOLDERS:
+            errors.append(
+                f"{where}: unknown placeholder '${{{tok}}}' "
+                f"(only {', '.join('${' + p + '}' for p in sorted(KNOWN_PLACEHOLDERS))} are substituted)"
+            )
+
+
+def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
+    """Validate a parsed recipe dict against the SCHEMA.md contract.
+
+    Returns a list of human-readable error strings; an empty list means the
+    recipe is valid. This is the single source of truth shared by recipe LOADING
+    (`_load_recipe` raises if this is non-empty, so a malformed recipe is refused
+    rather than silently no-op'ing a phase) and the standalone `lint_recipes.py`.
+    """
+    errors: list[str] = []
+    if not isinstance(recipe, dict):
+        return [f"recipe must be a YAML mapping, got {type(recipe).__name__}"]
+
+    # ignore the loader-injected internal key when checking the closed key set
+    unknown = set(recipe) - TOP_LEVEL_KEYS - {"_path"}
+    if unknown:
+        errors.append(f"unknown top-level key(s): {', '.join(sorted(unknown))}")
+
+    # id — present and equal to the filename stem
+    rid = recipe.get("id")
+    if not rid:
+        errors.append("missing required key 'id'")
+    elif rid != stem:
+        errors.append(f"'id' ({rid!r}) must equal the filename stem ({stem!r})")
+
+    # kind — closed enum
+    kind = recipe.get("kind")
+    if kind not in VALID_KINDS:
+        errors.append(f"'kind' must be one of {VALID_KINDS}, got {kind!r}")
+
+    # detect — required, with a non-empty command
+    detect = recipe.get("detect")
+    if not isinstance(detect, dict):
+        errors.append("missing or malformed 'detect' (expected a mapping with a 'command')")
+    else:
+        cmd = detect.get("command")
+        if not (isinstance(cmd, str) and cmd.strip()):
+            errors.append("'detect.command' is required and must be a non-empty string")
+        _check_placeholders(detect.get("command"), "detect.command", errors)
+
+    # install — required, methods non-empty, each method has id + run
+    install = recipe.get("install")
+    if not isinstance(install, dict):
+        errors.append("missing or malformed 'install' (expected a mapping with 'methods')")
+    else:
+        methods = install.get("methods")
+        if not isinstance(methods, list) or not methods:
+            errors.append("'install.methods' must be a non-empty list")
+        else:
+            for i, m in enumerate(methods):
+                tag = f"install.methods[{i}]"
+                if not isinstance(m, dict):
+                    errors.append(f"{tag}: must be a mapping")
+                    continue
+                if not (isinstance(m.get("id"), str) and m["id"].strip()):
+                    errors.append(f"{tag}: missing non-empty 'id'")
+                if not (isinstance(m.get("run"), str) and m["run"].strip()):
+                    errors.append(f"{tag}: missing non-empty 'run'")
+                _check_placeholders(m.get("run"), f"{tag}.run", errors)
+                _check_placeholders(m.get("when"), f"{tag}.when", errors)
+
+    # configure — optional, but if present each step needs a 'run'
+    configure = recipe.get("configure")
+    cfg_runs: list[str] = []
+    if configure is not None:
+        if not isinstance(configure, dict):
+            errors.append("'configure' must be a mapping with 'steps'")
+        else:
+            steps = configure.get("steps")
+            if not isinstance(steps, list) or not steps:
+                errors.append("'configure.steps' must be a non-empty list when 'configure' is present")
+            else:
+                for i, s in enumerate(steps):
+                    tag = f"configure.steps[{i}]"
+                    if not isinstance(s, dict):
+                        errors.append(f"{tag}: must be a mapping")
+                        continue
+                    run = s.get("run")
+                    if not (isinstance(run, str) and run.strip()):
+                        errors.append(f"{tag}: missing non-empty 'run'")
+                    elif isinstance(run, str):
+                        cfg_runs.append(run)
+                    _check_placeholders(run, f"{tag}.run", errors)
+
+    # verify — required, non-empty, each entry has a command
+    verify = recipe.get("verify")
+    if not isinstance(verify, list) or not verify:
+        errors.append("'verify' must be a non-empty list")
+    else:
+        for i, v in enumerate(verify):
+            tag = f"verify[{i}]"
+            if not isinstance(v, dict):
+                errors.append(f"{tag}: must be a mapping")
+                continue
+            if not (isinstance(v.get("command"), str) and v["command"].strip()):
+                errors.append(f"{tag}: missing non-empty 'command'")
+            _check_placeholders(v.get("command"), f"{tag}.command", errors)
+
+    # scope — optional, but if present must be a valid scope
+    scope = recipe.get("scope")
+    if scope is not None and scope not in VALID_SCOPES:
+        errors.append(f"'scope' must be one of {VALID_SCOPES}, got {scope!r}")
+
+    # mcp-server: the configure wiring must be scope-aware (reference ${scope}),
+    # otherwise the same recipe can't target local/project/user.
+    if kind == "mcp-server" and not any("${scope}" in r for r in cfg_runs):
+        errors.append(
+            "kind: mcp-server requires a configure step whose 'run' references ${scope} "
+            "(e.g. `claude mcp add <name> --scope ${scope} -- …`) so it wires into the chosen scope"
+        )
+
+    return errors
+
+
 def _load_recipe(recipe_id: str) -> dict[str, Any]:
     safe = Path(recipe_id).name  # no path traversal
     path = RECIPES_DIR / f"{safe}.yaml"
@@ -102,6 +240,13 @@ def _load_recipe(recipe_id: str) -> dict[str, Any]:
             f"no recipe '{recipe_id}'. Available: {', '.join(_recipe_ids()) or '(none)'}"
         )
     data = yaml.safe_load(path.read_text()) or {}
+    problems = validate_recipe(data, stem=safe)
+    if problems:
+        bullets = "\n  - ".join(problems)
+        raise ValueError(
+            f"recipe '{path.name}' is malformed and was refused (fix these, or run "
+            f"`uv run --script lint_recipes.py`):\n  - {bullets}"
+        )
     data["_path"] = str(path)
     return data
 

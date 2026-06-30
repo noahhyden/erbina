@@ -43,7 +43,16 @@ the server. Adding a recipe is just dropping one YAML file in `recipes/`.
 3. For a `mcp-server` recipe, set `needs_project_dir: true` on the
    detect/configure/verify steps if it targets `project` scope, so the entry
    lands in (and is read back from) the right `.mcp.json`.
-4. Test it end-to-end (below) before opening a PR. Include the
+4. **Lint it before opening a PR:** `uv run --script lint_recipes.py`. This
+   validates every recipe against [SCHEMA.md](SCHEMA.md) — `id` matches the
+   filename, `kind` is valid, `detect.command` / `install.methods` / `verify`
+   are present and well-formed, an `mcp-server` recipe's configure step wires
+   `${scope}`, and there are no typo'd `${...}` placeholders. It exits non-zero
+   on any problem. The same checks run at recipe *load* time (`validate_recipe`
+   in `server.py`), so `bootstrap` / `inspect_recipe` now refuse a malformed
+   recipe instead of silently no-op'ing a phase — linting first just gives you
+   the errors up front.
+5. Test it end-to-end (below) before opening a PR. Include the
    `bootstrap(dry_run=true)` plan and a real run in the PR description.
 
 ## Workflow

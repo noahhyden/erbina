@@ -13,6 +13,19 @@ are reconstructed from the git history. Everything is therefore under
 
 ### Added
 
+- **Recipe schema validation + linter (`lint_recipes.py`).** A `validate_recipe`
+  check (in `server.py`) enforces the [SCHEMA.md](SCHEMA.md) contract: `id` must
+  equal the filename stem, `kind` is `cli-tool`|`mcp-server`, `detect.command`
+  is non-empty, `install.methods` is non-empty with each method carrying `id` +
+  `run`, `verify` is non-empty with each entry carrying `command`, an
+  `mcp-server` recipe's configure step references `${scope}`, unknown top-level
+  keys are rejected, and any unknown `${...}` placeholder (e.g. a typo'd
+  `${scopee}`) is flagged before it can be shelled out literally. Recipe
+  **loading** now runs the same check and raises — naming the file and listing
+  every problem — so `bootstrap` / `inspect_recipe` refuse a malformed recipe
+  instead of silently no-op'ing a phase under real privileges. `uv run --script
+  lint_recipes.py` lints every recipe and exits non-zero on any failure.
+
 - **Project foundation.** A single-file MCP server (`server.py`, FastMCP over
   stdio) for Claude Code that bootstraps a developer's environment from curated
   recipes. Dependencies are declared inline (PEP 723) and the server is launched
