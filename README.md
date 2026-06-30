@@ -7,13 +7,14 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/Model_Context_Protocol-server-blueviolet.svg)](https://modelcontextprotocol.io)
 [![Claude Code](https://img.shields.io/badge/client-Claude_Code-d97757.svg)](https://code.claude.com)
+[![Status: proof of concept](https://img.shields.io/badge/status-proof_of_concept-yellow.svg)](#)
 
 Named after the Lusitanian goddess of boundaries and crossings — erbina is the
 threshold a tool crosses to become part of your environment. Sibling to
 [ataegina](https://github.com/noahhyden/ataegina-cli) (goddess of rebirth), which
 is also erbina's proof-of-concept recipe #1.
 
-> **Status: proof of concept.** One server, four tools, two recipes — a
+> **Status: proof of concept.** One server, six tools, two recipes — a
 > `cli-tool` ([ataegina](recipes/ataegina.yaml)) and a scope-wiring `mcp-server`
 > ([fetch](recipes/fetch.yaml)). Both work end-to-end; the registry is
 > deliberately tiny.
@@ -112,6 +113,24 @@ deterministically" (use Nix / chezmoi / a Brewfile — an LLM-driven setup is th
 wrong tool for reproducible provisioning). erbina's niche is the unclaimed
 intersection: **agent-run, verify-on-install recipes that span CLI tools *and*
 MCP servers, aware of Claude Code's scopes.**
+
+## Safety model
+
+erbina runs as an ordinary sibling process of Claude Code — **not** inside its
+Bash sandbox — so a recipe's commands execute with your real privileges. The
+safety model is **consent before execution**: `inspect_recipe` and
+`bootstrap(dry_run=true)` show you the exact commands first, and the server
+instructs the agent to surface that plan before any real run. Only bootstrap
+recipes you've read. See [SECURITY.md](SECURITY.md) for the full trust model and
+how to report a vulnerability.
+
+## Contributing
+
+The most useful contribution is usually a **new recipe** — one YAML file in
+`recipes/`. See [CONTRIBUTING.md](CONTRIBUTING.md) for the ground rules and how
+to smoke-test with an in-memory FastMCP client, [SCHEMA.md](SCHEMA.md) for the
+recipe contract, and [CHANGELOG.md](CHANGELOG.md) for what's landed. By
+participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
