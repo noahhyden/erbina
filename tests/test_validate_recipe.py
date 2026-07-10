@@ -22,14 +22,16 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def _errors(recipe: dict) -> list[str]:
+def _errors(recipe: dict, stem: str | None = None) -> list[str]:
     """Normalise validate_recipe's return into a list of error strings.
 
-    The exact shape is defined in PR #4; accept the two most likely forms
+    validate_recipe takes the parsed recipe plus the filename `stem` it must
+    match; we default `stem` to the recipe's own id so a well-formed recipe
+    validates clean. The return is normalised across the two most likely shapes
     (a list of strings, or an object exposing an .errors list) so this test
     stays robust to a minor signature choice.
     """
-    result = server.validate_recipe(recipe)
+    result = server.validate_recipe(recipe, stem=stem if stem is not None else recipe.get("id", ""))
     if isinstance(result, list):
         return [str(e) for e in result]
     errs = getattr(result, "errors", None)

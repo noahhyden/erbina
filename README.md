@@ -8,17 +8,18 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/Model_Context_Protocol-server-blueviolet.svg)](https://modelcontextprotocol.io)
 [![Claude Code](https://img.shields.io/badge/client-Claude_Code-d97757.svg)](https://code.claude.com)
-[![Status: proof of concept](https://img.shields.io/badge/status-proof_of_concept-yellow.svg)](#)
+[![Status: early](https://img.shields.io/badge/status-early%20%C2%B7%20actively%20developed-brightgreen.svg)](#)
 
 Named after the Lusitanian goddess of boundaries and crossings — erbina is the
 threshold a tool crosses to become part of your environment. Sibling to
 [ataegina](https://github.com/noahhyden/ataegina-cli) (goddess of rebirth), which
 is also erbina's proof-of-concept recipe #1.
 
-> **Status: proof of concept.** One server, six tools, two recipes — a
-> `cli-tool` ([ataegina](recipes/ataegina.yaml)) and a scope-wiring `mcp-server`
-> ([fetch](recipes/fetch.yaml)). Both work end-to-end; the registry is
-> deliberately tiny.
+> **The recipe contract is the core idea.** One server, six tools, two recipes
+> today — a `cli-tool` ([ataegina](recipes/ataegina.yaml)) and a scope-wiring
+> `mcp-server` ([fetch](recipes/fetch.yaml)). Both work end-to-end, and a new
+> recipe is one YAML file. The registry is intentionally small while the format
+> proves out — adding to it is the point.
 
 ## Why this exists
 
@@ -51,7 +52,7 @@ declares its own dependencies inline — no venv to manage).
 ```bash
 git clone https://github.com/noahhyden/erbina
 # register it with Claude Code (use --scope user to make it available everywhere)
-claude mcp add erbina --scope user -- uv run /absolute/path/to/erbina/server.py
+claude mcp add erbina --scope user -- uv run --script /absolute/path/to/erbina/server.py
 ```
 
 Then, in Claude Code, just ask: *"use erbina to set up ataegina"* — the agent

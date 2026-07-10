@@ -7,6 +7,10 @@ that an LLM-driven setup is *safe to re-run*: detection gates installation, and
 verification proves the result actually works rather than that a config line was
 written.
 
+> Validate a recipe against this contract with `uv run --script lint_recipes.py`
+> (the same checks run at recipe load time, so `bootstrap` refuses a malformed
+> recipe rather than silently skipping a phase).
+
 ```yaml
 id: <slug>                 # stable id; must match the filename (<id>.yaml)
 kind: cli-tool             # cli-tool | mcp-server

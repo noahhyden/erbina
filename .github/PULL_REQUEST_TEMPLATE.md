@@ -17,8 +17,9 @@ plus what they should observe. For anything that executes, include the
 - [ ] Consent-before-execution preserved: anything that executes is reachable
       only after a dry-run / `inspect_recipe` surface could show it; `audit_*` /
       `find_*` tools stay read-only.
-- [ ] If a recipe was added/changed: `detect` is cheap and side-effect-free,
-      `verify` proves the tool actually *runs*, and `id` matches the filename.
+- [ ] If a recipe was added/changed: it passes `uv run --script
+      lint_recipes.py`, `detect` is cheap and side-effect-free, `verify` proves
+      the tool actually *runs*, and `id` matches the filename.
 - [ ] Recipes stay declarative data handled generically — no per-recipe
       special-casing in the server.
 - [ ] Smoke-tested with an in-memory FastMCP client (see CONTRIBUTING.md);
