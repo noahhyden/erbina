@@ -13,6 +13,15 @@ are reconstructed from the git history. Everything is therefore under
 
 ### Added
 
+- **Test suite + CI + release process.** A pytest suite in `tests/` drives the
+  server through an in-memory FastMCP client over read-only / `dry_run` paths
+  (no network, servers, or Claude Code needed). A GitHub Actions workflow
+  (`.github/workflows/ci.yml`) runs ruff, the suite on Linux + macOS, an import
+  check on the Python 3.10 floor, and a release-verify step (recipes lint clean,
+  `server.json` valid, version-tag agreement on tag builds). `RELEASE.md`
+  documents cutting a versioned release and publishing to the MCP registry, and
+  `main` is protected by a ruleset that requires those checks to pass on a PR.
+
 - **Project foundation.** A single-file MCP server (`server.py`, FastMCP over
   stdio) for Claude Code that bootstraps a developer's environment from curated
   recipes. Dependencies are declared inline (PEP 723) and the server is launched
