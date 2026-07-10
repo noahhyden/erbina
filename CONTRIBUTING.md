@@ -66,9 +66,20 @@ the server. Adding a recipe is just dropping one YAML file in `recipes/`.
 
 ## Testing
 
-erbina has no network test harness — you exercise it the way an agent does, with
-an in-memory FastMCP client. A minimal smoke test (no Claude Code or servers
-required) looks like:
+There is a pytest suite in [`tests/`](tests/) that drives the server through an
+in-memory FastMCP client and only touches read-only / `dry_run` paths — no Claude
+Code, servers, or network required. Run it (and the recipe linter) before opening
+a PR; CI runs the same on Linux + macOS:
+
+```sh
+uv run --with pytest --with fastmcp --with pyyaml pytest tests/ -v
+uv run --script lint_recipes.py
+```
+
+No test harness is installed — `uv --with` materializes the deps per run, so
+nothing is added to the tree. To exercise erbina by hand the way an agent does,
+an in-memory FastMCP client smoke test (no Claude Code or servers required) looks
+like:
 
 ```python
 # smoke.py — run with: uv run --with 'fastmcp>=2.0' --with 'pyyaml>=6.0' smoke.py

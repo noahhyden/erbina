@@ -1,0 +1,153 @@
+name: CI
+
+# Lint, run the test suite on Linux + macOS, prove the server still imports on
+# the minimum supported Python (3.10, the requires-python floor), and verify the
+# release metadata (recipes lint clean, server.json is valid, version <-> tag
+# agree). Everything here honors erbina's ethos: the server stays a single
+# server.py with PEP 723 inline deps, so there is nothing to build or install --
+# `uv` materializes deps on the fly with `--with`, and no lockfile/venv is added.
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Lint: ruff over the whole tree, a byte-compile check of the server, and the
+  # project's own recipe linter (when present -- it lands in a separate PR). Ruff
+  # is version-pinned so a new release adding rules can't turn CI red out from
+  # under a green PR.
+  # ---------------------------------------------------------------------------
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: ruff check
+        run: uvx ruff@0.15.20 check .
+      - name: Byte-compile the server
+        run: python3 -m py_compile server.py
+      - name: Lint the recipes (if the linter is present)
+        run: |
+          if [ -f lint_recipes.py ]; then
+            uv run --script lint_recipes.py
+          else
+            echo "lint_recipes.py not present on this ref; skipping recipe lint"
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Test: the pytest suite on Linux and macOS. It drives an in-memory FastMCP
+  # client and only touches read-only / dry_run paths, so no servers, network,
+  # or `claude` CLI are needed. Deps are pulled in per-run via `uv --with`.
+  # ---------------------------------------------------------------------------
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Run the test suite
+        run: uv run --with pytest --with fastmcp --with pyyaml pytest tests/ -v
+
+  # ---------------------------------------------------------------------------
+  # Floor: the server declares requires-python >= 3.10, so prove it actually
+  # imports and its tools register under 3.10 -- the analogue of asserting the
+  # oldest supported runtime, not just whatever the runner ships.
+  # ---------------------------------------------------------------------------
+  python-floor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Import + tool registration under Python 3.10
+        run: |
+          uv run --python 3.10 --with fastmcp --with pyyaml python - <<'PY'
+          import asyncio, server
+          from fastmcp import Client
+          async def main():
+              async with Client(server.mcp) as c:
+                  names = sorted(t.name for t in await c.list_tools())
+              assert len(names) == 6, names
+              print("ok: 6 tools register under", __import__("sys").version.split()[0])
+          asyncio.run(main())
+          PY
+
+  # ---------------------------------------------------------------------------
+  # Release verification: the recipes must lint clean, server.json (the MCP
+  # registry manifest) must be valid against its published constraints, and on a
+  # tag build the manifest version must match the tag. Steps that reference files
+  # landing in other PRs skip gracefully when the file is absent.
+  # ---------------------------------------------------------------------------
+  release-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # need tags for the version<->tag check
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Recipes lint clean (if the linter is present)
+        run: |
+          if [ -f lint_recipes.py ]; then
+            uv run --script lint_recipes.py
+          else
+            echo "lint_recipes.py not present on this ref; skipping"
+          fi
+      - name: server.json is valid (if present)
+        run: |
+          if [ ! -f server.json ]; then
+            echo "server.json not present on this ref; skipping"
+            exit 0
+          fi
+          python3 - <<'PY'
+          import json, re, sys
+          d = json.load(open("server.json"))
+          errs = []
+          for k in ("name", "description", "version"):
+              if k not in d:
+                  errs.append(f"missing required field: {k}")
+          name = d.get("name", "")
+          if not re.match(r"^[a-zA-Z0-9.-]+/[a-zA-Z0-9._-]+$", name):
+              errs.append(f"name does not match registry pattern: {name!r}")
+          if len(d.get("description", "")) > 100:
+              errs.append("description exceeds 100 chars")
+          if d.get("version") in ("latest", None):
+              errs.append("version must be a concrete semver, not 'latest'")
+          repo = d.get("repository", {})
+          if not (repo.get("url") and repo.get("source")):
+              errs.append("repository needs both url and source")
+          if errs:
+              print("server.json invalid:")
+              for e in errs:
+                  print("  -", e)
+              sys.exit(1)
+          print("ok: server.json valid; version", d["version"])
+          PY
+      - name: server.json version matches the release tag (tag builds only)
+        if: github.ref_type == 'tag'
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ ! -f server.json ]; then
+            echo "no server.json to check against tag $REF_NAME" >&2
+            exit 1
+          fi
+          ver="$(python3 -c 'import json;print(json.load(open("server.json"))["version"])')"
+          echo "manifest version: $ver ; tag: $REF_NAME"
+          if [ "$ver" != "${REF_NAME#v}" ]; then
+            echo "server.json version ($ver) does not match the release tag ($REF_NAME)" >&2
+            exit 1
+          fi
+          echo "ok: manifest version matches the release tag"
