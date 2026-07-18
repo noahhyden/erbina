@@ -1,0 +1,44 @@
+# erbina recipe — tokei, a cli-tool. Count lines of code, fast.
+id: tokei
+kind: cli-tool
+title: "tokei — count your code, quickly"
+description: >
+  tokei quickly counts lines of code by language (code, comments, blanks) across
+  a project. Installs the `tokei` binary. https://github.com/XAMPPRocky/tokei
+
+# 1. DETECT — already installed? `tokei --version` exits 0 when present.
+detect:
+  command: "tokei --version"
+  expect_exit: 0
+
+# 2. INSTALL — prefer brew; fall back to cargo (crate + binary are both `tokei`).
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install tokei"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install tokei"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "tokei --version"
+    expect_exit: 0
+
+# 4. VERSION — `tokei --version` prints "tokei 12.1.2"; tags look like "v12.1.2".
+version:
+  current: "tokei --version"
+  latest: 'curl -fsSL https://api.github.com/repos/XAMPPRocky/tokei/releases/latest | grep ''"tag_name"'''
+
+# 5. UPDATE — brew upgrade, else re-run cargo install (upgrades in place).
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade tokei"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install tokei"
+
+scope: user

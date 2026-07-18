@@ -1,0 +1,47 @@
+# erbina recipe — tealdeer, a cli-tool. A fast client for tldr help pages.
+id: tealdeer
+kind: cli-tool
+title: "tealdeer — a very fast tldr client (simplified man pages)"
+description: >
+  tealdeer is a fast, offline client for the community tldr pages (concise,
+  example-driven command help). NOTE: the project/formula/crate are `tealdeer`,
+  but the installed binary is `tldr`. https://github.com/dbrgn/tealdeer
+
+# 1. DETECT — already installed? The binary is `tldr`, so detect on `tldr`.
+detect:
+  command: "tldr --version"
+  expect_exit: 0
+
+# 2. INSTALL — prefer brew; fall back to cargo. Formula and crate are `tealdeer`
+# (the binary they install is `tldr`).
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install tealdeer"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install tealdeer"
+
+# 3. VERIFY — prove it actually runs (binary name `tldr`).
+verify:
+  - command: "tldr --version"
+    expect_exit: 0
+
+# 4. VERSION — `tldr --version` prints "tealdeer 1.7.0"; dbrgn/tealdeer tags are
+# "v1.7.0". erbina extracts + compares the token.
+version:
+  current: "tldr --version"
+  latest: 'curl -fsSL https://api.github.com/repos/dbrgn/tealdeer/releases/latest | grep ''"tag_name"'''
+
+# 5. UPDATE — brew upgrade (formula `tealdeer`), else re-run cargo install.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade tealdeer"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install tealdeer"
+
+scope: user

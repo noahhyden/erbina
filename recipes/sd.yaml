@@ -1,0 +1,44 @@
+# erbina recipe — sd, a cli-tool. An intuitive find-and-replace (a friendlier sed).
+id: sd
+kind: cli-tool
+title: "sd — intuitive find & replace (a friendlier sed)"
+description: >
+  sd is a simple, fast search-and-replace CLI using regex, with a far friendlier
+  syntax than sed. Installs the `sd` binary. https://github.com/chmln/sd
+
+# 1. DETECT — already installed? `sd --version` exits 0 when present.
+detect:
+  command: "sd --version"
+  expect_exit: 0
+
+# 2. INSTALL — prefer brew; fall back to cargo (crate + binary are both `sd`).
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install sd"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install sd"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "sd --version"
+    expect_exit: 0
+
+# 4. VERSION — `sd --version` prints "sd 1.0.0"; chmln/sd tags look like "v1.0.0".
+version:
+  current: "sd --version"
+  latest: 'curl -fsSL https://api.github.com/repos/chmln/sd/releases/latest | grep ''"tag_name"'''
+
+# 5. UPDATE — brew upgrade, else re-run cargo install (upgrades in place).
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade sd"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install sd"
+
+scope: user
