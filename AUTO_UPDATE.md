@@ -13,7 +13,9 @@ awareness** and (later) **state**.
 | **1** | `check_updates` tool — read-only current-vs-latest report | ✅ done (iter 1) |
 | **2** | `update(recipe_id, dry_run)` — apply update, re-run `verify` | ✅ done (iter 2); `pin`/`unpin` deferred to phase 3 |
 | **3** | state manifest (`~/.erbina/state.json`): what was installed, versions, pins, last-checked | ✅ 3a manifest+recording, 3b pins, 3c rollback |
-| **4** | automatic trigger — SessionStart hook or `/schedule` routine that runs `check_updates` and offers to apply | planned |
+| **4** | automatic trigger — SessionStart hook or `/schedule` routine that runs `check_updates` and offers to apply | ✅ done (iter 4, opt-in) |
+
+**The auto-update feature is complete (phases 0–4).**
 
 ## How it works today (phases 0–1)
 
@@ -25,6 +27,56 @@ awareness** and (later) **state**.
   `packaging` semantics. `update_available` is `True`/`False`, or `null` when a
   version can't be parsed (never a false positive).
 - Core helpers: `_extract_version`, `_version_status` in `server.py`.
+
+## Enabling automatic checks (opt-in)
+
+erbina is an MCP server with **no CLI**, so nothing can call `check_updates` on a
+timer directly — the *agent* has to. Both mechanisms below just nudge the agent;
+neither installs or updates anything without your confirmation, and neither
+touches your live config unless you add it yourself.
+
+### Option A — SessionStart hook (checks each new session)
+
+Point a SessionStart hook at the bundled script
+[`examples/erbina-session-start.sh`](examples/erbina-session-start.sh), which
+prints a hook payload whose `additionalContext` asks the agent to run
+`check_updates` and surface anything available. Add to `.claude/settings.json`
+(or `~/.claude/settings.json` for all projects):
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          { "type": "command", "command": "bash /ABSOLUTE/PATH/TO/erbina/examples/erbina-session-start.sh" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Remove the hook block to turn it off.
+
+### Option B — scheduled routine (checks on a cron)
+
+Create a Claude Code scheduled routine (`/schedule`) whose prompt is:
+
+> Use erbina's `check_updates` tool to see whether any installed tools have
+> updates. If any do, report the `summary` and ask me before applying anything
+> with erbina's `update` tool. If nothing is available, do nothing.
+
+Pick a cadence (e.g. weekly). The routine runs an agent that calls `check_updates`
+and reports back.
+
+### What the agent gets
+
+`check_updates` returns a terse `summary` (e.g. `erbina: 2 tool update(s)
+available — a, b.`) plus per-tool `checked` details and `updates_available`
+(pinned tools excluded). The agent surfaces the summary and, on your go-ahead,
+runs `update` per tool — which re-verifies and rolls back on failure.
 
 ## Design decisions
 
@@ -147,3 +199,15 @@ awareness** and (later) **state**.
   now caught. Also caught: drop-env-injection (2). No flakiness.
 - Note: ataegina has no safe versioned reinstall (brew/curl install latest), so it
   ships WITHOUT a rollback block — it uses the plan+broken path by design.
+
+### Iteration 4 (2026-07-18) — automatic trigger (opt-in) — feature complete
+- `check_updates` now returns a terse `summary` string suited to a session banner
+  / automatic-check surface (e.g. "erbina: 2 tool update(s) available — a, b.").
+- Opt-in trigger, no live-config changes: bundled `examples/erbina-session-start.sh`
+  emits a SessionStart hook payload (`additionalContext`) nudging the agent to run
+  `check_updates`; documented settings.json snippet + a `/schedule` routine
+  alternative in "Enabling automatic checks". Confirmed the exact hook schema
+  against Claude Code docs (plain `command` string; `matcher: startup|resume`).
+- Tests: +2 (258 → 260) for the summary. Red-team: summary-inversion mutation
+  caught; hook script emits valid JSON with `additionalContext`.
+- **Phases 0–4 complete.** Next: repo facelift (README/docs/CHANGELOG/consistency).
