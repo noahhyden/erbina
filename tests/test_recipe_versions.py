@@ -18,6 +18,9 @@ from helpers import call_tool
 VERSION_SAMPLES = [
     ("ripgrep", "ripgrep 14.1.1\nfeatures:+pcre2\nsimd(compile):+SSE2", '  "tag_name": "14.1.1",', "14.1.1", "14.1.1"),
     ("fd", "fd 10.1.0", '  "tag_name": "v10.1.0",', "10.1.0", "10.1.0"),
+    # jq prints "jq-1.7.1" and tags "jq-1.7.1" — the leading "jq-" must not fool
+    # extraction (there's no digit in "jq", so the first token is the version).
+    ("jq", "jq-1.7.1", '  "tag_name": "jq-1.7.1",', "1.7.1", "1.7.1"),
     ("ataegina", "ataegina 0.1.0", '  "tag_name": "v0.2.0",', "0.1.0", "0.2.0"),
 ]
 
@@ -58,3 +61,19 @@ def test_cli_recipe_plan_commands(rid, detect_cmd, methods, verify_cmd):
     got = {m["id"]: m["run"] for m in plan["install"]["all_methods"]}
     assert got == methods
     assert verify_cmd in plan["verify"]
+
+
+# --------------------------------------------------------------------------- #
+# mcp-server wiring: lock the exact `claude mcp add` command per recipe + scope
+# so a wrong package name (mcp-server-<x>) or missing scope substitution is caught
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize("rid,pkg", [
+    ("fetch", "mcp-server-fetch"),
+    ("git", "mcp-server-git"),
+    ("time", "mcp-server-time"),
+])
+def test_mcp_server_wiring_command(rid, pkg):
+    for scope in ("user", "project", "local"):
+        plan = call_tool("bootstrap", {"recipe_id": rid, "scope": scope, "dry_run": True})["plan"]
+        runs = " ".join(s["run"] for s in plan["configure"])
+        assert f"claude mcp add {rid} --scope {scope} -- uvx {pkg}" in runs

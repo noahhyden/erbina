@@ -13,14 +13,16 @@ are reconstructed from the git history. Everything is therefore under
 
 ### Added
 
-- **Recipes: `ripgrep` and `fd`** (`kind: cli-tool`) — Homebrew with a `cargo`
-  fallback (the fd crate is `fd-find`), each with `version:` + `update:` blocks so
-  they participate in `check_updates` / `update`. Plus a **recipe conformance
-  test suite** that every recipe (present and future) must pass: schema-clean,
-  human title + description, every install method guarded, mcp-server wiring is
-  scope-aware, plans leave no unexpanded placeholder, and each versioned recipe's
-  real `--version` / release-tag output is red-teamed to extract a comparable
-  version.
+- **Recipes: `ripgrep`, `fd`, `jq`** (`kind: cli-tool`) and **`git`, `time`**
+  (`kind: mcp-server`, scope-aware like `fetch`). The cli-tools use Homebrew with
+  a guarded fallback (cargo — the fd crate is `fd-find`; apt for jq) and carry
+  `version:` + `update:` blocks so they participate in `check_updates` / `update`.
+  Plus a **recipe conformance test suite** that every recipe (present and future)
+  must pass: schema-clean, human title + description, every install method
+  guarded, mcp-server wiring is scope-aware, plans leave no unexpanded
+  placeholder, each versioned recipe's real `--version` / release-tag output is
+  red-teamed to extract a comparable version, and each mcp-server's exact
+  `claude mcp add … uvx mcp-server-<x>` wiring is locked to catch package typos.
 - **Auto-updating installed tools (`check_updates`, `update`, `pin`).** A recipe
   can declare a `version:` block (installed `current` vs `latest` source) and
   optional `update:` / `rollback:` methods. `check_updates` reports what's out of

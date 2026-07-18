@@ -1,0 +1,37 @@
+# erbina recipe — the official MCP "time" server (kind: mcp-server).
+# Mirrors fetch.yaml: uvx fetches on first run, so wiring it into a Claude Code
+# scope is the work. ${scope} is substituted from `bootstrap`.
+id: time
+kind: mcp-server
+title: "time — official MCP server for time & timezone conversions"
+description: >
+  The Model Context Protocol reference "time" server: gives an agent the current
+  time and timezone conversions. No API key. Runs via uvx, so there is no
+  separate install — wiring it into a scope is the work.
+
+# 1. DETECT — already registered? `claude mcp get` resolves project scope by cwd.
+detect:
+  command: "claude mcp get time"
+  expect_exit: 0
+  needs_project_dir: true
+
+# 2. INSTALL — nothing to download; confirm the runtime that launches it.
+install:
+  methods:
+    - id: uvx
+      when: "command -v uvx"
+      run: "command -v uvx"
+
+# 3. CONFIGURE — scope-aware wiring at ${scope}.
+configure:
+  steps:
+    - run: "claude mcp add time --scope ${scope} -- uvx mcp-server-time"
+      needs_project_dir: true
+
+# 4. VERIFY — Claude Code can see the server at the chosen scope.
+verify:
+  - command: "claude mcp get time"
+    expect_exit: 0
+    needs_project_dir: true
+
+scope: project
