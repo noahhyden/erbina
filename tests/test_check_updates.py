@@ -42,6 +42,17 @@ def test_reports_up_to_date():
     assert "No updates" in out["hint"]
 
 
+def test_summary_reflects_available_updates():
+    out = _check(_versioned("t", current="1.0.0", latest="2.0.0"))
+    assert "1 tool update(s) available" in out["summary"]
+    assert "t" in out["summary"]
+
+
+def test_summary_when_all_current():
+    out = _check(_versioned("t", current="1.0.0", latest="1.0.0"))
+    assert out["summary"] == "erbina: all tracked tools are up to date."
+
+
 # --------------------------------------------------------------------------- #
 # not installed -> nothing to update
 # --------------------------------------------------------------------------- #

@@ -776,7 +776,13 @@ def check_updates(recipe_id: str | None = None, project_dir: str | None = None) 
     )
     if pinned_with_update:
         hint += f" Pinned (skipped despite an update): {', '.join(pinned_with_update)}."
-    return {"checked": checked, "updates_available": updates, "hint": hint}
+    # a terse one-liner suitable for a session banner / automatic-check surface
+    summary = (
+        f"erbina: {len(updates)} tool update(s) available — {', '.join(updates)}."
+        if updates
+        else "erbina: all tracked tools are up to date."
+    )
+    return {"checked": checked, "updates_available": updates, "summary": summary, "hint": hint}
 
 
 def _current_version(recipe: dict[str, Any], scope: str, project_dir: str | None) -> str | None:
