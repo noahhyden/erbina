@@ -13,8 +13,12 @@ are reconstructed from the git history. Everything is therefore under
 
 ### Added
 
-- **Recipes: `ripgrep`, `fd`, `jq`** (`kind: cli-tool`) and **`git`, `time`**
-  (`kind: mcp-server`, scope-aware like `fetch`). The cli-tools use Homebrew with
+- **Recipes: `ripgrep`, `fd`, `jq`, `bat`, `delta`** (`kind: cli-tool`) and
+  **`git`, `time`, `sequentialthinking`** (`kind: mcp-server`, scope-aware like
+  `fetch`; `sequentialthinking` runs via `npx` rather than `uvx`, exercising a
+  second runtime). `delta`'s binary is `delta` while its brew formula and cargo
+  crate are `git-delta` (and `fd`'s crate is `fd-find`) — the recipes get these
+  name mismatches right and tests lock them. The cli-tools use Homebrew with
   a guarded fallback (cargo — the fd crate is `fd-find`; apt for jq) and carry
   `version:` + `update:` blocks so they participate in `check_updates` / `update`.
   Plus a **recipe conformance test suite** that every recipe (present and future)

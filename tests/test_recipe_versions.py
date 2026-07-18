@@ -21,6 +21,8 @@ VERSION_SAMPLES = [
     # jq prints "jq-1.7.1" and tags "jq-1.7.1" — the leading "jq-" must not fool
     # extraction (there's no digit in "jq", so the first token is the version).
     ("jq", "jq-1.7.1", '  "tag_name": "jq-1.7.1",', "1.7.1", "1.7.1"),
+    ("bat", "bat 0.24.0", '  "tag_name": "v0.24.0",', "0.24.0", "0.24.0"),
+    ("delta", "delta 0.18.2", '  "tag_name": "0.18.2",', "0.18.2", "0.18.2"),
     ("ataegina", "ataegina 0.1.0", '  "tag_name": "v0.2.0",', "0.1.0", "0.2.0"),
 ]
 
@@ -54,6 +56,9 @@ def test_every_versioned_recipe_is_covered_by_a_sample():
 @pytest.mark.parametrize("rid,detect_cmd,methods,verify_cmd", [
     ("ripgrep", "rg --version", {"homebrew": "brew install ripgrep", "cargo": "cargo install ripgrep"}, "rg --version"),
     ("fd", "fd --version", {"homebrew": "brew install fd", "cargo": "cargo install fd-find"}, "fd --version"),
+    ("bat", "bat --version", {"homebrew": "brew install bat", "cargo": "cargo install bat"}, "bat --version"),
+    # delta: binary is `delta`, but the brew formula AND cargo crate are `git-delta`
+    ("delta", "delta --version", {"homebrew": "brew install git-delta", "cargo": "cargo install git-delta"}, "delta --version"),
 ])
 def test_cli_recipe_plan_commands(rid, detect_cmd, methods, verify_cmd):
     plan = call_tool("inspect_recipe", {"recipe_id": rid})["will_run"]
@@ -65,15 +70,17 @@ def test_cli_recipe_plan_commands(rid, detect_cmd, methods, verify_cmd):
 
 # --------------------------------------------------------------------------- #
 # mcp-server wiring: lock the exact `claude mcp add` command per recipe + scope
-# so a wrong package name (mcp-server-<x>) or missing scope substitution is caught
+# so a wrong runner/package or missing scope substitution is caught. `runner` is
+# everything after `-- ` (uvx for Python servers, npx for Node ones).
 # --------------------------------------------------------------------------- #
-@pytest.mark.parametrize("rid,pkg", [
-    ("fetch", "mcp-server-fetch"),
-    ("git", "mcp-server-git"),
-    ("time", "mcp-server-time"),
+@pytest.mark.parametrize("rid,runner", [
+    ("fetch", "uvx mcp-server-fetch"),
+    ("git", "uvx mcp-server-git"),
+    ("time", "uvx mcp-server-time"),
+    ("sequentialthinking", "npx -y @modelcontextprotocol/server-sequential-thinking"),
 ])
-def test_mcp_server_wiring_command(rid, pkg):
+def test_mcp_server_wiring_command(rid, runner):
     for scope in ("user", "project", "local"):
         plan = call_tool("bootstrap", {"recipe_id": rid, "scope": scope, "dry_run": True})["plan"]
         runs = " ".join(s["run"] for s in plan["configure"])
-        assert f"claude mcp add {rid} --scope {scope} -- uvx {pkg}" in runs
+        assert f"claude mcp add {rid} --scope {scope} -- {runner}" in runs
