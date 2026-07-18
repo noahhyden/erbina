@@ -156,12 +156,31 @@ def _extract_version(text: str | None) -> str | None:
     return m.group(1) if m else None
 
 
+def _release_core(token: str) -> str | None:
+    """The leading numeric release segment of a version token (`1.2.3-git…` ->
+    `1.2.3`), or None if the token doesn't start with a number. Used to salvage a
+    comparable version from a token that packaging rejects because of a dev/vcs
+    suffix (`-SNAPSHOT`, `-git20240101`, `-alpha.beta`)."""
+    m = re.match(r"\d+(?:\.\d+)*", token)
+    return m.group(0) if m else None
+
+
 def _version_status(current_out: str | None, latest_out: str | None) -> dict[str, Any]:
     """Compare two raw command outputs and report whether an update is available.
 
-    Extracts a version token from each, parses with `packaging`, and compares.
-    `update_available` is True/False when both parse, or None when either cannot
-    be parsed — so erbina NEVER claims an update it can't actually justify.
+    Extracts a version token from each and compares with `packaging`. The two
+    sides are treated ASYMMETRICALLY on purpose:
+
+    - `latest` must parse cleanly. A dev/vcs-suffixed `latest` (e.g.
+      `1.2.4-SNAPSHOT`) is NOT a release we can justify updating to, so it yields
+      `update_available: None` — erbina never claims an update it can't justify.
+    - `current` may carry such a suffix (real `--version` output often does), so
+      when it fails to parse we fall back to its numeric release core. That lets
+      `1.2.3-git20240101` compare as `1.2.3` against a clean `latest` instead of
+      silently hiding a real update.
+
+    `update_available` is None whenever a side can't be resolved to a comparable
+    version.
     """
     cur, lat = _extract_version(current_out), _extract_version(latest_out)
     if cur is None or lat is None:
@@ -172,9 +191,16 @@ def _version_status(current_out: str | None, latest_out: str | None) -> dict[str
             "reason": "could not parse a version from the command output",
         }
     try:
-        cv, lv = Version(cur), Version(lat)
+        lv = Version(lat)
     except InvalidVersion as e:
-        return {"current": cur, "latest": lat, "update_available": None, "reason": f"unparseable version: {e}"}
+        return {"current": cur, "latest": lat, "update_available": None, "reason": f"unparseable latest version: {e}"}
+    try:
+        cv = Version(cur)
+    except InvalidVersion:
+        core = _release_core(cur)
+        if core is None:  # defensive: an extracted token always has a numeric core
+            return {"current": cur, "latest": lat, "update_available": None, "reason": f"unparseable current version: {cur!r}"}
+        cv = Version(core)
     return {"current": cur, "latest": lat, "update_available": lv > cv}
 
 

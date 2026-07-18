@@ -260,12 +260,35 @@ changes, bugs, and development possibilities.
   fallback, `_recipe_ids` no-dir, `audit_scopes` broken-json 1040-1041,
   `mcp.run()` 1122). Low value; will pick off only if a behavioral angle appears.
 
+### Iteration 13 (2026-07-18) — APPLIED FIX for finding #4 (asymmetric)
+- **Fixed #4** (validated twice, iters 11–12): `_version_status` now handles the
+  two sides asymmetrically. `latest` must parse cleanly (an unparseable dev build
+  is never offered as an update → `None` with `"unparseable latest version:"`);
+  `current` falls back to its numeric **release core** via the new `_release_core`
+  helper when packaging rejects it, so `1.2.3-git20240101` compares as `1.2.3`.
+  The asymmetry is the whole point — it recovers real updates without ever
+  over-claiming (erbina's ethos). Confirmed live: `1.2.3-git20240101` vs `1.2.4`
+  → update **True** (was silently `None`); `1.2.3` vs `1.2.4-SNAPSHOT` → `None`.
+- Flipped the iter-11/12 characterization tests to assert the fixed behavior:
+  parametrized `test_suffixed_current_compares_on_release_core` (5 cases incl.
+  equal-core → up-to-date and higher-core → no-downgrade), a strict
+  `test_unparseable_latest_is_not_claimed_as_an_update`, and a monkeypatched
+  `test_uncoercible_current_degrades_gracefully` covering the defensive
+  core-is-None arm (unreachable for real tokens, but reports rather than crashes).
+- Updated SCHEMA.md's "Version checks" section to document the asymmetric rule.
+- Suite 427 → **428**, still 97% server.py coverage (new fn region fully covered).
+  Red-team (3 mutations): latest-not-strict → unparseable-latest test RED;
+  drop-current-fallback → 6 RED; `>`→`>=` → equal-core + bulk tests RED; all
+  revert green. Stable at 428 across 2 repeats + order variation; ruff +
+  recipe-lint + byte-compile clean.
+
 ## Status: steady state + opportunistic hardening
 Comprehensive coverage reached — all 6 tools + all helpers + load/validate/run
-edges, **427 tests, 97% server.py coverage**, 3 bugs fixed (all validated before
-fixing), 1 design quirk documented, 1 candidate finding (#4, permissive version
-regex) validated twice and queued for an asymmetric fix next iteration. The loop
-continues opportunistically, one validated finding at a time.
+edges, **428 tests, 97% server.py coverage**, **4 bugs/robustness findings fixed**
+(all validated ≥1 iteration before fixing: #1 parse misclassification, #2
+unterminated `${`, #3(2) non-optional configure gate, #4 permissive version
+regex), 1 design quirk documented. The loop continues opportunistically, one
+validated finding at a time.
 
 ## Backlog (low value)
 - A tiny CI smoke that imports the harness modules (guards against renames).
