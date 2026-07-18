@@ -19,7 +19,11 @@ are reconstructed from the git history. Everything is therefore under
   script written into a temp dir on PATH), and is verified by execution — covering
   install→verify, idempotent re-run (detect gates install), verify catching a
   broken install, and a real update v1→v2 with the state manifest recording the
-  transition. Deterministic and offline (no package managers/network), so CI-safe.
+  transition. Also covers **rollback recovery** (a broken update whose rollback
+  restores a working prior version via `$ERBINA_ROLLBACK_VERSION`) and the
+  **mcp-server wiring path** end-to-end against a stub `claude` binary
+  (detect→`claude mcp add --scope …`→verify, with `${scope}` + `needs_project_dir`
+  and idempotency). Deterministic and offline (no package managers/network), CI-safe.
 - **README recipe gallery + drift guard.** The README now lists every recipe
   (grouped by kind, linking to its YAML), and a test asserts the gallery stays in
   sync with `recipes/` — a new or removed recipe that isn't reflected fails CI.
