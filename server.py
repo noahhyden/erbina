@@ -231,6 +231,37 @@ def _is_pinned(recipe_id: str) -> bool:
     return bool(_read_state()["tools"].get(recipe_id, {}).get("pinned"))
 
 
+def _validate_methods(block: Any, name: str, *, required: bool, errors: list[str]) -> None:
+    """Validate a guarded-method block — {methods: [{id, run, when?}]} — shared by
+    `install` (required) and `update` / `rollback` (optional). Appends the same
+    messages the three blocks emitted individually before this was factored out.
+    """
+    if not isinstance(block, dict):
+        # None or wrong type. A required block is "missing or malformed"; an
+        # optional one that's present-but-wrong-type just needs to be a mapping.
+        if required:
+            errors.append(f"missing or malformed '{name}' (expected a mapping with 'methods')")
+        elif block is not None:
+            errors.append(f"'{name}' must be a mapping with 'methods'")
+        return
+    methods = block.get("methods")
+    if not isinstance(methods, list) or not methods:
+        suffix = "" if required else f" when '{name}' is present"
+        errors.append(f"'{name}.methods' must be a non-empty list{suffix}")
+        return
+    for i, m in enumerate(methods):
+        tag = f"{name}.methods[{i}]"
+        if not isinstance(m, dict):
+            errors.append(f"{tag}: must be a mapping")
+            continue
+        if not (isinstance(m.get("id"), str) and m["id"].strip()):
+            errors.append(f"{tag}: missing non-empty 'id'")
+        if not (isinstance(m.get("run"), str) and m["run"].strip()):
+            errors.append(f"{tag}: missing non-empty 'run'")
+        _check_placeholders(m.get("run"), f"{tag}.run", errors)
+        _check_placeholders(m.get("when"), f"{tag}.when", errors)
+
+
 def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
     """Validate a parsed recipe dict against the SCHEMA.md contract.
 
@@ -271,25 +302,7 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
         _check_placeholders(detect.get("command"), "detect.command", errors)
 
     # install — required, methods non-empty, each method has id + run
-    install = recipe.get("install")
-    if not isinstance(install, dict):
-        errors.append("missing or malformed 'install' (expected a mapping with 'methods')")
-    else:
-        methods = install.get("methods")
-        if not isinstance(methods, list) or not methods:
-            errors.append("'install.methods' must be a non-empty list")
-        else:
-            for i, m in enumerate(methods):
-                tag = f"install.methods[{i}]"
-                if not isinstance(m, dict):
-                    errors.append(f"{tag}: must be a mapping")
-                    continue
-                if not (isinstance(m.get("id"), str) and m["id"].strip()):
-                    errors.append(f"{tag}: missing non-empty 'id'")
-                if not (isinstance(m.get("run"), str) and m["run"].strip()):
-                    errors.append(f"{tag}: missing non-empty 'run'")
-                _check_placeholders(m.get("run"), f"{tag}.run", errors)
-                _check_placeholders(m.get("when"), f"{tag}.when", errors)
+    _validate_methods(recipe.get("install"), "install", required=True, errors=errors)
 
     # configure — optional, but if present each step needs a 'run'
     configure = recipe.get("configure")
@@ -341,52 +354,14 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
                     errors.append(f"'version.{key}' is required and must be a non-empty string")
                 _check_placeholders(val, f"version.{key}", errors)
 
-    # update — optional. If present, same guarded-method shape as install; it's
-    # what the `update` tool runs to upgrade an already-installed tool.
-    update = recipe.get("update")
-    if update is not None:
-        if not isinstance(update, dict):
-            errors.append("'update' must be a mapping with 'methods'")
-        else:
-            methods = update.get("methods")
-            if not isinstance(methods, list) or not methods:
-                errors.append("'update.methods' must be a non-empty list when 'update' is present")
-            else:
-                for i, m in enumerate(methods):
-                    tag = f"update.methods[{i}]"
-                    if not isinstance(m, dict):
-                        errors.append(f"{tag}: must be a mapping")
-                        continue
-                    if not (isinstance(m.get("id"), str) and m["id"].strip()):
-                        errors.append(f"{tag}: missing non-empty 'id'")
-                    if not (isinstance(m.get("run"), str) and m["run"].strip()):
-                        errors.append(f"{tag}: missing non-empty 'run'")
-                    _check_placeholders(m.get("run"), f"{tag}.run", errors)
-                    _check_placeholders(m.get("when"), f"{tag}.when", errors)
+    # update — optional. Same guarded-method shape as install; what the `update`
+    # tool runs to upgrade an already-installed tool.
+    _validate_methods(recipe.get("update"), "update", required=False, errors=errors)
 
-    # rollback — optional. Same guarded-method shape as install/update; runs to
-    # restore a previous version when an update's verify fails. Its `run` may read
+    # rollback — optional. Same guarded-method shape; runs to restore a previous
+    # version when an update's verify fails. Its `run` may read
     # $ERBINA_ROLLBACK_VERSION (the recorded previous version erbina injects).
-    rollback = recipe.get("rollback")
-    if rollback is not None:
-        if not isinstance(rollback, dict):
-            errors.append("'rollback' must be a mapping with 'methods'")
-        else:
-            methods = rollback.get("methods")
-            if not isinstance(methods, list) or not methods:
-                errors.append("'rollback.methods' must be a non-empty list when 'rollback' is present")
-            else:
-                for i, m in enumerate(methods):
-                    tag = f"rollback.methods[{i}]"
-                    if not isinstance(m, dict):
-                        errors.append(f"{tag}: must be a mapping")
-                        continue
-                    if not (isinstance(m.get("id"), str) and m["id"].strip()):
-                        errors.append(f"{tag}: missing non-empty 'id'")
-                    if not (isinstance(m.get("run"), str) and m["run"].strip()):
-                        errors.append(f"{tag}: missing non-empty 'run'")
-                    _check_placeholders(m.get("run"), f"{tag}.run", errors)
-                    _check_placeholders(m.get("when"), f"{tag}.when", errors)
+    _validate_methods(recipe.get("rollback"), "rollback", required=False, errors=errors)
 
     # scope — optional, but if present must be a valid scope
     scope = recipe.get("scope")
