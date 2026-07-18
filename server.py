@@ -476,6 +476,7 @@ def bootstrap(
         report["phases"]["configure"] = {"status": "none"}
     else:
         results = []
+        configure_failed = False
         for step in cfg_steps:
             cwd = project_dir if step.get("needs_project_dir") else None
             if step.get("needs_project_dir") and not project_dir:
@@ -486,7 +487,15 @@ def bootstrap(
             res = _run(_subst(step["run"], scope, project_dir), cwd=cwd)
             ok = res["exit"] == 0 or step.get("optional")
             results.append({"status": "ok" if ok else "failed", **res})
+            if not ok:
+                configure_failed = True
         report["phases"]["configure"] = {"steps": results}
+        # A required (non-optional) configure step is a prerequisite for verify to
+        # be meaningful — if one fails, short-circuit like a failed install rather
+        # than reporting ok on the strength of an unrelated verify.
+        if configure_failed:
+            report["ok"] = False
+            return report
 
     # 4. verify (must exit 0)
     verify_results = []

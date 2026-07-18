@@ -103,15 +103,32 @@ def test_CURRENT_verify_needing_project_dir_runs_in_cwd_not_skipped():
     assert out["ok"] is False
 
 
-def test_CURRENT_nonoptional_configure_failure_does_not_gate_ok():
-    # A REQUIRED (optional=false) configure step that fails is recorded 'failed'
-    # but bootstrap still reports ok=True when verify passes. Likely should gate
-    # ok — see candidate finding #3. Pins current behavior.
+def test_nonoptional_configure_failure_gates_ok():
+    # Regression for finding #3(2), FIXED in iteration 7: a REQUIRED
+    # (optional=false) configure step that fails now gates report.ok and
+    # short-circuits before verify (mirroring a failed install), rather than
+    # reporting ok=True on the strength of an unrelated passing verify.
     recipe = cli_recipe(
         detect={"command": FALSE},
         configure={"steps": [{"run": FALSE}]},  # non-optional, fails
-        verify=[{"command": TRUE}],             # passes
+        verify=[{"command": TRUE}],             # would pass, but must not run
     )
     out = _boot(recipe)
     assert out["phases"]["configure"]["steps"][0]["status"] == "failed"
-    assert out["ok"] is True  # <-- the surprising part
+    assert out["ok"] is False
+    assert "verify" not in out["phases"]  # short-circuited before verify
+
+
+def test_configure_failure_still_lets_optional_step_pass_through():
+    # Only NON-optional failures gate ok — an optional failing step alongside a
+    # passing required step must not fail the bootstrap.
+    recipe = cli_recipe(
+        detect={"command": FALSE},
+        configure={"steps": [{"run": TRUE}, {"run": FALSE, "optional": True}]},
+        verify=[{"command": TRUE}],
+    )
+    out = _boot(recipe)
+    statuses = [s["status"] for s in out["phases"]["configure"]["steps"]]
+    assert statuses == ["ok", "ok"]  # optional failure recorded as ok
+    assert out["ok"] is True
+    assert "verify" in out["phases"]  # not short-circuited

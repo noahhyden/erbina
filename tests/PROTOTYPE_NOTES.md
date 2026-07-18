@@ -139,7 +139,20 @@ changes, bugs, and development possibilities.
      step sets `report["ok"]=False` (and probably short-circuits before verify,
      mirroring install). (1) is more of a design call — may just document it.
 
+### Iteration 7 (2026-07-18)
+- **APPLIED FIX for finding #3(2):** a failed non-optional `configure` step now
+  gates `report["ok"]=False` and short-circuits before verify (mirroring a failed
+  install). This aligns the code with SCHEMA.md, which already states
+  "`optional: true` means a nonzero exit does not fail the bootstrap" — implying a
+  non-optional step DOES. Characterization test flipped to a regression test;
+  added a test that an optional failure alongside a passing required step still
+  passes through to verify.
+- Suite: 147 → 148 passed. Red-team: gate-reverted mutation caught; stable x2.
+- Finding #3(1) (configure-skips vs verify/detect-run-in-CWD asymmetry) left as a
+  documented `test_CURRENT_*` — it's a design call, not a clear bug; deferring.
+
 ## Backlog (future iterations)
-- Fix candidate #3(2): non-optional configure failure should gate ok.
+- Consider surfacing #3(1): make verify/detect ALSO skip (or clearly warn) when
+  needs_project_dir but no project_dir — or document the asymmetry in SCHEMA.md.
 - Concurrency/isolation: registry() nested usage; multiple prototypes at once.
 - Consider a short tests/README update summarizing the harness modules.
