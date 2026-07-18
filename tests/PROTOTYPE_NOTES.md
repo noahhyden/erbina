@@ -440,9 +440,35 @@ changes, bugs, and development possibilities.
   guard: it states intent clearly and is harmless; not worth product churn.)
 - Stable at 544 across 2 repeats + ordering; ruff + recipe-lint clean.
 
+### Iteration 21 (2026-07-18) — mutation sweep: kill surviving mutants
+- Coverage is done (effective 100%), so pivoted to a **whole-file mutation sweep**
+  (comparison/boolean/constant operators, one at a time, full suite each) to find
+  SURVIVING mutants — behaviors no assertion catches. Most "survivors" were
+  docstring/comment prose (mutating a string literal is a no-op) or
+  equivalent-mutant dead initializers (`detected=False`/`installed=False` are
+  always overwritten because `detect.command` is required). Filtered to the real
+  ones and confirmed each survives individually:
+  - **L993** `update` success never asserted `recorded is True` (test_state's
+    `recorded` assertion covers a different path) → added the assertion.
+  - **L856** `check_updates` `pinned_with_update` used `... and ...`; the only pin
+    test used a pinned tool WITH an update, so `and`/`or` were indistinguishable →
+    added `test_pinned_but_current_tool_is_not_reported_as_skipped` (a pinned but
+    CURRENT tool must not show the "Pinned (skipped…)" hint).
+  - **L994** the no-op note (`before and after and before==after`) was only tested
+    for the equal case, never asserted ABSENT when versions differ → added that
+    assertion to the before/after test.
+- All three mutants now KILLED (re-applied individually → each goes red); revert
+  green. Suite 544 → **545**.
+- **Red-team caught a self-inflicted error:** the collected-test count didn't rise
+  by the expected +1, which exposed that my edit had accidentally swallowed
+  `test_noop_update_reports_already_current`'s `def` line (its body merged into the
+  prior test). Restored it. (The count cross-check is why it surfaced — a reminder
+  to verify test *counts*, not just green.) Stable at 545 across repeats + order;
+  ruff + recipe-lint clean.
+
 ## Status: steady state + opportunistic hardening
 Comprehensive coverage reached — all 6 tools + all helpers + load/validate/run
-edges, **544 tests, 99% (effective 100%) server.py coverage**, **6 bugs/robustness findings fixed**
+edges, **545 tests, 99% (effective 100%) server.py coverage**, **6 bugs/robustness findings fixed**
 (all validated ≥1 iteration before fixing: #1 parse misclassification, #2
 unterminated `${`, #3(2) non-optional configure gate, #4 permissive version
 regex, #6 non-string top-level key crashes validate_recipe, #7 pathological

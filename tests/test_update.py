@@ -81,6 +81,8 @@ def test_successful_update_runs_and_reverifies():
     assert out["phases"]["update"]["method"] == "upd"
     assert out["phases"]["verify"][0]["status"] == "ok"
     assert out["ok"] is True
+    # a successful update must record the transition (mutation guard: recorded=True)
+    assert out["recorded"] is True
 
 
 def test_verify_failure_after_update_flags_broken():
@@ -142,6 +144,9 @@ def test_reports_version_before_and_after(tmp_path):
     assert out["version"]["before"] == "1.0.0"
     assert out["version"]["after"] == "2.0.0"
     assert out["ok"] is True
+    # versions DIFFER, so the "already at X — no-op" note must NOT appear
+    # (mutation guard: the note condition is before AND after AND before==after)
+    assert "no-op" not in out.get("note", "")
 
 
 def test_noop_update_reports_already_current(tmp_path):
