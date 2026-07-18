@@ -5,11 +5,15 @@ All notable changes to erbina are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project aims to adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-erbina is a proof of concept and has not cut a tagged release yet; entries below
-are reconstructed from the git history. Everything is therefore under
-`[Unreleased]`.
-
 ## [Unreleased]
+
+## [0.1.0] - 2026-07-18
+
+First tagged release. erbina ships as source (a single `server.py` run by
+`uv run --script`) plus a curated recipe registry; this release establishes the
+recipe contract, the nine-tool surface, the auto-update system, and a broad test
+suite. Published to the [MCP registry](https://registry.modelcontextprotocol.io)
+as `io.github.noahhyden/erbina`.
 
 ### Added
 
@@ -136,3 +140,6 @@ are reconstructed from the git history. Everything is therefore under
   servers — dogfooded by removing an abandoned, never-connecting server.
 - **Release-hygiene docs:** this changelog, `SECURITY.md`, `CONTRIBUTING.md`,
   `CODE_OF_CONDUCT.md`, and GitHub issue / pull-request templates.
+
+[Unreleased]: https://github.com/noahhyden/erbina/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/noahhyden/erbina/releases/tag/v0.1.0
