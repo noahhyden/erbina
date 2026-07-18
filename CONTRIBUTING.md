@@ -67,12 +67,13 @@ the server. Adding a recipe is just dropping one YAML file in `recipes/`.
 ## Testing
 
 There is a pytest suite in [`tests/`](tests/) that drives the server through an
-in-memory FastMCP client and only touches read-only / `dry_run` paths — no Claude
-Code, servers, or network required. Run it (and the recipe linter) before opening
-a PR; CI runs the same on Linux + macOS:
+in-memory FastMCP client — no Claude Code, servers, or network required
+(subprocess and config reads are monkeypatched, and live `bootstrap`/`update`
+runs use shell builtins, so they're deterministic and side-effect-free). Run it
+(and the recipe linter) before opening a PR; CI runs the same on Linux + macOS:
 
 ```sh
-uv run --with pytest --with fastmcp --with pyyaml pytest tests/ -v
+uv run --with pytest --with fastmcp --with pyyaml --with packaging pytest tests/ -v
 uv run --script lint_recipes.py
 ```
 
@@ -82,7 +83,7 @@ an in-memory FastMCP client smoke test (no Claude Code or servers required) look
 like:
 
 ```python
-# smoke.py — run with: uv run --with 'fastmcp>=2.0' --with 'pyyaml>=6.0' smoke.py
+# smoke.py — run with: uv run --with 'fastmcp>=2.0' --with 'pyyaml>=6.0' --with 'packaging>=23' smoke.py
 import asyncio
 from fastmcp import Client
 from server import mcp
