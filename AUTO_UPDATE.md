@@ -12,7 +12,7 @@ awareness** and (later) **state**.
 | **0** | `version:` recipe block + version compare core | ✅ done (iter 1) |
 | **1** | `check_updates` tool — read-only current-vs-latest report | ✅ done (iter 1) |
 | **2** | `update(recipe_id, dry_run)` — apply update, re-run `verify` | ✅ done (iter 2); `pin`/`unpin` deferred to phase 3 |
-| **3** | state manifest (`~/.erbina/state.json`): what was installed, versions, pins, last-checked | 🚧 3a manifest+recording ✅, 3b pins ✅, 3c rollback next |
+| **3** | state manifest (`~/.erbina/state.json`): what was installed, versions, pins, last-checked | ✅ 3a manifest+recording, 3b pins, 3c rollback |
 | **4** | automatic trigger — SessionStart hook or `/schedule` routine that runs `check_updates` and offers to apply | planned |
 
 ## How it works today (phases 0–1)
@@ -122,3 +122,28 @@ awareness** and (later) **state**.
   pin-doesn't-clobber-record, check_updates exclude/include, update refuse/force/
   unpinned. Red-team: mutations caught — check_updates-ignores-pins (1), update-
   pin-logic-inverted (2); no flakiness.
+
+### Iteration 3c (2026-07-18) — rollback
+- On a post-update verify failure, `update` now tries to recover: it runs the
+  recipe's `rollback:` method (first eligible), passing the recorded previous
+  version via the `$ERBINA_ROLLBACK_VERSION` env var, then re-verifies. If that
+  restores a working tool → `rolled_back_to` + state records the restored version;
+  otherwise → the tool is marked `broken: true` in state. With no `rollback:`
+  block → a `rollback_plan` (previous version + manual instructions) is returned
+  and the tool marked broken. A failed update *command* (upgrade never ran) is
+  NOT marked broken.
+- Env injection (not a placeholder): `_run` gained an `env` param; the rollback
+  command reads `$ERBINA_ROLLBACK_VERSION`. Prototyped first — confirmed the
+  inline `VAR=x cmd` form does NOT work (parent shell expands before setting), so
+  it's passed via the child process environment.
+- Schema: optional `rollback:` block (guarded methods) + validation; documented
+  in SCHEMA.md. Shared `_run_verify` helper now backs update's verify + re-verify.
+- Tests: +11 (246 → 258). test_rollback.py (no-rollback plan+broken, auto-rollback
+  recovers, env-var delivery, rollback-command-fails→broken, AND
+  rollback-command-succeeds-but-verify-still-fails→broken) + rollback validation.
+- **Red-team found a real test gap**: the mutation `recovered = rb_res exit==0`
+  (dropping the `and rb_ok` re-verify check) initially SURVIVED — no test covered
+  "rollback command exits 0 but doesn't fix the tool." Added that test; mutation
+  now caught. Also caught: drop-env-injection (2). No flakiness.
+- Note: ataegina has no safe versioned reinstall (brew/curl install latest), so it
+  ships WITHOUT a rollback block — it uses the plan+broken path by design.

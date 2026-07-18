@@ -132,12 +132,30 @@ def test_successful_update_records_before_and_after(tmp_path):
     assert rec["update_method"] == "u"
 
 
-def test_failed_update_does_not_record(tmp_path):
+def test_failed_update_with_no_rollback_marks_broken(tmp_path):
+    # Behavior since phase 3c: a verify failure after update (with no rollback
+    # path) marks the tool broken in state rather than recording success.
     recipe = cli_recipe(
         "t",
         detect={"command": TRUE},
         update={"methods": [{"id": "u", "run": TRUE}]},
         verify=[{"command": FALSE}],  # verify fails after update
+    )
+    with registry(recipe):
+        out = call_tool("update", {"recipe_id": "t"})
+    assert out["ok"] is False
+    rec = server._read_state()["tools"]["t"]
+    assert rec["broken"] is True
+
+
+def test_failed_update_command_does_not_mark_broken(tmp_path):
+    # If the update COMMAND itself fails (the upgrade never ran), the tool is
+    # still at its old version — not broken — so nothing is recorded.
+    recipe = cli_recipe(
+        "t",
+        detect={"command": TRUE},
+        update={"methods": [{"id": "u", "run": FALSE}]},  # command fails
+        verify=[{"command": TRUE}],
     )
     with registry(recipe):
         out = call_tool("update", {"recipe_id": "t"})

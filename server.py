@@ -24,6 +24,7 @@ git worktree collision-free ports/databases).
 from __future__ import annotations
 
 import json
+import os
 import re
 import shlex
 import subprocess
@@ -46,7 +47,7 @@ VALID_KINDS = ("cli-tool", "mcp-server")
 # The closed set of top-level keys SCHEMA.md defines. `_path` is injected by the
 # loader AFTER validation, so it is not part of the recipe's authored contract.
 TOP_LEVEL_KEYS = frozenset(
-    {"id", "kind", "title", "description", "detect", "install", "configure", "verify", "scope", "version", "update"}
+    {"id", "kind", "title", "description", "detect", "install", "configure", "verify", "scope", "version", "update", "rollback"}
 )
 # Matches the first version-looking token in arbitrary command output, e.g.
 # "ataegina 0.1.0" -> "0.1.0", "v1.2.3 (build 4)" -> "1.2.3". A leading `v` is
@@ -77,11 +78,16 @@ mcp = FastMCP(
 # --------------------------------------------------------------------------- #
 # helpers
 # --------------------------------------------------------------------------- #
-def _run(cmd: str, cwd: str | None = None, timeout: int = 600) -> dict[str, Any]:
-    """Run a shell command, capturing a trimmed result. Never raises."""
+def _run(cmd: str, cwd: str | None = None, timeout: int = 600, env: dict[str, str] | None = None) -> dict[str, Any]:
+    """Run a shell command, capturing a trimmed result. Never raises.
+
+    `env` supplies EXTRA variables merged over the inherited environment (used to
+    hand a rollback command its target version via $ERBINA_ROLLBACK_VERSION).
+    """
     try:
         p = subprocess.run(
-            cmd, shell=True, cwd=cwd, capture_output=True, text=True, timeout=timeout
+            cmd, shell=True, cwd=cwd, capture_output=True, text=True, timeout=timeout,
+            env={**os.environ, **env} if env else None,
         )
         return {
             "cmd": cmd,
@@ -348,6 +354,30 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
             else:
                 for i, m in enumerate(methods):
                     tag = f"update.methods[{i}]"
+                    if not isinstance(m, dict):
+                        errors.append(f"{tag}: must be a mapping")
+                        continue
+                    if not (isinstance(m.get("id"), str) and m["id"].strip()):
+                        errors.append(f"{tag}: missing non-empty 'id'")
+                    if not (isinstance(m.get("run"), str) and m["run"].strip()):
+                        errors.append(f"{tag}: missing non-empty 'run'")
+                    _check_placeholders(m.get("run"), f"{tag}.run", errors)
+                    _check_placeholders(m.get("when"), f"{tag}.when", errors)
+
+    # rollback — optional. Same guarded-method shape as install/update; runs to
+    # restore a previous version when an update's verify fails. Its `run` may read
+    # $ERBINA_ROLLBACK_VERSION (the recorded previous version erbina injects).
+    rollback = recipe.get("rollback")
+    if rollback is not None:
+        if not isinstance(rollback, dict):
+            errors.append("'rollback' must be a mapping with 'methods'")
+        else:
+            methods = rollback.get("methods")
+            if not isinstance(methods, list) or not methods:
+                errors.append("'rollback.methods' must be a non-empty list when 'rollback' is present")
+            else:
+                for i, m in enumerate(methods):
+                    tag = f"rollback.methods[{i}]"
                     if not isinstance(m, dict):
                         errors.append(f"{tag}: must be a mapping")
                         continue
@@ -759,6 +789,20 @@ def _current_version(recipe: dict[str, Any], scope: str, project_dir: str | None
     return _extract_version(_run(_subst(cmd, scope, project_dir), cwd=cwd, timeout=30)["stdout"])
 
 
+def _run_verify(recipe: dict[str, Any], scope: str, project_dir: str | None) -> tuple[list[dict[str, Any]], bool]:
+    """Run every verify command; return (per-command results, all_required_passed)."""
+    results: list[dict[str, Any]] = []
+    all_ok = True
+    for v in recipe.get("verify", []):
+        v_cwd = project_dir if v.get("needs_project_dir") else None
+        vres = _run(_subst(v["command"], scope, project_dir), cwd=v_cwd, timeout=30)
+        ok = vres["exit"] == v.get("expect_exit", 0)
+        if not ok and not v.get("optional"):
+            all_ok = False
+        results.append({"status": "ok" if ok else "failed", **vres})
+    return results, all_ok
+
+
 @mcp.tool
 def update(
     recipe_id: str,
@@ -841,21 +885,13 @@ def update(
         return report
 
     # re-run verify — the safety net that proves the updated tool still runs
-    verify_results = []
-    all_ok = True
-    for v in recipe.get("verify", []):
-        v_cwd = project_dir if v.get("needs_project_dir") else None
-        vres = _run(_subst(v["command"], scope, project_dir), cwd=v_cwd, timeout=30)
-        ok = vres["exit"] == v.get("expect_exit", 0)
-        if not ok and not v.get("optional"):
-            all_ok = False
-        verify_results.append({"status": "ok" if ok else "failed", **vres})
+    verify_results, all_ok = _run_verify(recipe, scope, project_dir)
     report["phases"]["verify"] = verify_results
-
     after = _current_version(recipe, scope, project_dir)
     report["version"] = {"before": before, "after": after}
-    report["ok"] = all_ok
+
     if all_ok:
+        report["ok"] = True
         _record_tool(
             recipe_id,
             kind=recipe.get("kind"),
@@ -864,13 +900,56 @@ def update(
             update_method=method.get("id"),
         )
         report["recorded"] = True
-    if not all_ok:
-        report["warning"] = (
-            "verify FAILED after update — the tool may be broken. Consider reinstalling via "
-            "bootstrap (automatic rollback lands with the state manifest in a later phase)."
-        )
-    elif before and after and before == after:
-        report["note"] = f"Already at {after} — update was a no-op."
+        if before and after and before == after:
+            report["note"] = f"Already at {after} — update was a no-op."
+        return report
+
+    # verify FAILED after the upgrade — try to roll back to the previous version.
+    report["ok"] = False
+    rb_method = _pick_method(recipe.get("rollback", {}).get("methods", []))
+    if rb_method and before:
+        # hand the rollback command its target version via the environment
+        rb_res = _run(rb_method["run"], env={"ERBINA_ROLLBACK_VERSION": before})
+        rb_verify: list[dict[str, Any]] = []
+        rb_ok = False
+        if rb_res["exit"] == 0:
+            rb_verify, rb_ok = _run_verify(recipe, scope, project_dir)
+        recovered = rb_res["exit"] == 0 and rb_ok
+        report["phases"]["rollback"] = {
+            "status": "ok" if recovered else "failed",
+            "method": rb_method.get("id"),
+            "verify": rb_verify,
+            **rb_res,
+        }
+        if recovered:
+            _record_tool(
+                recipe_id, installed_version=before, previous_version=after,
+                update_method=method.get("id"), broken=False,
+            )
+            report["rolled_back_to"] = before
+            report["warning"] = f"update to {after} failed verify; rolled back to {before}, which verifies OK."
+        else:
+            _record_tool(recipe_id, broken=True)
+            report["warning"] = (
+                "update failed verify AND rollback failed — the tool may be broken; reinstall via bootstrap."
+            )
+        return report
+
+    # no rollback path — surface a manual plan and mark the tool broken in state
+    _record_tool(recipe_id, broken=True)
+    report["rollback_plan"] = {
+        "previous_version": before,
+        "instructions": (
+            f"No `rollback:` command declared. The tool was at {before} before this update; "
+            "reinstall that version manually, or run bootstrap to reinstall the latest."
+            if before
+            else "No `rollback:` command and no recorded previous version; run bootstrap to reinstall."
+        ),
+    }
+    report["warning"] = (
+        "verify FAILED after update — the tool may be broken and is marked so in state. "
+        "No rollback command declared; see rollback_plan."
+    )
     return report
 
 
