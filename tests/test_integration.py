@@ -119,3 +119,111 @@ def test_update_upgrades_a_real_tool_end_to_end(erb_bin):
     rec = server._read_state()["tools"]["erbtool"]
     assert rec["installed_version"] == "2.0.0"
     assert rec["previous_version"] == "1.0.0"
+
+
+# --------------------------------------------------------------------------- #
+# rollback recovery: real broken update -> real rollback restores a working tool
+# --------------------------------------------------------------------------- #
+def _write_script_from_rollback_env() -> str:
+    """Install a WORKING erbtool that echoes $ERBINA_ROLLBACK_VERSION — the outer
+    (rollback) shell expands it at write time, so the restored tool reports the
+    version erbina rolled back to."""
+    return (
+        "echo '#!/bin/sh' > \"$ERB_BIN/erbtool\"; "
+        'echo "echo erbtool $ERBINA_ROLLBACK_VERSION" >> "$ERB_BIN/erbtool"; '
+        "chmod +x \"$ERB_BIN/erbtool\""
+    )
+
+
+def test_rollback_recovers_a_broken_update_end_to_end(erb_bin):
+    recipe = {
+        "id": "erbtool",
+        "kind": "cli-tool",
+        "title": "erbtool — rollback fixture",
+        "description": "installs v1, a broken v2, and a rollback that restores the prior version",
+        "detect": {"command": "command -v erbtool"},
+        "install": {"methods": [{"id": "s", "when": "command -v chmod", "run": _write_script("1.0.0")}]},
+        "verify": [{"command": "erbtool --version"}],
+        "version": {"current": "erbtool --version", "latest": "echo 2.0.0"},
+        "update": {"methods": [{"id": "s", "when": "command -v chmod", "run": _write_script("2.0.0", ok=False)}]},
+        "rollback": {"methods": [{"id": "restore", "when": "command -v chmod", "run": _write_script_from_rollback_env()}]},
+        "scope": "user",
+    }
+    with registry(recipe):
+        assert call_tool("bootstrap", {"recipe_id": "erbtool"})["ok"] is True
+        out = call_tool("update", {"recipe_id": "erbtool"})
+
+    # the update's verify failed, but rollback restored a working prior version
+    assert out["ok"] is False
+    assert out["phases"]["rollback"]["status"] == "ok"
+    assert out["rolled_back_to"] == "1.0.0"
+    # the tool on disk really works again and reports the rolled-back version
+    res = subprocess.run(["erbtool", "--version"], capture_output=True, text=True)
+    assert res.returncode == 0 and "erbtool 1.0.0" in res.stdout
+
+
+# --------------------------------------------------------------------------- #
+# mcp-server wiring: real bootstrap against a STUB `claude` binary
+# --------------------------------------------------------------------------- #
+@pytest.fixture
+def stub_claude(erb_bin, tmp_path):
+    """A fake `claude` on PATH: `mcp add <name> …` records the invocation to a
+    store dir; `mcp get <name>` exits 0 iff that name was added. Returns the store."""
+    store = tmp_path / "mcp_store"
+    store.mkdir()
+    claude = erb_bin / "claude"
+    claude.write_text(
+        "#!/bin/sh\n"
+        f'STORE="{store}"\n'
+        'if [ "$1" = "mcp" ] && [ "$2" = "add" ]; then echo "$@" > "$STORE/$3"; exit 0\n'
+        'elif [ "$1" = "mcp" ] && [ "$2" = "get" ]; then [ -f "$STORE/$3" ] && exit 0 || exit 1\n'
+        "fi\nexit 2\n"
+    )
+    claude.chmod(0o755)
+    return store
+
+
+def _mcp_recipe(name="fixsrv", runner="npx -y fixsrv-server"):
+    return {
+        "id": name,
+        "kind": "mcp-server",
+        "title": f"{name} — mcp-server fixture",
+        "description": "a stub mcp-server recipe for end-to-end wiring tests",
+        "detect": {"command": f"claude mcp get {name}", "needs_project_dir": True},
+        "install": {"methods": [{"id": "rt", "when": "command -v claude", "run": "command -v claude"}]},
+        "configure": {"steps": [{"run": f"claude mcp add {name} --scope ${{scope}} -- {runner}", "needs_project_dir": True}]},
+        "verify": [{"command": f"claude mcp get {name}", "needs_project_dir": True}],
+        "scope": "project",
+    }
+
+
+def test_mcp_server_bootstrap_wires_and_verifies_e2e(stub_claude, tmp_path):
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    with registry(_mcp_recipe()):
+        out = call_tool("bootstrap", {"recipe_id": "fixsrv", "scope": "project", "project_dir": str(proj)})
+    assert out["ok"] is True
+    assert out["phases"]["detect"]["present"] is False              # genuinely not yet registered
+    assert out["phases"]["configure"]["steps"][0]["status"] == "ok"  # claude mcp add ran
+    assert out["phases"]["verify"][0]["status"] == "ok"             # claude mcp get now succeeds
+    # the stub received the exact wiring command, with ${scope} substituted
+    assert (stub_claude / "fixsrv").read_text().strip() == "mcp add fixsrv --scope project -- npx -y fixsrv-server"
+
+
+def test_mcp_server_scope_substitution_e2e(stub_claude, tmp_path):
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    with registry(_mcp_recipe()):
+        call_tool("bootstrap", {"recipe_id": "fixsrv", "scope": "user", "project_dir": str(proj)})
+    assert "--scope user --" in (stub_claude / "fixsrv").read_text()
+
+
+def test_mcp_server_bootstrap_is_idempotent_e2e(stub_claude, tmp_path):
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    with registry(_mcp_recipe()):
+        call_tool("bootstrap", {"recipe_id": "fixsrv", "scope": "project", "project_dir": str(proj)})
+        second = call_tool("bootstrap", {"recipe_id": "fixsrv", "scope": "project", "project_dir": str(proj)})
+    # already registered -> detect present -> install + configure skipped
+    assert second["phases"]["detect"]["present"] is True
+    assert second["phases"]["configure"]["status"] == "skipped"
