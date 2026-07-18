@@ -15,11 +15,10 @@ threshold a tool crosses to become part of your environment. Sibling to
 [ataegina](https://github.com/noahhyden/ataegina-cli) (goddess of rebirth), which
 is also erbina's proof-of-concept recipe #1.
 
-> **The recipe contract is the core idea.** One server, nine tools, two recipes
-> today — a `cli-tool` ([ataegina](recipes/ataegina.yaml)) and a scope-wiring
-> `mcp-server` ([fetch](recipes/fetch.yaml)). Both work end-to-end, and a new
-> recipe is one YAML file. The registry is intentionally small while the format
-> proves out — adding to it is the point.
+> **The recipe contract is the core idea.** One server, nine tools, and a curated
+> set of recipes spanning `cli-tool`s and scope-wiring `mcp-server`s (see the
+> [Recipe gallery](#recipe-gallery)). Each is one YAML file held to a conformance
+> bar (schema + linter policy + tests), and adding one is the point.
 
 ## Why this exists
 
@@ -122,6 +121,40 @@ Checks are agent-driven; you can also enable an **opt-in** SessionStart hook or 
 `/schedule` routine so the agent checks for you and asks before applying anything.
 See [AUTO_UPDATE.md](AUTO_UPDATE.md) for the design, the `version:`/`update:`/
 `rollback:` schema, and the trigger setup.
+
+## Recipe gallery
+
+The curated registry today. Each links to its YAML; `cli-tool`s install a binary,
+`mcp-server`s wire a server into a chosen Claude Code scope. (This list is kept in
+sync with `recipes/` by a test.)
+
+**CLI tools**
+
+- [`ataegina`](recipes/ataegina.yaml) — collision-free dev environments per git worktree
+- [`bat`](recipes/bat.yaml) — a cat clone with syntax highlighting and Git integration
+- [`bottom`](recipes/bottom.yaml) — a cross-platform graphical process/system monitor
+- [`delta`](recipes/delta.yaml) — a syntax-highlighting pager for git, diff, and grep output
+- [`dust`](recipes/dust.yaml) — a more intuitive version of du
+- [`eza`](recipes/eza.yaml) — a modern, maintained replacement for ls
+- [`fd`](recipes/fd.yaml) — a fast, friendly alternative to find
+- [`hyperfine`](recipes/hyperfine.yaml) — a command-line benchmarking tool
+- [`jq`](recipes/jq.yaml) — command-line JSON processor
+- [`procs`](recipes/procs.yaml) — a modern replacement for ps
+- [`ripgrep`](recipes/ripgrep.yaml) — blazing-fast recursive search
+- [`sd`](recipes/sd.yaml) — intuitive find & replace (a friendlier sed)
+- [`tealdeer`](recipes/tealdeer.yaml) — a very fast tldr client (simplified man pages)
+- [`tokei`](recipes/tokei.yaml) — count your code, quickly
+- [`uv`](recipes/uv.yaml) — an extremely fast Python package and project manager
+- [`zoxide`](recipes/zoxide.yaml) — a smarter cd command that learns your habits
+
+**MCP servers**
+
+- [`everything`](recipes/everything.yaml) — official MCP reference/test server exercising the full protocol
+- [`fetch`](recipes/fetch.yaml) — official MCP server for retrieving web content
+- [`git`](recipes/git.yaml) — official MCP server for Git repository operations
+- [`memory`](recipes/memory.yaml) — official MCP server for a persistent knowledge graph
+- [`sequentialthinking`](recipes/sequentialthinking.yaml) — official MCP server for structured step-by-step reasoning
+- [`time`](recipes/time.yaml) — official MCP server for time & timezone conversions
 
 ## Adding a recipe
 
