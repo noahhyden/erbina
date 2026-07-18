@@ -466,9 +466,29 @@ changes, bugs, and development possibilities.
   to verify test *counts*, not just green.) Stable at 545 across repeats + order;
   ruff + recipe-lint clean.
 
+### Iteration 22 (2026-07-18) — second mutation pass (slicing/method/const ops)
+- Ran a second sweep with new operators (slicing, indexing, `sorted→list`,
+  `rpartition→partition`, `.strip()` removal, `not in→in`, timeout constants):
+  25 survivors / 63 mutations. Triaged:
+  - **Benign / equivalent:** `sorted→list` (error-message + returned-list ordering,
+    never asserted), `is None` inside a docstring string, `not in→in` in
+    `_parse_mcp_list` connected-detection (masked by the downstream
+    `connected and not failed`), and — importantly — **all `timeout=30/60→1`
+    survivors are NOT behaviorally testable** without slow/flaky tests (builtin
+    prototype commands finish instantly), so they're accepted, not chased.
+  - **Real gap:** the `.strip()` in each "non-empty string" validation check
+    (install method `id`/`run`, configure `run`, verify `command`, and the lint
+    policy `when` guard) survived — only EMPTY string, never WHITESPACE-only, was
+    covered, yet `.strip()` is exactly what makes `"   "` count as empty.
+- Added `test_whitespace_only_field_is_rejected_like_empty` (5 fields) and
+  `test_blank_or_missing_when_guard_flagged` (4 cases). All 5 `.strip()` mutants
+  now KILLED (re-applied individually → red); revert green. Suite 545 → **554**
+  (collected-count cross-check confirmed +9, per last iteration's lesson).
+- Stable at 554 across 2 repeats + ordering; ruff + recipe-lint clean.
+
 ## Status: steady state + opportunistic hardening
 Comprehensive coverage reached — all 6 tools + all helpers + load/validate/run
-edges, **545 tests, 99% (effective 100%) server.py coverage**, **6 bugs/robustness findings fixed**
+edges, **554 tests, 99% (effective 100%) server.py coverage**, **6 bugs/robustness findings fixed**
 (all validated ≥1 iteration before fixing: #1 parse misclassification, #2
 unterminated `${`, #3(2) non-optional configure gate, #4 permissive version
 regex, #6 non-string top-level key crashes validate_recipe, #7 pathological

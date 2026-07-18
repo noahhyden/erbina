@@ -46,6 +46,17 @@ def test_unguarded_install_method_flagged():
     assert any("guard" in p for p in problems)
 
 
+@pytest.mark.parametrize("when", ["", "   ", "\t", None])
+def test_blank_or_missing_when_guard_flagged(when):
+    # a whitespace-only `when` is as good as no guard (mutation guard: the check
+    # strips the guard string before testing it for emptiness).
+    method = {"id": "m", "run": "true"}
+    if when is not None:
+        method["when"] = when
+    r = cli_recipe("t", install={"methods": [method]})
+    assert any("guard" in p for p in server.lint_recipe_policy(r))
+
+
 def test_policy_ignores_non_mapping():
     assert server.lint_recipe_policy("not a dict") == []
 

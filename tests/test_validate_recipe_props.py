@@ -81,6 +81,27 @@ def test_single_defect_is_reported(label, mutate, needle):
     )
 
 
+# --------------------------------------------------------------------------- #
+# WHITESPACE-only fields must be rejected exactly like empty ones — the `.strip()`
+# in each "non-empty string" check is what makes "   " count as empty. (These pin
+# that: mutation testing showed dropping any of those .strip() calls survived,
+# because only empty-string, not whitespace-only, was covered.)
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize("mutate,needle", [
+    (lambda r: r.__setitem__("install", {"methods": [{"id": "  ", "run": "true"}]}), "id"),
+    (lambda r: r.__setitem__("install", {"methods": [{"id": "m", "run": "   "}]}), "run"),
+    (lambda r: r.__setitem__("configure", {"steps": [{"run": "\t"}]}), "run"),
+    (lambda r: r.__setitem__("verify", [{"command": "  "}]), "command"),
+    (lambda r: r.__setitem__("detect", {"command": "\n "}), "command"),
+])
+def test_whitespace_only_field_is_rejected_like_empty(mutate, needle):
+    r = cli_recipe("t")
+    mutate(r)
+    errs = _errs(r)
+    assert errs, "whitespace-only value should be rejected"
+    assert needle in " ".join(errs)
+
+
 def test_id_must_equal_filename_stem():
     r = cli_recipe("realid")
     errs = _errs(r, stem="different_stem")
