@@ -1,0 +1,46 @@
+# erbina recipe — jq, a cli-tool. Command-line JSON processor.
+id: jq
+kind: cli-tool
+title: "jq — command-line JSON processor"
+description: >
+  jq is a lightweight, flexible command-line JSON processor — slice, filter, map,
+  and transform structured data. Installs the `jq` binary. https://jqlang.org
+
+# 1. DETECT — already installed? `jq --version` exits 0 when present.
+detect:
+  command: "jq --version"
+  expect_exit: 0
+
+# 2. INSTALL — prefer brew; fall back to apt (Debian/Ubuntu, needs sudo, so the
+# agent shows it first). The package is `jq` on both.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install jq"
+    - id: apt
+      when: "command -v apt-get"
+      run: "sudo apt-get install -y jq"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "jq --version"
+    expect_exit: 0
+
+# 4. VERSION — `jq --version` prints "jq-1.7.1"; the release tag is also
+# "jq-1.7.1". erbina extracts the "1.7.1" token from each and compares.
+version:
+  current: "jq --version"
+  latest: 'curl -fsSL https://api.github.com/repos/jqlang/jq/releases/latest | grep ''"tag_name"'''
+
+# 5. UPDATE — brew upgrade, else apt --only-upgrade.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade jq"
+    - id: apt
+      when: "command -v apt-get"
+      run: "sudo apt-get install -y --only-upgrade jq"
+
+scope: user

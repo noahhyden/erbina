@@ -1,0 +1,39 @@
+# erbina recipe — the official MCP "git" server (kind: mcp-server).
+# Mirrors fetch.yaml: nothing to download (uvx fetches on first run); the work is
+# wiring it into a Claude Code scope. ${scope} is substituted from `bootstrap`.
+id: git
+kind: mcp-server
+title: "git — official MCP server for Git repository operations"
+description: >
+  The Model Context Protocol reference "git" server: lets an agent read, search,
+  and manipulate a Git repository (status, diff, log, commit, branches) through
+  tools. Runs via uvx, so there is no separate install — wiring it into a scope
+  is the work.
+
+# 1. DETECT — already registered? `claude mcp get` resolves project scope from
+# the cwd, so gate on project_dir.
+detect:
+  command: "claude mcp get git"
+  expect_exit: 0
+  needs_project_dir: true
+
+# 2. INSTALL — nothing to download; just confirm the runtime that launches it.
+install:
+  methods:
+    - id: uvx
+      when: "command -v uvx"
+      run: "command -v uvx"
+
+# 3. CONFIGURE — the scope-aware wiring. Writes the server entry at ${scope}.
+configure:
+  steps:
+    - run: "claude mcp add git --scope ${scope} -- uvx mcp-server-git"
+      needs_project_dir: true
+
+# 4. VERIFY — Claude Code can see the server at the chosen scope.
+verify:
+  - command: "claude mcp get git"
+    expect_exit: 0
+    needs_project_dir: true
+
+scope: project
