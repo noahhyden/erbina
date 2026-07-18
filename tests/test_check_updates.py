@@ -4,6 +4,8 @@ so the whole check is deterministic and side-effect free.
 """
 from __future__ import annotations
 
+import pytest
+
 from helpers import call_tool
 from prototype import FALSE, TRUE, cli_recipe, registry
 
@@ -99,4 +101,47 @@ def test_unparseable_version_output_is_safe():
     out = _check(_versioned("t", current="whoknows", latest="2.0.0"))
     entry = out["checked"][0]
     assert entry["update_available"] is None
+    assert out["updates_available"] == []
+    # no version token at all -> the "could not parse" branch (server.py:167-172)
+    assert entry["reason"] == "could not parse a version from the command output"
+
+
+# --------------------------------------------------------------------------- #
+# CHARACTERIZATION — the extraction regex is more permissive than packaging.
+#
+# `_extract_version` happily pulls tokens like "1.2.3-git20240101" /
+# "2.0-SNAPSHOT" / "1.2.3-alpha.beta" out of `--version` output, but
+# packaging.Version() rejects them, so `_version_status` falls into its
+# `except InvalidVersion` arm (server.py:176-177) and reports update_available
+# None with a DISTINCT reason ("unparseable version: ...") from the no-token
+# case above. These tests pin that current behavior AND cover that branch.
+#
+# CANDIDATE FINDING (documented in PROTOTYPE_NOTES.md, not fixed yet): the arm
+# is safe (never a false update) but LOSSY — a tool whose current version is
+# "1.2.3-git20240101" and whose latest is "1.2.4" is silently NOT flagged as
+# updatable, even though the release core "1.2.3" is right there and clearly
+# older. See test_CURRENT_suffixed_current_misses_a_real_update.
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize(
+    "bad",
+    ["1.2.3-git20240101", "2.0-SNAPSHOT", "1.2.3-alpha.beta", "10.20.30-rc.1.2.3"],
+)
+def test_extracted_but_unparseable_version_is_safe_with_distinct_reason(bad):
+    out = _check(_versioned("t", current=bad, latest="2.0.0"))
+    entry = out["checked"][0]
+    # token WAS extracted (so this is the InvalidVersion arm, not the None arm)
+    assert entry["current"] == bad
+    assert entry["update_available"] is None
+    assert entry["reason"].startswith("unparseable version:")
+    assert out["updates_available"] == []
+
+
+def test_CURRENT_suffixed_current_misses_a_real_update():
+    """Pinned quirk: a real, newer `latest` is not surfaced when `current`
+    carries a packaging-illegal suffix. If a future iteration teaches
+    `_version_status` to fall back to the release core, flip this to expect
+    update_available True and updates_available == ["t"]."""
+    out = _check(_versioned("t", current="1.2.3-git20240101", latest="1.2.4"))
+    entry = out["checked"][0]
+    assert entry["update_available"] is None  # <- the lossy behavior being pinned
     assert out["updates_available"] == []

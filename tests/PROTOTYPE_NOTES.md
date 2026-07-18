@@ -198,11 +198,44 @@ changes, bugs, and development possibilities.
   Red-team: guard-always-eligible (3 caught), non-mapping-swallowed (5 caught);
   stable x2.
 
-## Status: steady state
+### Iteration 11 (2026-07-18) — resumed loop; version-parse robustness
+- **Log/reality gap:** this log stalled at iteration 10 (168 tests) but the suite
+  had since grown to **417 passed / 16 skipped** via later PRs (more recipes, the
+  linter policy, conformance + integration + readme-gallery + version tests).
+  Re-baselined here; resuming disciplined logging.
+- Objective gap-finding via `--cov=server`: 95% (27 stmts uncovered, mostly
+  defensive arms). Targeted the one uncovered branch that is a real *behavioral*
+  path, not just a guard: `_version_status`'s `except InvalidVersion` arm
+  (server.py:176-177).
+- **CANDIDATE FINDING #4 (documented, NOT fixed — validate next iteration):**
+  `_extract_version`'s regex (`v?(\d+\.\d+(?:\.\d+)?(?:[-.]…)?)`) is strictly
+  more permissive than `packaging.Version`. It extracts tokens like
+  `1.2.3-git20240101`, `2.0-SNAPSHOT`, `1.2.3-alpha.beta`, `10.20.30-rc.1.2.3`
+  that `Version()` then rejects, so `check_updates` reports `update_available:
+  None` with reason `"unparseable version: …"`. Safe (never a false update) but
+  **lossy**: current `1.2.3-git20240101` vs latest `1.2.4` is silently NOT
+  flagged, though the release core `1.2.3` is clearly older. Confirmed live
+  through the tool surface (not just the helper).
+- Added to `test_check_updates.py` (+5 tests, 417 → 422): a parametrized safety
+  test over four packaging-illegal-but-extractable strings (covers the
+  InvalidVersion arm + pins the DISTINCT `"unparseable version:"` reason vs the
+  no-token `"could not parse a version"` reason), a `test_CURRENT_*`
+  characterization pinning the missed-update, and a reason assertion on the
+  existing no-token test.
+- Red-team: **M1** InvalidVersion arm → `update_available: True` (false update):
+  5 RED. **M2** collapse the two reasons into one: 4 RED (proves the distinct-
+  reason assertion isn't a false pass). Revert → 14/14 green. Suite stable at
+  422 across 2 repeats + new-file-first ordering; ruff + recipe-lint clean.
+  → **Next iteration:** re-confirm #4, then likely fix by having `_version_status`
+    fall back to the numeric release core (`re.match(r"\d+(\.\d+)*", tok)`) when
+    the full token fails `Version()`, so suffixed versions still compare. Flip
+    `test_CURRENT_suffixed_current_misses_a_real_update` to expect the update.
+
+## Status: steady state + opportunistic hardening
 Comprehensive coverage reached — all 6 tools + all helpers + load/validate/run
-edges, 168 tests, 3 bugs fixed (all validated before fixing), 1 design quirk
-documented. Remaining ideas are low-value; the loop can wind down or continue
-opportunistically.
+edges, **422 tests**, 3 bugs fixed (all validated before fixing), 1 design quirk
+documented, 1 candidate finding (#4) pending validation. Remaining ideas are
+low-value; the loop continues opportunistically, one validated finding at a time.
 
 ## Backlog (low value)
 - A tiny CI smoke that imports the harness modules (guards against renames).
