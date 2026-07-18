@@ -486,7 +486,47 @@ changes, bugs, and development possibilities.
   (collected-count cross-check confirmed +9, per last iteration's lesson).
 - Stable at 554 across 2 repeats + ordering; ruff + recipe-lint clean.
 
-## Status: steady state + opportunistic hardening
+### Iteration 23 (2026-07-18) — third mutation pass: clean → loop concludes
+- Scoped mutation pass over the less-mutated logic (`_subst`, `_pick_method`,
+  `_pick_install_method`, `_plan`, `inspect_recipe`, `find_dead_mcps`): 37
+  survivors / 140 mutations, but **triage found NO genuine test gap.** Every
+  survivor is one of:
+  - docstring/comment/string-literal prose (a `->`, `and`/`or`, or `in` matched
+    inside text — mutating a string is a no-op);
+  - an equivalent mutant: `.pop`↔`.get` on a dict re-read every call (same value,
+    the source mutation never observed), or `return [], None` where the `None`
+    source short-circuits before the list is used;
+  - a `_parse_mcp_list` classification sub-clause masked by the intentional
+    downstream guards (`connected and not failed`; `if not (connected or failed):
+    continue`). **Concretely verified**: the L623 `or`/`not` mutations change the
+    result ONLY for a bare `"Connected"` status with no ✔/✘ marker — a format
+    `claude mcp list` never emits. For every realistic status the classification
+    is identical, so pinning it would lock an internal heuristic, not a contract.
+- No code/test change this iteration (finding a real gap is the bar; there wasn't
+  one). Three mutation passes total killed 8 real weak-assertion mutants
+  (iters 21–22); this pass returning only noise/equivalents is the signal that
+  the eval is thoroughly hardened.
+
+## Status: LOOP CONCLUDED — comprehensive, mutation-hardened, CI-green
+The behavioral/red-team harness is complete for the current codebase:
+- **554 tests, 99% (effective 100%) server.py coverage** — only the unreachable
+  `mcp.run()` stdio entry point is uncovered.
+- All 6 MCP tools + every helper + load/validate/run/scope edges covered.
+- **6 robustness findings fixed**, each validated ≥1 iteration before the fix and
+  mutation-tested: #1 parse misclassification, #2 unterminated `${`, #3(2)
+  non-optional configure gate, #4 permissive version regex, #6 non-string
+  top-level key crash, #7 pathological project_dir crash.
+- **2 limitations documented/deferred**: #3(1) configure-skip asymmetry, #5
+  leading-dotted-number shadows the version.
+- **3 mutation passes**; 8 surviving weak-assertion mutants killed; the final pass
+  found only equivalent mutants.
+- CI green (lint / Linux+macOS tests / py3.10 floor / release-verify); PR #28.
+
+The loop is winding down: further iterations would manufacture low-value tests
+rather than find real defects. Restart with `/loop` whenever new recipes, tools,
+or features add behavior worth red-teaming.
+
+<!-- historical status snapshot (superseded by "LOOP CONCLUDED" above) -->
 Comprehensive coverage reached — all 6 tools + all helpers + load/validate/run
 edges, **554 tests, 99% (effective 100%) server.py coverage**, **6 bugs/robustness findings fixed**
 (all validated ≥1 iteration before fixing: #1 parse misclassification, #2
