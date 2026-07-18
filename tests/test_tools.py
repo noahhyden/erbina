@@ -12,13 +12,16 @@ EXPECTED_TOOLS = {
     "list_recipes",
     "inspect_recipe",
     "bootstrap",
+    "check_updates",
+    "update",
+    "pin",
     "audit_scopes",
     "find_dead_mcps",
     "remove_mcp",
 }
 
 
-def test_exactly_six_expected_tools_register():
+def test_exactly_expected_tools_register():
     assert list_tool_names() == EXPECTED_TOOLS
 
 

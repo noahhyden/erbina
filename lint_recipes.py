@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["fastmcp>=2.0", "pyyaml>=6.0"]
+# dependencies = ["fastmcp>=2.0", "pyyaml>=6.0", "packaging>=23"]
 # ///
 """Lint every recipe in recipes/ against the SCHEMA.md contract.
 

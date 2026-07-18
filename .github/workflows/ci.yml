@@ -58,7 +58,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
       - name: Run the test suite
-        run: uv run --with pytest --with fastmcp --with pyyaml pytest tests/ -v
+        run: uv run --with pytest --with fastmcp --with pyyaml --with packaging pytest tests/ -v
 
   # ---------------------------------------------------------------------------
   # Floor: the server declares requires-python >= 3.10, so prove it actually
@@ -73,14 +73,14 @@ jobs:
         uses: astral-sh/setup-uv@v5
       - name: Import + tool registration under Python 3.10
         run: |
-          uv run --python 3.10 --with fastmcp --with pyyaml python - <<'PY'
+          uv run --python 3.10 --with fastmcp --with pyyaml --with packaging python - <<'PY'
           import asyncio, server
           from fastmcp import Client
           async def main():
               async with Client(server.mcp) as c:
                   names = sorted(t.name for t in await c.list_tools())
-              assert len(names) == 6, names
-              print("ok: 6 tools register under", __import__("sys").version.split()[0])
+              assert len(names) == 9, names
+              print("ok: 9 tools register under", __import__("sys").version.split()[0])
           asyncio.run(main())
           PY
 

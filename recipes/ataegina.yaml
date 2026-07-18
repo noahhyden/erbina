@@ -44,5 +44,25 @@ verify:
     expect_exit: 0
     optional: true # doctor is meaningful only inside a configured worktree
 
+# VERSION — powers `check_updates`. `current` is the installed version; `latest`
+# is queried from GitHub releases. erbina extracts the version token from each
+# command's output and compares them (so the grep line printing the raw
+# `"tag_name": "v0.2.0"` is fine — the 0.2.0 is pulled out and compared).
+version:
+  current: "ataegina --version"
+  latest: 'curl -fsSL https://api.github.com/repos/noahhyden/ataegina-cli/releases/latest | grep ''"tag_name"'''
+
+# UPDATE — what `update` runs to upgrade an already-installed ataegina. Same
+# guarded/ordered shape as install: prefer brew's upgrade, else re-run the
+# install script (which overwrites in place). `update` re-runs `verify` after.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade noahhyden/tap/ataegina"
+    - id: curl
+      when: "command -v curl"
+      run: "curl -fsSL https://raw.githubusercontent.com/noahhyden/ataegina-cli/main/install.sh | sh"
+
 # scope is informational for cli-tool recipes; load-bearing for mcp-server recipes.
 scope: user

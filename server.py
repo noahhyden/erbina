@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["fastmcp>=2.0", "pyyaml>=6.0"]
+# dependencies = ["fastmcp>=2.0", "pyyaml>=6.0", "packaging>=23"]
 # ///
 """
 erbina — a Claude-Code-only MCP server that bootstraps a dev environment.
@@ -27,22 +27,31 @@ import json
 import re
 import shlex
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import yaml
 from fastmcp import FastMCP
+from packaging.version import InvalidVersion, Version
 
 HERE = Path(__file__).resolve().parent
 RECIPES_DIR = HERE / "recipes"
+# erbina's state manifest: what it installed/updated, versions, and pins. This is
+# the one place erbina is stateful. Overridable (tests point it at a temp dir).
+STATE_DIR = Path.home() / ".erbina"
 VALID_SCOPES = ("local", "project", "user")
 VALID_KINDS = ("cli-tool", "mcp-server")
 
 # The closed set of top-level keys SCHEMA.md defines. `_path` is injected by the
 # loader AFTER validation, so it is not part of the recipe's authored contract.
 TOP_LEVEL_KEYS = frozenset(
-    {"id", "kind", "title", "description", "detect", "install", "configure", "verify", "scope"}
+    {"id", "kind", "title", "description", "detect", "install", "configure", "verify", "scope", "version", "update"}
 )
+# Matches the first version-looking token in arbitrary command output, e.g.
+# "ataegina 0.1.0" -> "0.1.0", "v1.2.3 (build 4)" -> "1.2.3". A leading `v` is
+# stripped by _extract_version before parsing.
+_VERSION_RE = re.compile(r"v?(\d+\.\d+(?:\.\d+)?(?:[-.][0-9A-Za-z][0-9A-Za-z.-]*)?)")
 # The only placeholders `_subst` expands; any other ${...} token would pass through
 # into an executed command literally, so it is a recipe bug.
 KNOWN_PLACEHOLDERS = frozenset({"scope", "project_dir"})
@@ -122,6 +131,98 @@ def _check_placeholders(text: Any, where: str, errors: list[str]) -> None:
     # placeholder (a missing-brace typo).
     if text.count("${") > len(_PLACEHOLDER_RE.findall(text)):
         errors.append(f"{where}: unterminated placeholder — a '${{' has no closing '}}'")
+
+
+def _extract_version(text: str | None) -> str | None:
+    """Pull the first version-looking token out of arbitrary command output.
+
+    e.g. "ataegina 0.1.0\\n" -> "0.1.0", "v1.2.3 (build 4)" -> "1.2.3". Returns
+    None when nothing looks like a version, so callers report "unknown" rather
+    than guess a comparison.
+    """
+    if not isinstance(text, str):
+        return None
+    m = _VERSION_RE.search(text)
+    return m.group(1) if m else None
+
+
+def _version_status(current_out: str | None, latest_out: str | None) -> dict[str, Any]:
+    """Compare two raw command outputs and report whether an update is available.
+
+    Extracts a version token from each, parses with `packaging`, and compares.
+    `update_available` is True/False when both parse, or None when either cannot
+    be parsed — so erbina NEVER claims an update it can't actually justify.
+    """
+    cur, lat = _extract_version(current_out), _extract_version(latest_out)
+    if cur is None or lat is None:
+        return {
+            "current": cur,
+            "latest": lat,
+            "update_available": None,
+            "reason": "could not parse a version from the command output",
+        }
+    try:
+        cv, lv = Version(cur), Version(lat)
+    except InvalidVersion as e:
+        return {"current": cur, "latest": lat, "update_available": None, "reason": f"unparseable version: {e}"}
+    return {"current": cur, "latest": lat, "update_available": lv > cv}
+
+
+def _state_file() -> Path:
+    return STATE_DIR / "state.json"
+
+
+def _read_state() -> dict[str, Any]:
+    """Read the erbina state manifest, tolerating a missing/malformed file.
+
+    Always returns a well-shaped {"version": 1, "tools": {...}} dict so callers
+    never have to guard — a corrupt file degrades to empty rather than raising.
+    """
+    p = _state_file()
+    if not p.exists():
+        return {"version": 1, "tools": {}}
+    try:
+        data = json.loads(p.read_text())
+    except Exception:  # noqa: BLE001
+        return {"version": 1, "tools": {}}
+    if not isinstance(data, dict) or not isinstance(data.get("tools"), dict):
+        return {"version": 1, "tools": {}}
+    return data
+
+
+def _write_state(state: dict[str, Any]) -> None:
+    """Atomically persist the state manifest (temp file + os.replace), creating
+    STATE_DIR if needed, so a crash mid-write can't corrupt the file."""
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    p = _state_file()
+    tmp = p.parent / (p.name + ".tmp")
+    tmp.write_text(json.dumps(state, indent=2, sort_keys=True))
+    tmp.replace(p)
+
+
+def _record_tool(recipe_id: str, **fields: Any) -> dict[str, Any]:
+    """Merge non-None fields into a tool's state record and persist it.
+
+    Always refreshes 'updated_at'; sets 'installed_at' the first time a tool is
+    recorded. Returns the updated record. A pin (see `pin`) is preserved because
+    we never overwrite fields not supplied here.
+    """
+    state = _read_state()
+    rec = state["tools"].get(recipe_id, {})
+    now = datetime.now(timezone.utc).isoformat()
+    rec.setdefault("installed_at", now)
+    rec["updated_at"] = now
+    for k, v in fields.items():
+        if v is not None:
+            rec[k] = v
+    state["tools"][recipe_id] = rec
+    _write_state(state)
+    return rec
+
+
+def _is_pinned(recipe_id: str) -> bool:
+    """True if the tool is pinned in the state manifest (pins block updates)."""
+    return bool(_read_state()["tools"].get(recipe_id, {}).get("pinned"))
 
 
 def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
@@ -221,6 +322,42 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
                 errors.append(f"{tag}: missing non-empty 'command'")
             _check_placeholders(v.get("command"), f"{tag}.command", errors)
 
+    # version — optional, but if present needs `current` + `latest` commands so
+    # check_updates can compare the installed version against what's available.
+    version = recipe.get("version")
+    if version is not None:
+        if not isinstance(version, dict):
+            errors.append("'version' must be a mapping with 'current' and 'latest' commands")
+        else:
+            for key in ("current", "latest"):
+                val = version.get(key)
+                if not (isinstance(val, str) and val.strip()):
+                    errors.append(f"'version.{key}' is required and must be a non-empty string")
+                _check_placeholders(val, f"version.{key}", errors)
+
+    # update — optional. If present, same guarded-method shape as install; it's
+    # what the `update` tool runs to upgrade an already-installed tool.
+    update = recipe.get("update")
+    if update is not None:
+        if not isinstance(update, dict):
+            errors.append("'update' must be a mapping with 'methods'")
+        else:
+            methods = update.get("methods")
+            if not isinstance(methods, list) or not methods:
+                errors.append("'update.methods' must be a non-empty list when 'update' is present")
+            else:
+                for i, m in enumerate(methods):
+                    tag = f"update.methods[{i}]"
+                    if not isinstance(m, dict):
+                        errors.append(f"{tag}: must be a mapping")
+                        continue
+                    if not (isinstance(m.get("id"), str) and m["id"].strip()):
+                        errors.append(f"{tag}: missing non-empty 'id'")
+                    if not (isinstance(m.get("run"), str) and m["run"].strip()):
+                        errors.append(f"{tag}: missing non-empty 'run'")
+                    _check_placeholders(m.get("run"), f"{tag}.run", errors)
+                    _check_placeholders(m.get("when"), f"{tag}.when", errors)
+
     # scope — optional, but if present must be a valid scope
     scope = recipe.get("scope")
     if scope is not None and scope not in VALID_SCOPES:
@@ -262,11 +399,32 @@ def _recipe_ids() -> list[str]:
     return sorted(p.stem for p in RECIPES_DIR.glob("*.yaml"))
 
 
-def _pick_install_method(recipe: dict[str, Any]) -> dict[str, Any] | None:
-    for m in recipe.get("install", {}).get("methods", []):
+def _pick_method(methods: list[dict[str, Any]] | None) -> dict[str, Any] | None:
+    """The first method whose `when:` guard passes (or has none). Shared by
+    install and update, which both use guarded, ordered method lists."""
+    for m in methods or []:
         if _guard_ok(m.get("when")):
             return m
     return None
+
+
+def _pick_install_method(recipe: dict[str, Any]) -> dict[str, Any] | None:
+    return _pick_method(recipe.get("install", {}).get("methods", []))
+
+
+def _update_methods(recipe: dict[str, Any]) -> tuple[list[dict[str, Any]], str | None]:
+    """The methods `update` will try, and where they came from.
+
+    Prefer an explicit `update:` block; otherwise fall back to the install
+    methods only when the recipe marks them upgrade-safe (`install.upgrade_safe:
+    true`). Returns ([], None) when the recipe declares no update path at all.
+    """
+    upd = recipe.get("update")
+    if isinstance(upd, dict) and upd.get("methods"):
+        return upd["methods"], "update"
+    if recipe.get("install", {}).get("upgrade_safe"):
+        return recipe.get("install", {}).get("methods", []), "install (upgrade_safe)"
+    return [], None
 
 
 def _plan(recipe: dict[str, Any], scope: str, project_dir: str | None) -> dict[str, Any]:
@@ -510,9 +668,239 @@ def bootstrap(
     report["phases"]["verify"] = verify_results
     report["ok"] = all_ok
 
+    # record what erbina now manages, so check_updates/update know about it later
+    if all_ok:
+        install_phase = report["phases"].get("install", {})
+        method_id = install_phase.get("method") or ("already-present" if detected else None)
+        _record_tool(
+            recipe_id,
+            kind=recipe.get("kind"),
+            installed_version=_current_version(recipe, scope, project_dir),
+            install_method=method_id,
+        )
+        report["recorded"] = True
+
     if recipe.get("kind") == "mcp-server" and all_ok:
         report["next"] = "A new MCP server was wired — reload Claude Code so it connects."
     return report
+
+
+@mcp.tool
+def check_updates(recipe_id: str | None = None, project_dir: str | None = None) -> dict[str, Any]:
+    """
+    Report whether installed tools have newer versions available — read-only.
+
+    For each recipe that declares a `version:` block (with `current` + `latest`
+    commands), erbina confirms the tool is installed (via `detect`), then runs the
+    two version commands and compares them. Pass a `recipe_id` to check one tool,
+    or omit it to check every recipe that supports update checks. Nothing is
+    installed or changed; to apply an update, re-run `bootstrap`.
+    """
+    ids = [recipe_id] if recipe_id else _recipe_ids()
+    checked: list[dict[str, Any]] = []
+    for rid in ids:
+        try:
+            recipe = _load_recipe(rid)
+        except Exception as e:  # noqa: BLE001
+            if recipe_id:  # an explicit request should surface the load error
+                return {"error": str(e)}
+            continue  # bulk scan skips a recipe it can't load
+        ver = recipe.get("version")
+        if not ver:
+            if recipe_id:
+                return {"error": f"recipe '{rid}' declares no `version:` block, so updates can't be checked"}
+            continue  # bulk scan only reports recipes that opted in
+        scope = recipe.get("scope", "user")
+
+        # is it installed? nothing to update if it isn't.
+        det = recipe.get("detect", {})
+        det_cwd = project_dir if det.get("needs_project_dir") else None
+        installed = False
+        if det.get("command"):
+            d = _run(_subst(det["command"], scope, project_dir), cwd=det_cwd, timeout=30)
+            installed = d["exit"] == det.get("expect_exit", 0)
+        entry: dict[str, Any] = {
+            "id": rid,
+            "kind": recipe.get("kind"),
+            "installed": installed,
+            "pinned": _is_pinned(rid),
+        }
+        if not installed:
+            entry["note"] = "not installed — run bootstrap first"
+            checked.append(entry)
+            continue
+
+        v_cwd = project_dir if ver.get("needs_project_dir") else None
+        cur = _run(_subst(ver["current"], scope, project_dir), cwd=v_cwd, timeout=30)
+        lat = _run(_subst(ver["latest"], scope, project_dir), cwd=v_cwd, timeout=60)
+        entry.update(_version_status(cur["stdout"], lat["stdout"]))
+        checked.append(entry)
+
+    # a pinned tool is never offered for (automatic) update, even if newer exists
+    updates = [e["id"] for e in checked if e.get("update_available") and not e.get("pinned")]
+    pinned_with_update = [e["id"] for e in checked if e.get("update_available") and e.get("pinned")]
+    hint = (
+        f"{len(updates)} update(s) available: {', '.join(updates)}. Review, then run `update` to apply."
+        if updates
+        else "No updates found (tools are current, pinned, not installed, or version info unavailable)."
+    )
+    if pinned_with_update:
+        hint += f" Pinned (skipped despite an update): {', '.join(pinned_with_update)}."
+    return {"checked": checked, "updates_available": updates, "hint": hint}
+
+
+def _current_version(recipe: dict[str, Any], scope: str, project_dir: str | None) -> str | None:
+    """Run the recipe's version.current command and extract the token (or None)."""
+    ver = recipe.get("version") or {}
+    cmd = ver.get("current")
+    if not cmd:
+        return None
+    cwd = project_dir if ver.get("needs_project_dir") else None
+    return _extract_version(_run(_subst(cmd, scope, project_dir), cwd=cwd, timeout=30)["stdout"])
+
+
+@mcp.tool
+def update(
+    recipe_id: str,
+    scope: str = "user",
+    dry_run: bool = False,
+    project_dir: str | None = None,
+    force: bool = False,
+) -> dict[str, Any]:
+    """
+    Update an already-installed tool, then re-run its `verify` as a safety net.
+
+    Runs the recipe's `update:` methods (or its install methods when the recipe
+    marks them `install.upgrade_safe: true`) — the first whose `when:` guard
+    passes — then re-runs `verify`. If verify fails, the update is reported failed
+    and flagged (the tool may be broken). Set dry_run=true to see the exact
+    command without executing. Only updates a tool that is already installed; run
+    `bootstrap` first otherwise. A pinned tool is refused unless force=true.
+    """
+    if scope not in VALID_SCOPES:
+        return {"error": f"scope must be one of {VALID_SCOPES}"}
+    recipe = _load_recipe(recipe_id)
+    if _is_pinned(recipe_id) and not force:
+        return {
+            "recipe": recipe_id,
+            "pinned": True,
+            "skipped": True,
+            "note": f"'{recipe_id}' is pinned; unpin it (pin('{recipe_id}', pinned=false)) or pass force=true to update anyway.",
+        }
+    methods, source = _update_methods(recipe)
+    method = _pick_method(methods)
+
+    if source is None:
+        return {
+            "error": (
+                f"recipe '{recipe_id}' declares no `update:` block and its install is not "
+                "marked upgrade_safe, so erbina has no safe way to update it"
+            )
+        }
+
+    report: dict[str, Any] = {
+        "recipe": recipe_id,
+        "scope": scope,
+        "dry_run": dry_run,
+        "plan": {
+            "update_source": source,
+            "chosen_method": method.get("id") if method else None,
+            "command": _subst(method.get("run"), scope, project_dir) if method else None,
+            "verify": [_subst(v.get("command"), scope, project_dir) for v in recipe.get("verify", [])],
+        },
+        "phases": {},
+    }
+    if dry_run:
+        report["note"] = "Dry run — nothing executed. Review `plan`, then re-run with dry_run=false."
+        return report
+
+    # only update something that is actually installed
+    det = recipe.get("detect", {})
+    if det.get("command"):
+        det_cwd = project_dir if det.get("needs_project_dir") else None
+        d = _run(_subst(det["command"], scope, project_dir), cwd=det_cwd, timeout=30)
+        if d["exit"] != det.get("expect_exit", 0):
+            report["phases"]["detect"] = {"present": False, **d}
+            report["ok"] = False
+            report["error"] = "not installed — run bootstrap first"
+            return report
+
+    before = _current_version(recipe, scope, project_dir)
+
+    if not method:
+        report["phases"]["update"] = {
+            "status": "failed",
+            "reason": "no update method's `when:` guard passed on this machine",
+        }
+        report["ok"] = False
+        return report
+    res = _run(method["run"])
+    report["phases"]["update"] = {"status": "ok" if res["exit"] == 0 else "failed", "method": method.get("id"), **res}
+    if res["exit"] != 0:
+        report["ok"] = False
+        return report
+
+    # re-run verify — the safety net that proves the updated tool still runs
+    verify_results = []
+    all_ok = True
+    for v in recipe.get("verify", []):
+        v_cwd = project_dir if v.get("needs_project_dir") else None
+        vres = _run(_subst(v["command"], scope, project_dir), cwd=v_cwd, timeout=30)
+        ok = vres["exit"] == v.get("expect_exit", 0)
+        if not ok and not v.get("optional"):
+            all_ok = False
+        verify_results.append({"status": "ok" if ok else "failed", **vres})
+    report["phases"]["verify"] = verify_results
+
+    after = _current_version(recipe, scope, project_dir)
+    report["version"] = {"before": before, "after": after}
+    report["ok"] = all_ok
+    if all_ok:
+        _record_tool(
+            recipe_id,
+            kind=recipe.get("kind"),
+            installed_version=after,
+            previous_version=before,
+            update_method=method.get("id"),
+        )
+        report["recorded"] = True
+    if not all_ok:
+        report["warning"] = (
+            "verify FAILED after update — the tool may be broken. Consider reinstalling via "
+            "bootstrap (automatic rollback lands with the state manifest in a later phase)."
+        )
+    elif before and after and before == after:
+        report["note"] = f"Already at {after} — update was a no-op."
+    return report
+
+
+@mcp.tool
+def pin(recipe_id: str, pinned: bool = True) -> dict[str, Any]:
+    """
+    Pin (or unpin) a tool so automatic updates skip it.
+
+    A pinned tool is flagged by `check_updates` and excluded from its
+    `updates_available` list, and `update` refuses it unless called with
+    force=true. Call `pin(recipe_id, pinned=false)` to unpin. Pinning is recorded
+    in the state manifest and does not install or change the tool.
+    """
+    if recipe_id not in _recipe_ids():
+        return {"error": f"no recipe '{recipe_id}'. Available: {', '.join(_recipe_ids()) or '(none)'}"}
+    state = _read_state()
+    rec = state["tools"].get(recipe_id, {})
+    rec["pinned"] = pinned
+    state["tools"][recipe_id] = rec
+    _write_state(state)
+    return {
+        "recipe": recipe_id,
+        "pinned": pinned,
+        "note": (
+            f"'{recipe_id}' is pinned — check_updates will flag it and update will refuse it "
+            "until you unpin (pin(recipe_id, pinned=false)) or pass force=true."
+            if pinned
+            else f"'{recipe_id}' is unpinned — updates apply normally again."
+        ),
+    }
 
 
 @mcp.tool
