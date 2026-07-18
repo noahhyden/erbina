@@ -71,7 +71,7 @@ python3 -c 'import json; print(json.load(open("server.json"))["version"])'
 
 # recipes still lint clean and the server still comes up with all its tools
 uv run --script lint_recipes.py
-uv run --with pytest --with fastmcp --with pyyaml pytest tests/ -v
+uv run --with pytest --with fastmcp --with pyyaml --with packaging pytest tests/ -v
 
 # a real user's install line actually works
 claude mcp add erbina-relcheck --scope local -- \
