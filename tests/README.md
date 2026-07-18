@@ -62,3 +62,9 @@ See `PROTOTYPE_NOTES.md` for the design, the iteration log, the loop discipline
 | `test_project_dir_and_phases.py` | `needs_project_dir` actually changes the cwd a phase runs in (marker technique); phase-gating incl. non-optional configure failure. |
 | `test_tool_surface_edges.py` | `list_recipes` skips malformed recipes; `inspect_recipe` ↔ `bootstrap(dry_run)` plan parity. |
 | `test_find_dead_mcps.py` | Alive/dead split, scope annotation, orphan handling, hints (monkeypatched `_parse_mcp_list` + `_scope_map`). |
+| `test_integration.py` | **Real end-to-end**: bootstraps a fixture tool that is genuinely absent → installed (a real script written into a temp `$ERB_BIN` on PATH) → verified by execution; idempotent re-run; verify catches a broken install; a real update v1→v2 with state recorded. Deterministic + offline. |
+
+(Auto-update, recipe, and quality suites — `test_version`, `test_check_updates`,
+`test_update`, `test_state`, `test_pin`, `test_rollback`, `test_recipes_conformance`,
+`test_recipe_versions`, `test_lint_policy`, `test_readme_gallery` — round out the
+coverage; run `pytest tests/ -q` for the full picture.)
