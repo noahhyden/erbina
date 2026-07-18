@@ -11,3 +11,6 @@ venv/
 scratch_*.py
 *.local
 .DS_Store
+
+# mcp-publisher auth tokens (secrets — never commit)
+.mcpregistry_*_token

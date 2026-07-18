@@ -1,8 +1,9 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-16/server.schema.json",
   "name": "io.github.noahhyden/erbina",
   "title": "erbina",
   "description": "Bootstrap, verify, and update CLI tools & MCP servers in Claude Code from recipes; audit scopes.",
+  "status": "active",
   "version": "0.1.0",
   "repository": {
     "url": "https://github.com/noahhyden/erbina",
