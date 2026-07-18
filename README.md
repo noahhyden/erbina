@@ -5,10 +5,10 @@
 > curated recipes, and see where every MCP server lives across your scopes.
 
 [![CI](https://github.com/noahhyden/erbina/actions/workflows/ci.yml/badge.svg)](https://github.com/noahhyden/erbina/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/noahhyden/erbina?sort=semver)](https://github.com/noahhyden/erbina/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/Model_Context_Protocol-server-blueviolet.svg)](https://modelcontextprotocol.io)
 [![Claude Code](https://img.shields.io/badge/client-Claude_Code-d97757.svg)](https://code.claude.com)
-[![Status: early](https://img.shields.io/badge/status-early%20%C2%B7%20actively%20developed-brightgreen.svg)](#)
 
 Named after the Lusitanian goddess of boundaries and crossings — erbina is the
 threshold a tool crosses to become part of your environment. Sibling to
