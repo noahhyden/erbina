@@ -63,3 +63,28 @@ def test_prototypes_do_not_disturb_the_tool_registry():
     # Swapping RECIPES_DIR must not change which tools are registered.
     with registry(cli_recipe("zeta")):
         assert "bootstrap" in list_tool_names()
+
+
+def test_registry_nesting_restores_each_layer():
+    original = server.RECIPES_DIR
+    with registry(cli_recipe("outer")):
+        outer_dir = server.RECIPES_DIR
+        assert {r["id"] for r in call_tool("list_recipes", {})} == {"outer"}
+        with registry(cli_recipe("inner")):
+            assert {r["id"] for r in call_tool("list_recipes", {})} == {"inner"}
+        # inner exit restores the OUTER registry, not the original
+        assert server.RECIPES_DIR == outer_dir
+        assert {r["id"] for r in call_tool("list_recipes", {})} == {"outer"}
+    assert server.RECIPES_DIR == original
+
+
+def test_registry_with_no_recipes_is_empty():
+    with registry():
+        assert call_tool("list_recipes", {}) == []
+
+
+def test_registry_with_many_recipes_lists_all():
+    protos = [cli_recipe(f"r{i}") for i in range(5)]
+    with registry(*protos):
+        ids = {r["id"] for r in call_tool("list_recipes", {})}
+    assert ids == {f"r{i}" for i in range(5)}

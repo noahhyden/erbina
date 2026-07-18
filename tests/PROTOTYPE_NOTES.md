@@ -151,8 +151,30 @@ changes, bugs, and development possibilities.
 - Finding #3(1) (configure-skips vs verify/detect-run-in-CWD asymmetry) left as a
   documented `test_CURRENT_*` — it's a design call, not a clear bug; deferring.
 
+### Iteration 8 (2026-07-18)
+- Added `test_find_dead_mcps.py`: the last untested tool. Driven by monkeypatched
+  `_parse_mcp_list` + `_scope_map` — alive/dead split, dead entries annotated with
+  scope(s), orphan (not in scope map) → empty scopes, all-alive reassurance,
+  dead-present hint points at remove_mcp, empty list. No product bug found (tool
+  is correct).
+- Added `registry()` isolation tests: nested registries restore each layer (inner
+  → outer → original), empty registry, many recipes.
+- Suite: 148 → 157 passed. **All 6 MCP tools now have behavioral coverage**
+  (list_recipes, inspect_recipe, bootstrap, audit_scopes, find_dead_mcps,
+  remove_mcp), plus every helper. Red-team: dead-filter-inverted (5 caught) and
+  scope-annotation-dropped (caught); stable x2.
+
+## Coverage summary (after iteration 8)
+- Tools: all 6 (read-only + dry-run + live-bootstrap orchestration).
+- Helpers: _run, _subst, _check_placeholders, validate_recipe, _load_recipe,
+  _pick_install_method, _plan, _claude_json, _scope_map, _parse_mcp_list.
+- 3 product bugs found & fixed (all validated ≥1 iteration first):
+  #1 _parse_mcp_list whole-line status misclassification;
+  #2 unterminated `${` not linted; #3(2) non-optional configure failure not gating ok.
+- 1 documented design quirk deferred: #3(1) configure-skip vs verify/detect-CWD asymmetry.
+
 ## Backlog (future iterations)
-- Consider surfacing #3(1): make verify/detect ALSO skip (or clearly warn) when
-  needs_project_dir but no project_dir — or document the asymmetry in SCHEMA.md.
-- Concurrency/isolation: registry() nested usage; multiple prototypes at once.
+- Decide #3(1): make verify/detect skip when needs_project_dir + no project_dir,
+  or document the asymmetry in SCHEMA.md (leaning: document — verify SHOULD run).
 - Consider a short tests/README update summarizing the harness modules.
+- Possible: a tiny CI-time smoke that the harness itself imports (guards renames).
