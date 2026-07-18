@@ -9,8 +9,6 @@ and takes the command as everything before the trailing ` - <status>`.
 """
 from __future__ import annotations
 
-import pytest
-
 import server
 
 
@@ -87,13 +85,21 @@ def test_ambiguous_double_marker_treated_as_not_connected(monkeypatch):
 
 
 # --------------------------------------------------------------------------- #
-# CANDIDATE BUG (issue #3): a HEALTHY server (✔ marker present) whose command
-# text merely contains the substring "Failed to connect" is misclassified as
-# dead, because `failed` is matched against the whole line including the command.
-# xfail(strict) so this documents the bug now AND fails loudly once it is fixed
-# (prompting removal of the marker). Confirmed real via a probe on 2026-07-18.
+# Regression for finding #1 (issue #3), FIXED in iteration 3: a HEALTHY server
+# (✔ marker present) whose command text merely contains the substring "Failed to
+# connect" was misclassified as dead, because classification matched against the
+# whole line. The parser now classifies on the STATUS tail (after the last
+# ` - `) only, so the command text can say anything.
 # --------------------------------------------------------------------------- #
-@pytest.mark.xfail(strict=True, reason="issue #3: 'Failed to connect' inside a command misclassifies a healthy server")
 def test_healthy_server_whose_command_mentions_failed_to_connect(monkeypatch):
     got = _parse("foo: echo Failed to connect - \x1b[32m✔ Connected\x1b[0m", monkeypatch)
     assert got["foo"]["connected"] is True
+    assert got["foo"]["command"] == "echo Failed to connect"
+
+
+def test_dead_server_whose_command_mentions_connected(monkeypatch):
+    # The mirror case: a FAILED server whose command text contains "Connected"
+    # must still be classified dead (status tail says ✘).
+    got = _parse("bar: run --Connected-flag - \x1b[31m✘ Failed to connect\x1b[0m", monkeypatch)
+    assert got["bar"]["connected"] is False
+    assert got["bar"]["command"] == "run --Connected-flag"

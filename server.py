@@ -334,11 +334,18 @@ def _parse_mcp_list(project_dir: str | None = None) -> list[dict[str, Any]]:
             continue
         name, _, rest = line.partition(":")
         name, rest = name.strip(), rest.strip()
-        connected = ("✔" in rest) or ("Connected" in rest and "Failed" not in rest)
-        failed = ("✘" in rest) or ("Failed to connect" in rest)
+        # Classify on the STATUS tail only (everything after the last ` - `), not
+        # the whole line: otherwise a command that merely contains "Failed to
+        # connect" (or "✘") would mislabel a healthy server as dead. See issue #3
+        # / tests/test_parse_mcp_list_edges.py.
+        command, sep, status = rest.rpartition(" - ")
+        if not sep:  # no ` - <status>` separator → treat the whole line as status
+            command, status = "", rest
+        connected = ("✔" in status) or ("Connected" in status and "Failed" not in status)
+        failed = ("✘" in status) or ("Failed to connect" in status)
         if not (connected or failed):
             continue  # header / summary line, not a server status
-        command = rest.rsplit(" - ", 1)[0].strip()
+        command = command.strip()
         servers.append({"name": name, "connected": connected and not failed, "command": command})
     return servers
 

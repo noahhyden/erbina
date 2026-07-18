@@ -67,15 +67,28 @@ changes, bugs, and development possibilities.
 - Red-team: stable across 3 repeats; scope-subst mutation caught by 4 real-recipe
   tests; install-order + detect + verify-optional mutations still caught.
 
+### Iteration 3 (2026-07-18)
+- **APPLIED FIX for finding #1** (issue #3): `_parse_mcp_list` now classifies on
+  the status tail (`rest.rpartition(" - ")`) instead of the whole line, so a
+  command containing "Failed to connect"/"✘" no longer mislabels a healthy
+  server. Removed the strict xfail; replaced with two regression tests (the
+  healthy-command-mentions-failed case AND the mirror dead-command-mentions-
+  connected case). Existing test_helpers parser tests still green (no regression).
+- Added `test_scopes.py`: `_scope_map` (3-scope aggregation, multi-scope, broken
+  `.mcp.json` tolerance), `audit_scopes` (bucketing, shadowing flagged, clean
+  message), `remove_mcp` (single-scope resolution + dry-run, multi-scope error,
+  absent error, bad-scope error, explicit-scope-skips-resolution, shlex quoting).
+  All driven by monkeypatched `_claude_json`/`_scope_map` + temp `.mcp.json`.
+- Suite: 63 → 77 passed (0 xfailed now). Red-team: parse revert-to-whole-line
+  caught by regression test; shlex-quote drop caught; stable across repeats.
+
 ## Backlog (future iterations)
-- Real-recipe coverage: drive dry-run `_plan` for ataegina/fetch across all three
-  scopes; assert `needs_project_dir` propagation and `${scope}` substitution.
-- `_parse_mcp_list` adversarial inputs (issue #3): names with colons, missing
-  ` - ` separator, both ✔ and ✘ on one line, unicode, CRLF, huge output.
-- `_scope_map` / `audit_scopes` shadowing across scopes (temp `.claude.json` +
-  `.mcp.json`, monkeypatched `Path.home`).
-- `remove_mcp` scope resolution (single/multi/none) via monkeypatched `_scope_map`.
-- Placeholder/validation edge cases: `${scopee}` typos, nested/adjacent tokens,
-  empty `${}`, `${scope}` in detect/verify (not just configure).
+- Placeholder/validation edge cases: `${scopee}` typos, adjacent/nested tokens,
+  empty `${}`, `${scope}` used in detect/verify (not just configure).
 - Property-based fuzzing of `validate_recipe` (round-trip: a mutated-invalid
   recipe must produce ≥1 error; a valid one must produce none).
+- `_run` behavior: timeout path (exit 124), non-zero exit capture, output
+  trimming to last 4000 chars, stderr capture.
+- `bootstrap` detect `needs_project_dir` propagation (detect runs in project_dir).
+- Probe: does an mcp-server recipe whose bootstrap FAILS still omit the reload
+  `next` hint? (currently gated on `all_ok` — worth a test.)
