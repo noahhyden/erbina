@@ -215,21 +215,34 @@ def test_validate_never_raises_on_a_hostile_nested_member(hostile_step):
 
 
 # --------------------------------------------------------------------------- #
-# FINDING #6 (pinned, fix next iteration): a non-string TOP-LEVEL key (valid
-# YAML, e.g. a file starting `2024: hi`) crashes validate_recipe at the
-# `", ".join(sorted(unknown))` over the unknown-key set — a TypeError escapes
-# instead of a clean "unknown top-level key" error. This violates the never-raise
-# contract and surfaces through inspect_recipe/bootstrap/check_updates (and would
-# crash lint_recipes.py in CI) as a cryptic ToolError. Strict xfail: when the fix
-# lands (map keys through str()), this XPASSes and flips to a failure, which is
-# the reminder to remove the marker.
+# FINDING #6 (FIXED): a non-string TOP-LEVEL key — valid YAML, e.g. a file
+# starting `2024: hi` → {2024: "hi"} — used to crash validate_recipe at the
+# `", ".join(sorted(unknown))` over the unknown-key set (TypeError). Keys are now
+# coerced through str() before sorting/join, so the key is reported as an unknown
+# top-level key instead of crashing _load_recipe / the linter / the tool surface.
 # --------------------------------------------------------------------------- #
-@pytest.mark.xfail(reason="finding #6: non-string top-level key crashes the join", strict=True)
 @pytest.mark.parametrize("bad_recipe", [
     {2024: "hi", "id": "t", "kind": "cli-tool"},
     {1: 2},
     {("tuple",): "k"},
+    {1: 1, "also_bad": 2, 3.5: "x"},   # several non-string + a string unknown key
 ])
 def test_non_string_top_level_key_is_reported_not_crashed(bad_recipe):
     out = server.validate_recipe(bad_recipe, stem="t")
+    assert isinstance(out, list)
+    # the offending key is surfaced as an unknown top-level key, not a crash
+    assert any("unknown top-level key" in e for e in out)
+
+
+def test_non_string_key_name_appears_in_the_error():
+    out = server.validate_recipe({2024: "hi", "id": "t", "kind": "cli-tool"}, stem="t")
+    joined = " ".join(out)
+    assert "unknown top-level key" in joined and "2024" in joined
+
+
+@pytest.mark.parametrize("key", [2024, 1, -1, 3.5, True, None, ("a", "b")])
+def test_validate_never_raises_on_a_hostile_top_level_key(key):
+    base = cli_recipe("t")
+    base[key] = "whatever"
+    out = server.validate_recipe(base, stem="t")
     assert isinstance(out, list)

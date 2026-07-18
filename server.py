@@ -304,10 +304,14 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
     if not isinstance(recipe, dict):
         return [f"recipe must be a YAML mapping, got {type(recipe).__name__}"]
 
-    # ignore the loader-injected internal key when checking the closed key set
+    # ignore the loader-injected internal key when checking the closed key set.
+    # Keys are coerced through str() before sorting/join: YAML permits non-string
+    # mapping keys (a file starting `2024: hi` parses to {2024: "hi"}), and a bare
+    # sorted()/join over mixed or non-string keys would raise — but this function
+    # must always RETURN errors, never crash its callers (_load_recipe, the linter).
     unknown = set(recipe) - TOP_LEVEL_KEYS - {"_path"}
     if unknown:
-        errors.append(f"unknown top-level key(s): {', '.join(sorted(unknown))}")
+        errors.append(f"unknown top-level key(s): {', '.join(sorted(str(k) for k in unknown))}")
 
     # id — present and equal to the filename stem
     rid = recipe.get("id")

@@ -355,15 +355,34 @@ changes, bugs, and development possibilities.
   the clean 24-format real corpus, and no recipe triggers it. Kept as a pinned
   `test_CURRENT_*` characterization.
 
+### Iteration 17 (2026-07-18) — APPLIED FIX for finding #6
+- **Fixed #6** (validated iter 16): `validate_recipe` coerces top-level keys
+  through `str()` before `sorted(...)`/`join` (`sorted(str(k) for k in unknown)`),
+  so a non-string YAML key (`2024: hi` → `{2024: "hi"}`) is reported as an
+  "unknown top-level key(s): 2024" error instead of crashing with a `TypeError`.
+  Note the bare form could crash TWO ways (join on non-str, and `sorted` on
+  mixed-type keys) — the `str()` map fixes both.
+- Verified END-TO-END: a `2024: hi` recipe file now flows through
+  `inspect_recipe`/`_load_recipe` as a clean `ValueError` ("malformed and was
+  refused", listing the unknown key) — the intended refusal — not a cryptic
+  internal `TypeError`. The linter (`lint_recipes.py`) is likewise safe now.
+- Flipped the 3 strict-xfail cases to a passing regression test (+ a mixed
+  key case, + a name-appears-in-error assertion), and added a 7-case hostile
+  top-level KEY fuzz guard (int/float/bool/None/tuple). Suite 513 → **525**,
+  0 xfailed.
+- Red-team: reverting the fix → 12 RED (the non-string/hostile-key tests);
+  restore → green. Stable at 525 across 2 repeats + ordering; ruff + recipe-lint
+  + byte-compile clean.
+
 ## Status: steady state + opportunistic hardening
 Comprehensive coverage reached — all 6 tools + all helpers + load/validate/run
-edges, **513 tests, 97% server.py coverage**, **4 bugs/robustness findings fixed**
+edges, **525 tests, 97% server.py coverage**, **5 bugs/robustness findings fixed**
 (all validated ≥1 iteration before fixing: #1 parse misclassification, #2
 unterminated `${`, #3(2) non-optional configure gate, #4 permissive version
-regex), 2 limitations documented/deferred (#3(1) configure-skip asymmetry, #5
-leading-dotted-number shadows the version), and **1 confirmed crash pinned for
-fix next iteration (#6 non-string top-level key crashes validate_recipe)**.
-The loop continues opportunistically, one validated finding at a time.
+regex, #6 non-string top-level key crashes validate_recipe), and 2 limitations
+documented/deferred (#3(1) configure-skip asymmetry, #5 leading-dotted-number
+shadows the version). The loop continues opportunistically, one validated finding
+at a time.
 
 ## Backlog (low value)
 - A tiny CI smoke that imports the harness modules (guards against renames).
