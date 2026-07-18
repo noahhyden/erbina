@@ -51,6 +51,44 @@ def test_policy_ignores_non_mapping():
 
 
 # --------------------------------------------------------------------------- #
+# verify honesty
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize("verify_cmd", [
+    "test -f /usr/local/bin/foo",
+    "[ -x /usr/local/bin/foo ]",
+    "ls /usr/local/bin/foo",
+    "cat /etc/foo.conf",
+    "stat /usr/local/bin/foo",
+    "find / -name foo",
+])
+def test_file_inspection_verify_is_flagged(verify_cmd):
+    r = _valid_policy_recipe()
+    r["verify"] = [{"command": verify_cmd}]
+    problems = server.lint_recipe_policy(r)
+    assert any("verify" in p and "filesystem" in p for p in problems), problems
+
+
+@pytest.mark.parametrize("verify_cmd", [
+    "foo --version",
+    "foo doctor",
+    "claude mcp get foo",       # the honest mcp-server check
+    "python -c 'import foo'",
+])
+def test_real_invocation_verify_is_not_flagged(verify_cmd):
+    r = _valid_policy_recipe()
+    r["verify"] = [{"command": verify_cmd}]
+    assert not any("filesystem" in p for p in server.lint_recipe_policy(r))
+
+
+def test_verify_honesty_flags_the_right_index():
+    r = _valid_policy_recipe()
+    r["verify"] = [{"command": "foo --version"}, {"command": "test -f /bin/foo"}]
+    problems = [p for p in server.lint_recipe_policy(r) if "filesystem" in p]
+    assert len(problems) == 1
+    assert "verify[1]" in problems[0]
+
+
+# --------------------------------------------------------------------------- #
 # the separation: a recipe can be schema-valid (load-time OK) yet fail policy,
 # and the LINTER (lint_path) must catch it.
 # --------------------------------------------------------------------------- #

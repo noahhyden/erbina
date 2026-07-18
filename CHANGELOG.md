@@ -18,8 +18,10 @@ are reconstructed from the git history. Everything is therefore under
   sync with `recipes/` — a new or removed recipe that isn't reflected fails CI.
 - **Curated-registry linter policy (`lint_recipe_policy`).** On top of the schema
   contract, `lint_recipes.py` now also enforces registry policy so a recipe PR
-  fails fast: a non-empty `title` and `description`, and a `when:` guard on every
-  install method (each method only fires where its package manager exists). The
+  fails fast: a non-empty `title` and `description`, a `when:` guard on every
+  install method (each method only fires where its package manager exists), and an
+  honest `verify` — it must RUN the tool, not merely inspect the filesystem
+  (`test`/`ls`/`cat`/…), which is erbina's whole "verify by running" thesis. The
   policy is linter-only — `validate_recipe` / load-time validation stays lenient
   so the test harness can build minimal recipes — and is the single source shared
   by the linter and the recipe conformance tests.
