@@ -15,7 +15,7 @@ threshold a tool crosses to become part of your environment. Sibling to
 [ataegina](https://github.com/noahhyden/ataegina-cli) (goddess of rebirth), which
 is also erbina's proof-of-concept recipe #1.
 
-> **The recipe contract is the core idea.** One server, six tools, two recipes
+> **The recipe contract is the core idea.** One server, nine tools, two recipes
 > today — a `cli-tool` ([ataegina](recipes/ataegina.yaml)) and a scope-wiring
 > `mcp-server` ([fetch](recipes/fetch.yaml)). Both work end-to-end, and a new
 > recipe is one YAML file. The registry is intentionally small while the format
@@ -69,6 +69,9 @@ Requirements: `uv` and Claude Code. `git` and a package manager (`brew`, or
 | `list_recipes` | List the curated recipes erbina can bootstrap. |
 | `inspect_recipe` | Show **exactly** what bootstrapping a recipe would run — the consent surface. Nothing executes. |
 | `bootstrap` | Run a recipe: detect → install → configure → verify, idempotently. `dry_run=true` returns the full plan without executing. |
+| `check_updates` | Read-only report of whether installed tools have newer versions available, for recipes that declare a `version:` block. Pinned tools are flagged and excluded. |
+| `update` | Upgrade an installed tool, then **re-run `verify`** as a safety net — on failure it rolls back (if the recipe supports it) or marks the tool broken. `dry_run=true` shows the command first. |
+| `pin` | Pin (or unpin) a tool so automatic updates skip it. `update` refuses a pinned tool unless `force=true`. |
 | `audit_scopes` | Read-only report of which MCP servers are configured in `local` / `project` / `user` scope, where each lives, and any name shadowed across scopes. |
 | `find_dead_mcps` | Health-check every configured MCP server and flag the ones that fail to connect — stale/dead servers, annotated with the scope to remove them from. Read-only. |
 | `remove_mcp` | Remove an MCP server by name (e.g. a dead one), auto-resolving its scope. `dry_run=true` shows the `claude mcp remove` command without running it. |
@@ -99,6 +102,26 @@ is substituted from the `scope` you pass to `bootstrap`. See
 [`recipes/fetch.yaml`](recipes/fetch.yaml). The full schema — including the
 `local`/`project`/`user` scope model and command placeholders — is in
 [SCHEMA.md](SCHEMA.md).
+
+## Auto-updating tools
+
+A recipe can opt into update checks by declaring a `version:` block (an installed
+`current` command and a `latest` source) and, optionally, `update:` / `rollback:`
+methods. Then:
+
+- **`check_updates`** compares installed vs latest (numeric/pre-release aware, via
+  `packaging`) and reports what's out of date — it never claims an update it can't
+  parse, and skips **pinned** tools.
+- **`update`** applies the upgrade and **re-runs `verify`**; if verify fails it
+  rolls back to the recorded previous version (when the recipe declares a
+  `rollback:` command) or marks the tool broken and returns a plan.
+- erbina records what it manages in a small state manifest (`~/.erbina/state.json`)
+  — versions, install method, and pins.
+
+Checks are agent-driven; you can also enable an **opt-in** SessionStart hook or a
+`/schedule` routine so the agent checks for you and asks before applying anything.
+See [AUTO_UPDATE.md](AUTO_UPDATE.md) for the design, the `version:`/`update:`/
+`rollback:` schema, and the trigger setup.
 
 ## Adding a recipe
 
