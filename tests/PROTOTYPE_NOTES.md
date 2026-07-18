@@ -282,9 +282,33 @@ changes, bugs, and development possibilities.
   revert green. Stable at 428 across 2 repeats + order variation; ruff +
   recipe-lint + byte-compile clean.
 
+### Iteration 14 (2026-07-18) — red-teamed the #4 fix; locked its edges
+- **Adversarially probed the new asymmetric version fix** against edges it might
+  mishandle: local `+build` segments, epoch (`1!2.0`), `v`-prefix on both sides,
+  whitespace, PEP440-parseable prereleases, and both-sides-same-dev-build. The
+  fix held on every common case — **no new bug** (a validating result: red-team
+  found no false pass in my own fix). Notable characterizations pinned:
+  - a suffixed CURRENT compares on its release core (`1.2.3-git…` → `1.2.3`);
+  - `latest` stays strict (unparseable → None), including when BOTH sides are the
+    same dev build — safe by design; guidance is "make `latest` print a clean
+    release" (not "up to date", but never a false update);
+  - a `+build` local segment is stripped by extraction, so build-metadata-only
+    differences are correctly not flagged.
+- Added 15 regression tests to `test_version.py` (pure-function level, the right
+  home — no duplication with the tool-level flips in `test_check_updates.py`):
+  `_release_core` unit table, release-core comparison table, strict-latest table,
+  both-dev-build characterization, local-segment. Suite 428 → **443**.
+- Confirmed `update`'s verify→rollback orchestration (867-1013, the branchiest
+  tool) is already fully covered by `test_update.py`/`test_rollback.py` — no gap.
+- Red-team: `_release_core`-truncated (6 RED) and latest-non-strict (4 RED)
+  mutations both caught; revert green. Stable at 443 across 2 repeats + order
+  variation; ruff + recipe-lint clean.
+- Backlog note (NOT worth a test): epoch (`1!x`) and non-common local segments are
+  dropped by `_extract_version`; astronomically rare in real `--version` output.
+
 ## Status: steady state + opportunistic hardening
 Comprehensive coverage reached — all 6 tools + all helpers + load/validate/run
-edges, **428 tests, 97% server.py coverage**, **4 bugs/robustness findings fixed**
+edges, **443 tests, 97% server.py coverage**, **4 bugs/robustness findings fixed**
 (all validated ≥1 iteration before fixing: #1 parse misclassification, #2
 unterminated `${`, #3(2) non-optional configure gate, #4 permissive version
 regex), 1 design quirk documented. The loop continues opportunistically, one

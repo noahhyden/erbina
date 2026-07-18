@@ -69,3 +69,54 @@ def test_status_unparseable_never_claims_an_update(cur, lat):
     s = server._version_status(cur, lat)
     assert s["update_available"] is None
     assert "reason" in s
+
+
+# --------------------------------------------------------------------------- #
+# _release_core + the asymmetric dev/vcs-suffix handling (finding #4 fix).
+# `current` may carry a packaging-illegal suffix and still compare (via its
+# numeric core); `latest` must parse cleanly or the answer is None.
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize("token,expected", [
+    ("1.2.3-git20240101", "1.2.3"),
+    ("2.0-SNAPSHOT", "2.0"),
+    ("1.2.3-alpha.beta", "1.2.3"),
+    ("10.20.30-rc.1.2.3", "10.20.30"),
+    ("1.2.3", "1.2.3"),          # already clean -> unchanged
+    ("nope", None),              # no leading number -> no core
+])
+def test_release_core(token, expected):
+    assert server._release_core(token) == expected
+
+
+@pytest.mark.parametrize("cur,lat,expected", [
+    ("1.2.3-git20240101", "1.2.4", True),    # core 1.2.3 < 1.2.4
+    ("2.0-SNAPSHOT", "2.1.0", True),         # core 2.0   < 2.1.0
+    ("1.2.3-git20240101", "1.2.3", False),   # core 1.2.3 == 1.2.3
+    ("2.0.0-rc1build", "1.9.0", False),      # core 2.0.0 > 1.9.0 -> no downgrade
+])
+def test_status_suffixed_current_uses_release_core(cur, lat, expected):
+    assert server._version_status(cur, lat)["update_available"] is expected
+
+
+@pytest.mark.parametrize("lat", ["1.2.4-SNAPSHOT", "1.2.4-git20240101", "9.9.9-alpha.beta"])
+def test_status_unparseable_latest_is_never_an_update(lat):
+    # asymmetry: even though these have a numeric core, an unparseable LATEST is
+    # not a release erbina will claim as an update.
+    s = server._version_status("1.2.3", lat)
+    assert s["update_available"] is None
+    assert s["reason"].startswith("unparseable latest version:")
+
+
+def test_status_both_sides_same_dev_build_reports_none_not_up_to_date():
+    # characterization: when current == latest == an unparseable dev build, the
+    # strict-latest rule yields None (with a reason) rather than "up to date".
+    # Safe by design; the guidance is to make `latest` print a clean release.
+    s = server._version_status("1.2.3-gabc123", "1.2.3-gabc123")
+    assert s["update_available"] is None
+    assert s["reason"].startswith("unparseable latest version:")
+
+
+def test_status_local_build_segment_is_stripped_not_an_update():
+    # `1.0.0+build5` -> token `1.0.0` (the +local segment is not extracted), so a
+    # build-metadata-only difference is correctly NOT flagged as an update.
+    assert server._version_status("1.0.0", "1.0.0+build5")["update_available"] is False
