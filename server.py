@@ -57,6 +57,10 @@ _VERSION_RE = re.compile(r"v?(\d+\.\d+(?:\.\d+)?(?:[-.][0-9A-Za-z][0-9A-Za-z.-]*
 # into an executed command literally, so it is a recipe bug.
 KNOWN_PLACEHOLDERS = frozenset({"scope", "project_dir"})
 _PLACEHOLDER_RE = re.compile(r"\$\{([^}]*)\}")
+# A verify command starting with one of these only inspects the filesystem; it
+# doesn't prove the tool RUNS (erbina's thesis). Registry policy flags it.
+# (`claude mcp get <name>` — first token `claude` — is the honest mcp-server check.)
+_FILE_INSPECT_CMDS = frozenset({"test", "[", "ls", "cat", "stat", "head", "tail", "find"})
 
 mcp = FastMCP(
     "erbina",
@@ -406,6 +410,24 @@ def lint_recipe_policy(recipe: Any) -> list[str]:
                 problems.append(
                     f"install.methods[{i}] ({m.get('id')!r}): needs a `when:` guard "
                     "(curated policy — gate each method on its package manager)"
+                )
+    # verify honesty — a verify command should RUN the tool, not just inspect the
+    # filesystem (erbina's whole thesis is "verify by running, not by presence").
+    verify = recipe.get("verify")
+    if isinstance(verify, list):
+        for i, v in enumerate(verify):
+            cmd = (v.get("command") or "").strip() if isinstance(v, dict) else ""
+            if not cmd:
+                continue
+            try:
+                first = shlex.split(cmd)[0]
+            except ValueError:  # unbalanced quotes etc. — fall back to a rough split
+                parts = cmd.split()
+                first = parts[0] if parts else ""
+            if first in _FILE_INSPECT_CMDS:
+                problems.append(
+                    f"verify[{i}]: '{first}' only inspects the filesystem — a verify should RUN "
+                    "the tool (e.g. `<tool> --version`) to prove it works, not check for a file"
                 )
     return problems
 

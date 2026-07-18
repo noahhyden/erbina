@@ -11,7 +11,8 @@ written.
 > (the same schema checks run at recipe load time, so `bootstrap` refuses a
 > malformed recipe rather than silently skipping a phase). The linter additionally
 > enforces **curated-registry policy** on top of this schema — a non-empty
-> `title`/`description` and a `when:` guard on every install method — so a recipe
+> `title`/`description`, a `when:` guard on every install method, and an honest
+> `verify` (it must run the tool, not just inspect the filesystem) — so a recipe
 > PR fails fast; that policy is linter-only, not enforced at load time.
 
 ```yaml

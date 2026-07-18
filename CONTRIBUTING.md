@@ -52,8 +52,10 @@ the server. Adding a recipe is just dropping one YAML file in `recipes/`.
    (`validate_recipe` in `server.py`), so `bootstrap` / `inspect_recipe` refuse a
    malformed recipe instead of silently no-op'ing a phase. On top of the schema,
    the linter also enforces **curated-registry policy** (`lint_recipe_policy`): a
-   non-empty `title` and `description`, and a `when:` guard on every install
-   method (so a method only fires where its package manager exists). Policy is
+   non-empty `title` and `description`, a `when:` guard on every install method
+   (so a method only fires where its package manager exists), and an honest
+   `verify` (it must RUN the tool, not just inspect the filesystem with
+   `test`/`ls`/`cat`/…). Policy is
    linter-only — the schema stays lenient for programmatic/test recipes — so if
    you're contributing to `recipes/`, get a clean `lint_recipes.py` run first.
 5. Test it end-to-end (below) before opening a PR. Include the
