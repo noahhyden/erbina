@@ -65,6 +65,16 @@ version:
   latest: "<cmd that prints the latest available version>"
   needs_project_dir: false   # optional; run both commands inside project_dir
 
+# UPDATE — optional. What the `update` tool runs to upgrade an already-installed
+# tool: the same guarded/ordered method shape as install (first passing `when:`
+# wins). If omitted, `update` falls back to the install methods only when
+# `install.upgrade_safe: true` is set (i.e. re-running install upgrades in place).
+update:
+  methods:
+    - id: <method id>
+      when: "<guard command>"   # optional
+      run: "<upgrade command>"  # e.g. brew upgrade <pkg>
+
 # scope this recipe targets when wiring an mcp-server (local | project | user).
 # Informational for cli-tool recipes.
 scope: user
@@ -84,8 +94,17 @@ For each such recipe erbina:
    not lexical; a release outranks its pre-releases).
 
 If either output has no parseable version, `update_available` is `null` — erbina
-never claims an update it can't justify. To apply an update, re-run `bootstrap`
-(a dedicated `update` action is planned).
+never claims an update it can't justify.
+
+## Applying updates (`update`)
+
+`update(recipe_id, dry_run)` upgrades an already-installed tool. It runs the
+recipe's `update:` methods (first passing `when:` guard wins), or the install
+methods when `install.upgrade_safe: true`, then **re-runs `verify`** as the
+safety net — if verify fails after the upgrade, the update is reported failed and
+the tool flagged as possibly broken. `dry_run: true` shows the exact command
+first (consent surface, like `bootstrap`). It refuses a tool that isn't installed
+yet (run `bootstrap` first).
 
 ## `needs_project_dir` when no `project_dir` is given
 

@@ -52,5 +52,17 @@ version:
   current: "ataegina --version"
   latest: 'curl -fsSL https://api.github.com/repos/noahhyden/ataegina-cli/releases/latest | grep ''"tag_name"'''
 
+# UPDATE — what `update` runs to upgrade an already-installed ataegina. Same
+# guarded/ordered shape as install: prefer brew's upgrade, else re-run the
+# install script (which overwrites in place). `update` re-runs `verify` after.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade noahhyden/tap/ataegina"
+    - id: curl
+      when: "command -v curl"
+      run: "curl -fsSL https://raw.githubusercontent.com/noahhyden/ataegina-cli/main/install.sh | sh"
+
 # scope is informational for cli-tool recipes; load-bearing for mcp-server recipes.
 scope: user

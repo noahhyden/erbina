@@ -11,7 +11,7 @@ awareness** and (later) **state**.
 |---|---|---|
 | **0** | `version:` recipe block + version compare core | ✅ done (iter 1) |
 | **1** | `check_updates` tool — read-only current-vs-latest report | ✅ done (iter 1) |
-| **2** | `update(recipe_id, dry_run)` — apply update, re-run `verify`, record version; `pin`/`unpin` | planned |
+| **2** | `update(recipe_id, dry_run)` — apply update, re-run `verify` | ✅ done (iter 2); `pin`/`unpin` deferred to phase 3 |
 | **3** | state manifest (`~/.erbina/state.json`): what was installed, versions, pins, last-checked | planned |
 | **4** | automatic trigger — SessionStart hook or `/schedule` routine that runs `check_updates` and offers to apply | planned |
 
@@ -65,3 +65,25 @@ awareness** and (later) **state**.
   "not installed" here (ataegina absent) without a bogus compare.
 - Red-team: mutations caught — comparison inverted (7), always-installed (1),
   extract-returns-whole-text (4); no flakiness across repeats.
+
+### Iteration 2 (2026-07-18) — phase 2 (`update` tool)
+- Built the `update(recipe_id, scope, dry_run, project_dir)` tool: resolves an
+  update method (explicit `update:` block, else install methods when
+  `install.upgrade_safe: true`), requires the tool to be installed (runs
+  `detect`), runs the chosen method, then **re-runs `verify` as the safety net**
+  (verify failure → ok=False + a "may be broken" warning). Reports version
+  before/after and flags a no-op when unchanged. Dry-run returns the plan only.
+- Schema: optional `update:` block (guarded methods, like install) +
+  `install.upgrade_safe`; validated; documented in SCHEMA.md. Real `update:`
+  block added to the ataegina recipe (brew upgrade / re-run install script).
+- Refactor: shared `_pick_method(methods)` used by both install and update.
+- Tool count 7 → 8 (test + python-floor updated).
+- Tests: +18 (204 → 222). test_update.py (dry-run/plan, no-update-path,
+  upgrade_safe fallback, not-installed refusal, happy path + verify safety net,
+  verify-fail-flags-broken, command-failure short-circuit, method selection,
+  version before/after via a tmp version file, no-op note) + update-block
+  validation cases.
+- End-to-end: dry-run shows the plan; a live update bumped a fake tool 1.0.0 →
+  1.1.0 with verify passing.
+- Red-team: mutations caught — verify-no-longer-gates-ok, always-fallback-to-
+  install; no flakiness across repeats.

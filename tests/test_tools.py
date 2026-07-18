@@ -13,6 +13,7 @@ EXPECTED_TOOLS = {
     "inspect_recipe",
     "bootstrap",
     "check_updates",
+    "update",
     "audit_scopes",
     "find_dead_mcps",
     "remove_mcp",

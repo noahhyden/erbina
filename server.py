@@ -42,7 +42,7 @@ VALID_KINDS = ("cli-tool", "mcp-server")
 # The closed set of top-level keys SCHEMA.md defines. `_path` is injected by the
 # loader AFTER validation, so it is not part of the recipe's authored contract.
 TOP_LEVEL_KEYS = frozenset(
-    {"id", "kind", "title", "description", "detect", "install", "configure", "verify", "scope", "version"}
+    {"id", "kind", "title", "description", "detect", "install", "configure", "verify", "scope", "version", "update"}
 )
 # Matches the first version-looking token in arbitrary command output, e.g.
 # "ataegina 0.1.0" -> "0.1.0", "v1.2.3 (build 4)" -> "1.2.3". A leading `v` is
@@ -274,6 +274,29 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
                     errors.append(f"'version.{key}' is required and must be a non-empty string")
                 _check_placeholders(val, f"version.{key}", errors)
 
+    # update — optional. If present, same guarded-method shape as install; it's
+    # what the `update` tool runs to upgrade an already-installed tool.
+    update = recipe.get("update")
+    if update is not None:
+        if not isinstance(update, dict):
+            errors.append("'update' must be a mapping with 'methods'")
+        else:
+            methods = update.get("methods")
+            if not isinstance(methods, list) or not methods:
+                errors.append("'update.methods' must be a non-empty list when 'update' is present")
+            else:
+                for i, m in enumerate(methods):
+                    tag = f"update.methods[{i}]"
+                    if not isinstance(m, dict):
+                        errors.append(f"{tag}: must be a mapping")
+                        continue
+                    if not (isinstance(m.get("id"), str) and m["id"].strip()):
+                        errors.append(f"{tag}: missing non-empty 'id'")
+                    if not (isinstance(m.get("run"), str) and m["run"].strip()):
+                        errors.append(f"{tag}: missing non-empty 'run'")
+                    _check_placeholders(m.get("run"), f"{tag}.run", errors)
+                    _check_placeholders(m.get("when"), f"{tag}.when", errors)
+
     # scope — optional, but if present must be a valid scope
     scope = recipe.get("scope")
     if scope is not None and scope not in VALID_SCOPES:
@@ -315,11 +338,32 @@ def _recipe_ids() -> list[str]:
     return sorted(p.stem for p in RECIPES_DIR.glob("*.yaml"))
 
 
-def _pick_install_method(recipe: dict[str, Any]) -> dict[str, Any] | None:
-    for m in recipe.get("install", {}).get("methods", []):
+def _pick_method(methods: list[dict[str, Any]] | None) -> dict[str, Any] | None:
+    """The first method whose `when:` guard passes (or has none). Shared by
+    install and update, which both use guarded, ordered method lists."""
+    for m in methods or []:
         if _guard_ok(m.get("when")):
             return m
     return None
+
+
+def _pick_install_method(recipe: dict[str, Any]) -> dict[str, Any] | None:
+    return _pick_method(recipe.get("install", {}).get("methods", []))
+
+
+def _update_methods(recipe: dict[str, Any]) -> tuple[list[dict[str, Any]], str | None]:
+    """The methods `update` will try, and where they came from.
+
+    Prefer an explicit `update:` block; otherwise fall back to the install
+    methods only when the recipe marks them upgrade-safe (`install.upgrade_safe:
+    true`). Returns ([], None) when the recipe declares no update path at all.
+    """
+    upd = recipe.get("update")
+    if isinstance(upd, dict) and upd.get("methods"):
+        return upd["methods"], "update"
+    if recipe.get("install", {}).get("upgrade_safe"):
+        return recipe.get("install", {}).get("methods", []), "install (upgrade_safe)"
+    return [], None
 
 
 def _plan(recipe: dict[str, Any], scope: str, project_dir: str | None) -> dict[str, Any]:
@@ -625,6 +669,114 @@ def check_updates(recipe_id: str | None = None, project_dir: str | None = None) 
             else "No updates found (tools are current, not installed, or version info unavailable)."
         ),
     }
+
+
+def _current_version(recipe: dict[str, Any], scope: str, project_dir: str | None) -> str | None:
+    """Run the recipe's version.current command and extract the token (or None)."""
+    ver = recipe.get("version") or {}
+    cmd = ver.get("current")
+    if not cmd:
+        return None
+    cwd = project_dir if ver.get("needs_project_dir") else None
+    return _extract_version(_run(_subst(cmd, scope, project_dir), cwd=cwd, timeout=30)["stdout"])
+
+
+@mcp.tool
+def update(
+    recipe_id: str,
+    scope: str = "user",
+    dry_run: bool = False,
+    project_dir: str | None = None,
+) -> dict[str, Any]:
+    """
+    Update an already-installed tool, then re-run its `verify` as a safety net.
+
+    Runs the recipe's `update:` methods (or its install methods when the recipe
+    marks them `install.upgrade_safe: true`) — the first whose `when:` guard
+    passes — then re-runs `verify`. If verify fails, the update is reported failed
+    and flagged (the tool may be broken). Set dry_run=true to see the exact
+    command without executing. Only updates a tool that is already installed; run
+    `bootstrap` first otherwise.
+    """
+    if scope not in VALID_SCOPES:
+        return {"error": f"scope must be one of {VALID_SCOPES}"}
+    recipe = _load_recipe(recipe_id)
+    methods, source = _update_methods(recipe)
+    method = _pick_method(methods)
+
+    if source is None:
+        return {
+            "error": (
+                f"recipe '{recipe_id}' declares no `update:` block and its install is not "
+                "marked upgrade_safe, so erbina has no safe way to update it"
+            )
+        }
+
+    report: dict[str, Any] = {
+        "recipe": recipe_id,
+        "scope": scope,
+        "dry_run": dry_run,
+        "plan": {
+            "update_source": source,
+            "chosen_method": method.get("id") if method else None,
+            "command": _subst(method.get("run"), scope, project_dir) if method else None,
+            "verify": [_subst(v.get("command"), scope, project_dir) for v in recipe.get("verify", [])],
+        },
+        "phases": {},
+    }
+    if dry_run:
+        report["note"] = "Dry run — nothing executed. Review `plan`, then re-run with dry_run=false."
+        return report
+
+    # only update something that is actually installed
+    det = recipe.get("detect", {})
+    if det.get("command"):
+        det_cwd = project_dir if det.get("needs_project_dir") else None
+        d = _run(_subst(det["command"], scope, project_dir), cwd=det_cwd, timeout=30)
+        if d["exit"] != det.get("expect_exit", 0):
+            report["phases"]["detect"] = {"present": False, **d}
+            report["ok"] = False
+            report["error"] = "not installed — run bootstrap first"
+            return report
+
+    before = _current_version(recipe, scope, project_dir)
+
+    if not method:
+        report["phases"]["update"] = {
+            "status": "failed",
+            "reason": "no update method's `when:` guard passed on this machine",
+        }
+        report["ok"] = False
+        return report
+    res = _run(method["run"])
+    report["phases"]["update"] = {"status": "ok" if res["exit"] == 0 else "failed", "method": method.get("id"), **res}
+    if res["exit"] != 0:
+        report["ok"] = False
+        return report
+
+    # re-run verify — the safety net that proves the updated tool still runs
+    verify_results = []
+    all_ok = True
+    for v in recipe.get("verify", []):
+        v_cwd = project_dir if v.get("needs_project_dir") else None
+        vres = _run(_subst(v["command"], scope, project_dir), cwd=v_cwd, timeout=30)
+        ok = vres["exit"] == v.get("expect_exit", 0)
+        if not ok and not v.get("optional"):
+            all_ok = False
+        verify_results.append({"status": "ok" if ok else "failed", **vres})
+    report["phases"]["verify"] = verify_results
+
+    after = _current_version(recipe, scope, project_dir)
+    report["version"] = {"before": before, "after": after}
+    report["ok"] = all_ok
+    if not all_ok:
+        report["warning"] = (
+            "verify FAILED after update — the tool may be broken. Consider reinstalling via "
+            "bootstrap (automatic rollback lands with the state manifest in a later phase)."
+        )
+    elif before and after and before == after:
+        report["note"] = f"Already at {after} — update was a no-op."
+    return report
 
 
 @mcp.tool
