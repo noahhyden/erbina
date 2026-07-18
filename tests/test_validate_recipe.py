@@ -1,9 +1,8 @@
 """Tests for recipe validation.
 
-`validate_recipe` (and load-time validation) is landing in a separate PR (#4)
-and may not exist on this branch. Every test here is guarded with skipif on
-`hasattr(server, 'validate_recipe')`, so on a branch without it the whole module
-SKIPS cleanly instead of failing.
+`validate_recipe` (and load-time validation) shipped in #4. The skipif guard is
+kept as a harmless safety net (the module skips rather than errors if the symbol
+is ever removed), but on the current tree these tests always run.
 
 We NEVER write into recipes/ — malformed recipes are built as in-memory dicts.
 The one test that must exercise the _load_recipe path writes to a tmp dir and
@@ -18,7 +17,7 @@ from helpers import call_tool
 
 pytestmark = pytest.mark.skipif(
     not hasattr(server, "validate_recipe"),
-    reason="validate_recipe not present on this branch (lands in PR #4)",
+    reason="validate_recipe not present (safety net; it ships in server.py)",
 )
 
 

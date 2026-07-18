@@ -1,11 +1,16 @@
 # erbina tests
 
-The first automated test suite for erbina (closes #1). It exercises the server
-the way an agent does — through an in-memory FastMCP client — plus unit tests for
-the pure helpers. **No test performs a real side effect**: nothing installs,
-wires, or removes anything, nothing hits the network, and nothing reads the
-host's live Claude Code config. Read-only/`dry_run` paths only; subprocess and
-file reads are monkeypatched where a tool would otherwise shell out.
+The automated test suite for erbina (closes #1). It exercises the server the way
+an agent does — through an in-memory FastMCP client — plus unit tests for the
+pure helpers and a **prototype-recipe harness** for behavioral / red-team testing.
+
+**No test performs a real side effect.** Nothing installs, wires, or removes
+anything for real, nothing hits the network, and nothing reads or writes the
+host's live Claude Code config. Where a tool would shell out (`claude`, package
+managers) the subprocess or config read is monkeypatched. Live `bootstrap` runs
+*are* exercised, but only against prototype recipes whose every command is a
+POSIX shell builtin (`true` / `false` / `exit N` / `echo`), so they are
+deterministic and produce no side effects.
 
 ## Running
 
@@ -23,17 +28,37 @@ internally (see `helpers.py`), so `pytest-asyncio` is not required.
 `conftest.py` puts the repo root on `sys.path` so `import server` works
 regardless of the current working directory.
 
+## The prototype harness
+
+`prototype.py` is the core of the behavioral suite. It treats an erbina recipe
+as a "fake tool" you can give special properties to, then pushes it through the
+server's real code paths:
+
+- `cli_recipe()` / `mcp_recipe()` — build minimal VALID recipes (all shell
+  builtins) that you override to introduce edge cases.
+- `registry(*recipes)` — a context manager that swaps `server.RECIPES_DIR` to a
+  temp dir holding the given prototypes and restores it afterward, so synthetic
+  recipes resolve through the real MCP tool surface without touching `recipes/`.
+
+See `PROTOTYPE_NOTES.md` for the design, the iteration log, the loop discipline
+(mutation testing to catch false passes), and the running list of findings.
+
 ## What's covered
 
 | file | covers |
 |---|---|
 | `test_import.py` | `import server` succeeds and does **not** start the server (`mcp.run()` stays `__main__`-guarded). |
-| `test_tools.py` | Exactly the 6 expected tools register; `list_recipes` sees both real recipes; `inspect_recipe` / `bootstrap(dry_run=True)` return a plan and execute nothing; path-traversal recipe ids (`../server`, `../../etc/passwd`) are rejected as "no recipe"; a bad `scope` is rejected cleanly. |
-| `test_helpers.py` | `_subst` placeholder expansion incl. the missing-`project_dir` → `.` fallback; `_load_recipe` traversal guard; `_parse_mcp_list` classifies a realistic `claude mcp list` capture (connected + failed + ANSI) — documenting the brittle parser (#3). Driven with a monkeypatched `_run`, never a live `claude`. |
-| `test_validate_recipe.py` | Recipe-validation tests. **Skipped in full** unless `server.validate_recipe` exists (it lands in PR #4). When present: both real recipes validate clean; a malformed recipe reports each seeded problem; the load path refuses a malformed recipe (via a temp recipes dir, never `recipes/`). |
-
-## Expected result on this branch
-
-`validate_recipe` is not yet present on `launch-prep-ci`, so
-`test_validate_recipe.py` reports as **SKIPPED** — that is correct and expected.
-Everything else passes.
+| `test_tools.py` | The 6 expected tools register; `list_recipes` sees both real recipes; `inspect_recipe` / `bootstrap(dry_run)` return a plan and execute nothing; path-traversal ids rejected; bad `scope` rejected. |
+| `test_helpers.py` | `_subst` expansion (incl. missing-`project_dir` → `.`); `_load_recipe` traversal guard; `_parse_mcp_list` on a realistic capture (monkeypatched `_run`). |
+| `test_validate_recipe.py` | Both real recipes validate clean; a malformed recipe reports each seeded problem; the load path refuses a malformed recipe (temp recipes dir, never `recipes/`). |
+| `test_prototype_factory.py` | Self-tests for the harness: prototypes validate clean, `registry()` swaps + restores (incl. nesting and on-exception), tool registry undisturbed. |
+| `test_bootstrap_engine.py` | LIVE bootstrap orchestration: detect-gates-install, guarded/ordered install selection, configure skip + `force_configure`, verify pass/fail + `optional` + `expect_exit`, mcp-server reload hint. |
+| `test_parse_mcp_list_edges.py` | Adversarial `_parse_mcp_list` inputs (commands containing `:` or ` - `, CRLF, blank/header lines, double markers) + regressions for the status-tail fix. |
+| `test_real_recipes.py` | Real ataegina / fetch recipes through the dry-run plan surface, incl. `${scope}` across all scopes and `needs_project_dir` propagation. |
+| `test_scopes.py` | `_scope_map`, `audit_scopes` (bucketing, shadowing, precedence/where), `remove_mcp` guardrails, `_claude_json` tolerance. |
+| `test_placeholders.py` | `_check_placeholders` flagging + the lint↔subst invariant + unterminated-`${` regression. |
+| `test_validate_recipe_props.py` | Property fuzzing: valid → 0 errors; single-defect corruptions each → ≥1 matching error. |
+| `test_run.py` | `_run` exit passthrough, stderr, timeout→124 (no raise), stdout 4000-char trim, cwd, never-raises. |
+| `test_project_dir_and_phases.py` | `needs_project_dir` actually changes the cwd a phase runs in (marker technique); phase-gating incl. non-optional configure failure. |
+| `test_tool_surface_edges.py` | `list_recipes` skips malformed recipes; `inspect_recipe` ↔ `bootstrap(dry_run)` plan parity. |
+| `test_find_dead_mcps.py` | Alive/dead split, scope annotation, orphan handling, hints (monkeypatched `_parse_mcp_list` + `_scope_map`). |

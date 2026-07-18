@@ -116,6 +116,12 @@ def _check_placeholders(text: Any, where: str, errors: list[str]) -> None:
                 f"{where}: unknown placeholder '${{{tok}}}' "
                 f"(only {', '.join('${' + p + '}' for p in sorted(KNOWN_PLACEHOLDERS))} are substituted)"
             )
+    # A `${` with no matching `}` is neither expanded by _subst nor caught by the
+    # loop above, so it would reach an executed command literally. Every `${`
+    # must open a closed token, so more `${` than closed tokens ⇒ an unterminated
+    # placeholder (a missing-brace typo).
+    if text.count("${") > len(_PLACEHOLDER_RE.findall(text)):
+        errors.append(f"{where}: unterminated placeholder — a '${{' has no closing '}}'")
 
 
 def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
@@ -334,11 +340,18 @@ def _parse_mcp_list(project_dir: str | None = None) -> list[dict[str, Any]]:
             continue
         name, _, rest = line.partition(":")
         name, rest = name.strip(), rest.strip()
-        connected = ("✔" in rest) or ("Connected" in rest and "Failed" not in rest)
-        failed = ("✘" in rest) or ("Failed to connect" in rest)
+        # Classify on the STATUS tail only (everything after the last ` - `), not
+        # the whole line: otherwise a command that merely contains "Failed to
+        # connect" (or "✘") would mislabel a healthy server as dead. See issue #3
+        # / tests/test_parse_mcp_list_edges.py.
+        command, sep, status = rest.rpartition(" - ")
+        if not sep:  # no ` - <status>` separator → treat the whole line as status
+            command, status = "", rest
+        connected = ("✔" in status) or ("Connected" in status and "Failed" not in status)
+        failed = ("✘" in status) or ("Failed to connect" in status)
         if not (connected or failed):
             continue  # header / summary line, not a server status
-        command = rest.rsplit(" - ", 1)[0].strip()
+        command = command.strip()
         servers.append({"name": name, "connected": connected and not failed, "command": command})
     return servers
 
@@ -463,6 +476,7 @@ def bootstrap(
         report["phases"]["configure"] = {"status": "none"}
     else:
         results = []
+        configure_failed = False
         for step in cfg_steps:
             cwd = project_dir if step.get("needs_project_dir") else None
             if step.get("needs_project_dir") and not project_dir:
@@ -473,7 +487,15 @@ def bootstrap(
             res = _run(_subst(step["run"], scope, project_dir), cwd=cwd)
             ok = res["exit"] == 0 or step.get("optional")
             results.append({"status": "ok" if ok else "failed", **res})
+            if not ok:
+                configure_failed = True
         report["phases"]["configure"] = {"steps": results}
+        # A required (non-optional) configure step is a prerequisite for verify to
+        # be meaningful — if one fails, short-circuit like a failed install rather
+        # than reporting ok on the strength of an unrelated verify.
+        if configure_failed:
+            report["ok"] = False
+            return report
 
     # 4. verify (must exit 0)
     verify_results = []
