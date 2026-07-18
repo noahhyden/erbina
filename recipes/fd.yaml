@@ -1,0 +1,47 @@
+# erbina recipe — fd, a cli-tool. Fast, user-friendly alternative to `find`.
+id: fd
+kind: cli-tool
+title: "fd — a fast, friendly alternative to find"
+description: >
+  fd is a simple, fast, and ergonomic alternative to `find`, with sensible
+  defaults and gitignore awareness. Installs the `fd` binary.
+  https://github.com/sharkdp/fd
+
+# 1. DETECT — already installed? `fd --version` exits 0 when present.
+detect:
+  command: "fd --version"
+  expect_exit: 0
+
+# 2. INSTALL — prefer brew; fall back to cargo. NOTE: the crate is `fd-find`
+# (it installs the `fd` binary), NOT `fd`.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install fd"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install fd-find"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "fd --version"
+    expect_exit: 0
+
+# 4. VERSION — `fd --version` prints "fd 10.1.0"; latest is the GitHub tag
+# (sharkdp/fd tags look like "v10.1.0"). erbina extracts + compares the token.
+version:
+  current: "fd --version"
+  latest: 'curl -fsSL https://api.github.com/repos/sharkdp/fd/releases/latest | grep ''"tag_name"'''
+
+# 5. UPDATE — brew upgrade, else re-run the cargo install (upgrades in place).
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade fd"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install fd-find"
+
+scope: user

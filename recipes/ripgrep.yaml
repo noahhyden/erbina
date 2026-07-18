@@ -1,0 +1,46 @@
+# erbina recipe — ripgrep, a cli-tool. Fast recursive search (`rg`).
+id: ripgrep
+kind: cli-tool
+title: "ripgrep (rg) — blazing-fast recursive search"
+description: >
+  ripgrep recursively searches directories for a regex pattern while respecting
+  gitignore. Installs the `rg` binary. https://github.com/BurntSushi/ripgrep
+
+# 1. DETECT — already installed? `rg --version` exits 0 when present.
+detect:
+  command: "rg --version"
+  expect_exit: 0
+
+# 2. INSTALL — first guard to pass wins. Prefer brew; fall back to cargo.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install ripgrep"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install ripgrep"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "rg --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates. `rg --version` prints "ripgrep 14.1.1"; the
+# latest line prints the GitHub release tag. erbina extracts the version token
+# from each and compares.
+version:
+  current: "rg --version"
+  latest: 'curl -fsSL https://api.github.com/repos/BurntSushi/ripgrep/releases/latest | grep ''"tag_name"'''
+
+# 5. UPDATE — how `update` upgrades an installed rg (brew, else re-run cargo).
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade ripgrep"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install ripgrep"
+
+scope: user
