@@ -329,13 +329,40 @@ changes, bugs, and development possibilities.
   proving patch-level sensitivity. Stable at 471 across 2 repeats + ordering; ruff
   + recipe-lint clean.
 
+### Iteration 16 (2026-07-18) — fuzzed validate_recipe; found a real crash (#6)
+- **Fuzzed `validate_recipe` with a hostile-type matrix** (per-field value
+  corruption + non-mapping + nested members): 576 inputs. It's the shared
+  never-raise validator behind `_load_recipe` AND `lint_recipes.py`, documented to
+  RETURN an error list for any input.
+- **CONFIRMED FINDING #6 (pinned, fix next iteration):** a non-string TOP-LEVEL
+  key — valid YAML, e.g. a recipe file starting `2024: hi` → `{2024: "hi"}` —
+  crashes `validate_recipe` at `", ".join(sorted(unknown))` over the unknown-key
+  set (`TypeError: sequence item 0: expected str`). Reproduced END-TO-END through
+  the tool surface: `inspect_recipe`/`bootstrap`/`check_updates` (explicit load)
+  surface a cryptic `ToolError` instead of a clean "unknown top-level key" refusal,
+  and `lint_recipes.py` would crash in CI. `list_recipes` (bulk) survives (per-
+  recipe catch). Pinned with a **strict xfail** (3 cases: int/tuple keys); the fix
+  (`sorted(str(k) for k in unknown)`) will XPASS→fail and prompt marker removal.
+- Added never-raise regression guards (green today): hostile field values (12
+  fields), non-mapping recipe (9 types), hostile nested members (21 types) — 42
+  passing assertions locking the contract for everything EXCEPT the #6 key path.
+- Suite 471 → **513 passed, 3 xfailed**. Red-team: dropping a verify non-dict
+  guard → 18 never-raise cases RED (proves the fuzz is sensitive, not a false
+  pass); revert green. Stable across 2 repeats + ordering; ruff + recipe-lint clean.
+- **Finding #5 decision (deferred as documented limitation, like #3(1)):** the
+  leading-dotted-number misextraction is validated (1 iter) and NOT worth fixing —
+  a heuristic (prefer token after "version"/skip a leading year) risks regressing
+  the clean 24-format real corpus, and no recipe triggers it. Kept as a pinned
+  `test_CURRENT_*` characterization.
+
 ## Status: steady state + opportunistic hardening
 Comprehensive coverage reached — all 6 tools + all helpers + load/validate/run
-edges, **471 tests, 97% server.py coverage**, **4 bugs/robustness findings fixed**
+edges, **513 tests, 97% server.py coverage**, **4 bugs/robustness findings fixed**
 (all validated ≥1 iteration before fixing: #1 parse misclassification, #2
 unterminated `${`, #3(2) non-optional configure gate, #4 permissive version
-regex), 1 design quirk documented (#3(1)), and 1 latent limitation characterized
-& pending (#5 leading-dotted-number shadows the version — no recipe triggers it).
+regex), 2 limitations documented/deferred (#3(1) configure-skip asymmetry, #5
+leading-dotted-number shadows the version), and **1 confirmed crash pinned for
+fix next iteration (#6 non-string top-level key crashes validate_recipe)**.
 The loop continues opportunistically, one validated finding at a time.
 
 ## Backlog (low value)
