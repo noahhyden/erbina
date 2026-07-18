@@ -13,6 +13,28 @@ are reconstructed from the git history. Everything is therefore under
 
 ### Added
 
+- **Auto-updating installed tools (`check_updates`, `update`, `pin`).** A recipe
+  can declare a `version:` block (installed `current` vs `latest` source) and
+  optional `update:` / `rollback:` methods. `check_updates` reports what's out of
+  date — comparing with [`packaging`](https://packaging.pypa.io) semantics
+  (numeric / pre-release aware) and never claiming an update it can't parse.
+  `update` applies the upgrade and **re-runs `verify`** as a safety net: on
+  failure it rolls back to the recorded previous version (passed to a `rollback:`
+  command via `$ERBINA_ROLLBACK_VERSION`) or marks the tool broken and returns a
+  plan. `pin` records a pin so checks/updates skip a tool. erbina now keeps a
+  small **state manifest** (`~/.erbina/state.json`) of what it manages — versions,
+  install method, and pins. An **opt-in** SessionStart hook
+  (`examples/erbina-session-start.sh`) or `/schedule` routine can have the agent
+  run `check_updates` and surface updates for consent. See
+  [AUTO_UPDATE.md](AUTO_UPDATE.md). Adds the `packaging` dependency.
+- **Behavioral / red-team test harness.** `tests/prototype.py` synthesizes
+  recipes from POSIX shell builtins, so a live (non-dry) `bootstrap`/`update` runs
+  deterministically with no side effects — exercising the real orchestration
+  engine, not just dry-run paths. Coverage now spans every tool and helper
+  (version compare, `_parse_mcp_list`, scope audit, state manifest, …). Each
+  behavioral test is validated by **mutation testing**. The suite grew from ~26
+  to 260 tests. See [tests/README.md](tests/README.md) and
+  [tests/PROTOTYPE_NOTES.md](tests/PROTOTYPE_NOTES.md).
 - **Recipe schema validation + linter (`lint_recipes.py`).** A `validate_recipe`
   check (in `server.py`) enforces the [SCHEMA.md](SCHEMA.md) contract: `id` must
   equal the filename stem, `kind` is `cli-tool`|`mcp-server`, `detect.command`
@@ -26,8 +48,9 @@ are reconstructed from the git history. Everything is therefore under
   instead of silently no-op'ing a phase under real privileges. `uv run --script
   lint_recipes.py` lints every recipe and exits non-zero on any failure.
 - **Test suite + CI + release process.** A pytest suite in `tests/` drives the
-  server through an in-memory FastMCP client over read-only / `dry_run` paths
-  (no network, servers, or Claude Code needed). A GitHub Actions workflow
+  server through an in-memory FastMCP client (no network, servers, or Claude Code
+  needed; subprocess/config reads are monkeypatched and live runs use shell
+  builtins). A GitHub Actions workflow
   (`.github/workflows/ci.yml`) runs ruff, the suite on Linux + macOS, an import
   check on the Python 3.10 floor, and a release-verify step (recipes lint clean,
   `server.json` valid, version-tag agreement on tag builds). `RELEASE.md`
