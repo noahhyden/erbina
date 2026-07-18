@@ -50,6 +50,23 @@ changes, bugs, and development possibilities.
   docstring + `tests/README.md` still say `validate_recipe` "lands in PR #4 / will
   SKIP", but it's present now, so those tests run. Doc-only; low priority.
 
+### Iteration 2 (2026-07-18)
+- Added `test_parse_mcp_list_edges.py` (adversarial parser inputs) and
+  `test_real_recipes.py` (real ataegina/fetch plan coverage across all scopes).
+  +17 tests (47 → 63 passed, +1 xfailed).
+- **CONFIRMED FINDING #1 (issue #3):** `_parse_mcp_list` misclassifies a HEALTHY
+  server (✔ marker present) as dead when its command text contains the substring
+  `"Failed to connect"`, because `failed` is matched against the whole line
+  (command + status) instead of just the status tail. Validated three ways:
+  direct probe; strict `xfail` (fails today as expected); and by applying the
+  candidate fix (`status = rest.rsplit(" - ", 1)[-1]`; classify on `status`),
+  which flips the xfail to XPASS **and keeps all 8 other parse tests green** —
+  so the fix is correct and non-regressing.
+  → **Apply this fix in iteration 3** and remove the xfail marker (the strict
+  xfail will then XPASS→fail, which is the reminder to unmark).
+- Red-team: stable across 3 repeats; scope-subst mutation caught by 4 real-recipe
+  tests; install-order + detect + verify-optional mutations still caught.
+
 ## Backlog (future iterations)
 - Real-recipe coverage: drive dry-run `_plan` for ataegina/fetch across all three
   scopes; assert `needs_project_dir` propagation and `${scope}` substitution.
