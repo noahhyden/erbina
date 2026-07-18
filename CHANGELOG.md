@@ -13,6 +13,9 @@ are reconstructed from the git history. Everything is therefore under
 
 ### Added
 
+- **README recipe gallery + drift guard.** The README now lists every recipe
+  (grouped by kind, linking to its YAML), and a test asserts the gallery stays in
+  sync with `recipes/` — a new or removed recipe that isn't reflected fails CI.
 - **Curated-registry linter policy (`lint_recipe_policy`).** On top of the schema
   contract, `lint_recipes.py` now also enforces registry policy so a recipe PR
   fails fast: a non-empty `title` and `description`, and a `when:` guard on every
