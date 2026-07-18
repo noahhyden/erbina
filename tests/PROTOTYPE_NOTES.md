@@ -173,8 +173,21 @@ changes, bugs, and development possibilities.
   #2 unterminated `${` not linted; #3(2) non-optional configure failure not gating ok.
 - 1 documented design quirk deferred: #3(1) configure-skip vs verify/detect-CWD asymmetry.
 
-## Backlog (future iterations)
-- Decide #3(1): make verify/detect skip when needs_project_dir + no project_dir,
-  or document the asymmetry in SCHEMA.md (leaning: document — verify SHOULD run).
-- Consider a short tests/README update summarizing the harness modules.
-- Possible: a tiny CI-time smoke that the harness itself imports (guards renames).
+### Iteration 9 (2026-07-18) — consolidation
+- **Resolved #3(1) by documenting it** (design call, not a code change): added a
+  `needs_project_dir`-when-no-`project_dir` table to SCHEMA.md (configure skips;
+  detect/verify run in CWD). Kept the `test_CURRENT_*` characterization tests.
+- Rewrote the stale `tests/README.md`: it claimed "read-only / dry_run only"
+  (no longer true — live builtin bootstraps run) and that validate_recipe "lands
+  in PR #4 / test SKIPS" (shipped long ago). Now lists all 15 test files + the
+  prototype harness. Fixed the same stale "PR #4" wording in
+  test_validate_recipe.py's docstring/skipif reason (guard kept as a safety net).
+- No product logic change; 157 passed, ruff + recipe-lint clean. No mutation
+  testing this round (docs/docstring only — nothing behavioral changed).
+
+## Backlog (deeper edges, lower value)
+- install `when:` guard that ERRORS (not just exits nonzero); empty recipe file
+  (yaml → None); id valid but body None; same name shadowed across all 3 scopes.
+- A tiny CI smoke that imports the harness modules (guards against renames).
+- The suite is now comprehensive (all 6 tools + all helpers, 157 tests, 3 bugs
+  fixed). Further iterations are diminishing-returns edge hardening.

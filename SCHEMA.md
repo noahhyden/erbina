@@ -60,6 +60,21 @@ verify:
 scope: user
 ```
 
+## `needs_project_dir` when no `project_dir` is given
+
+`needs_project_dir: true` runs a step inside the `project_dir` passed to
+`bootstrap`. If that flag is set but **no `project_dir` is supplied**, the phases
+behave differently on purpose:
+
+| phase | behavior with no `project_dir` |
+|---|---|
+| `configure` | the step is **skipped** (not failed) — nothing is wired |
+| `detect` / `verify` | the command runs in the **current directory** instead |
+
+So a project-scoped recipe run without a `project_dir` will typically detect/
+verify against the wrong directory (and fail there) while its configure step is
+skipped. Always pass `project_dir` for `scope: project` recipes.
+
 ## Placeholders
 
 Any command string (`detect`, `install.methods[].run`, `configure.steps[].run`,
