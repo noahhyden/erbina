@@ -116,9 +116,30 @@ changes, bugs, and development possibilities.
 - Suite: 122 → 137 passed. Red-team: unterminated-check-off (3 caught),
   list_recipes-no-skip (caught), _claude_json-no-tolerance (caught); stable x3.
 
+### Iteration 6 (2026-07-18)
+- Added `test_project_dir_and_phases.py`: proves `needs_project_dir` actually
+  changes the cwd a phase runs in, using a marker file present only in
+  project_dir (`test -f <marker>` passes iff it ran there). Covers detect /
+  configure / verify running in project_dir; detect ignoring project_dir when not
+  flagged; optional configure failure → ok.
+- Added `audit_scopes` precedence/where-string + empty-config tests, and
+  `_claude_json` tolerance (iter 5) — all in test_scopes.py.
+- Suite: 137 → 147 passed. Red-team: detect-ignores-project_dir and
+  verify-ignores-project_dir mutations both caught (validates the marker
+  technique genuinely detects cwd — not a false pass); stable x3.
+- **CANDIDATE FINDING #3 (documented, NOT fixed):** two related phase-handling
+  quirks, pinned as `test_CURRENT_*` characterization tests:
+  1. Asymmetry: `configure` step with `needs_project_dir` + no `project_dir` is
+     SKIPPED, but `verify`/`detect` in the same situation run in CWD instead.
+  2. A NON-optional (`optional: false`, the default) `configure` step that FAILS
+     is recorded `"failed"` but does NOT gate `report["ok"]` — bootstrap reports
+     ok=True if verify passes. Since the `optional` flag exists, a required step
+     failing silently is surprising.
+  → Decide next iteration. Likely fix for (2): a failed non-optional configure
+     step sets `report["ok"]=False` (and probably short-circuits before verify,
+     mirroring install). (1) is more of a design call — may just document it.
+
 ## Backlog (future iterations)
-- `bootstrap` detect `needs_project_dir` propagation (detect runs in project_dir).
-- `configure` step `optional: true` allows a nonzero exit to still be "ok".
+- Fix candidate #3(2): non-optional configure failure should gate ok.
 - Concurrency/isolation: registry() nested usage; multiple prototypes at once.
-- `audit_scopes` precedence/where-string correctness; empty-config report.
-- Consider consolidating the whole harness into a short tests/README update.
+- Consider a short tests/README update summarizing the harness modules.

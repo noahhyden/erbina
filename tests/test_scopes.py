@@ -112,6 +112,30 @@ def test_audit_scopes_no_shadowing_is_a_clear_message(tmp_path, monkeypatch):
     assert out["shadowed"] == "none — no server name is defined in more than one scope"
 
 
+def test_audit_scopes_empty_config_reports_nothing(tmp_path, monkeypatch):
+    proj = str(Path(tmp_path).resolve())
+    _fake_claude_json(monkeypatch, {})
+    out = call_tool("audit_scopes", {"project_dir": proj})
+    assert out["scopes"]["user"]["servers"] == []
+    assert out["scopes"]["project"]["servers"] == []
+    assert out["scopes"]["local"]["servers"] == []
+    assert out["total_distinct"] == 0
+    assert "none" in out["shadowed"]
+
+
+def test_audit_scopes_states_precedence_and_where(tmp_path, monkeypatch):
+    proj = str(Path(tmp_path).resolve())
+    _fake_claude_json(monkeypatch, {"mcpServers": {"u": {}}})
+    out = call_tool("audit_scopes", {"project_dir": proj})
+    # precedence is surfaced so a user can reason about shadowing
+    assert "local > project > user" in out["precedence"]
+    assert out["project_root"] == proj
+    # each scope names WHERE it is stored
+    assert ".claude.json" in out["scopes"]["user"]["where"]
+    assert ".mcp.json" in out["scopes"]["project"]["where"]
+    assert proj in out["scopes"]["local"]["where"]
+
+
 # --------------------------------------------------------------------------- #
 # remove_mcp — scope resolution + guardrails (dry-run / error paths only)
 # --------------------------------------------------------------------------- #
