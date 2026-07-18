@@ -403,15 +403,35 @@ changes, bugs, and development possibilities.
 - Suite 525 → **526 passed, 3 xfailed**. Stable across 2 repeats + ordering; ruff
   + recipe-lint clean.
 
+### Iteration 19 (2026-07-18) — APPLIED FIX for finding #7 (+ de-duplication)
+- **Fixed #7** (validated iter 18): funneled the project-config read through two
+  new shared helpers — `_resolve_project_root` (catches `(OSError, ValueError)`
+  from `resolve()` → None) and `_project_mcp_names` (guards `.exists()`/read/parse,
+  including a non-object `.mcp.json` → []). Both `_scope_map` and `audit_scopes`
+  now call them, so the crash is fixed in BOTH sites AND the duplicated hand-rolled
+  read is gone. A pathological `project_dir` now degrades to the user-scope map
+  instead of raising. Verified end-to-end through `audit_scopes`.
+- **Red-team caught my OWN wrong mental model** (exactly the point of red-teaming):
+  I assumed the over-long path fails at `resolve()`, but `resolve()` doesn't touch
+  the fs — it only trips later at `.exists()`. So the NUL vector → unresolved root
+  (None), while the long-path vector → resolves fine but project scope degrades to
+  []. Two of my first-draft assertions were wrong and failed; corrected to reflect
+  the two distinct failure points (and split into precise tests).
+- Fix mutations: unguarding `resolve()` → NUL tests RED; unguarding `.exists()` →
+  long-path + non-object-json tests RED; revert green.
+- Suite 526 → **534**, 0 xfailed. **server.py coverage 97% → 99%** (only `_run`'s
+  BLE catch, `_recipe_ids` no-dir, and `mcp.run()` remain). Stable across 2 repeats
+  + ordering; ruff + recipe-lint + byte-compile clean.
+
 ## Status: steady state + opportunistic hardening
 Comprehensive coverage reached — all 6 tools + all helpers + load/validate/run
-edges, **526 tests, 97% server.py coverage**, **5 bugs/robustness findings fixed**
+edges, **534 tests, 99% server.py coverage**, **6 bugs/robustness findings fixed**
 (all validated ≥1 iteration before fixing: #1 parse misclassification, #2
 unterminated `${`, #3(2) non-optional configure gate, #4 permissive version
-regex, #6 non-string top-level key crashes validate_recipe), and 2 limitations
-documented/deferred (#3(1) configure-skip asymmetry, #5 leading-dotted-number
-shadows the version). The loop continues opportunistically, one validated finding
-at a time.
+regex, #6 non-string top-level key crashes validate_recipe, #7 pathological
+project_dir crashes the scope surface), and 2 limitations documented/deferred
+(#3(1) configure-skip asymmetry, #5 leading-dotted-number shadows the version).
+The loop continues opportunistically, one validated finding at a time.
 
 ## Backlog (low value)
 - A tiny CI smoke that imports the harness modules (guards against renames).

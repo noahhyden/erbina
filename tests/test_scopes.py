@@ -89,22 +89,20 @@ def test_scope_map_tolerates_a_project_dir_that_is_a_regular_file(tmp_path, monk
 
 
 # --------------------------------------------------------------------------- #
-# FINDING #7 (pinned, fix next iteration): _scope_map goes out of its way to
-# tolerate a missing/malformed .mcp.json, but an OS-level bad project_dir slips
-# past that intent and raises. Two vectors:
-#   * an over-long path component  -> OSError (ENAMETOOLONG) at mcp_json.exists()
-#     (the .exists() call sits OUTSIDE the try/except that guards the read)
-#   * an embedded NUL byte         -> ValueError at Path(project_dir).resolve()
-# Both crash audit_scopes / bootstrap / check_updates / remove_mcp (any tool that
-# threads project_dir through _scope_map) with a raw exception instead of
-# degrading to the user-scope map. Strict xfail: the fix (guard resolve() and the
-# exists()/read together) makes these return a dict -> XPASS -> flips to failure,
-# the reminder to remove the marker.
+# FINDING #7 (FIXED): a pathological project_dir used to crash the scope surface
+# with a raw exception instead of degrading to the user-scope map — the code
+# tolerated a missing/malformed .mcp.json but not an OS-level bad path. Two
+# vectors: an over-long path component -> OSError (ENAMETOOLONG) at
+# mcp_json.exists(), and an embedded NUL byte -> ValueError at
+# Path(project_dir).resolve(). The read is now funneled through the shared
+# `_resolve_project_root` / `_project_mcp_names` helpers, which both degrade to
+# "no project scope" instead of raising — fixing _scope_map AND audit_scopes
+# (which had duplicated the pattern).
 # --------------------------------------------------------------------------- #
-@pytest.mark.xfail(reason="finding #7: _scope_map raises on a pathological project_dir", strict=True)
 @pytest.mark.parametrize("bad_dir", [
-    "a" * 300,          # over-long single component -> ENAMETOOLONG
+    "a" * 300,          # over-long single component -> ENAMETOOLONG at .exists()
     "/tmp/a\x00b",      # embedded NUL -> ValueError from resolve()
+    "a" * 5000,         # far past the limit
 ])
 def test_scope_map_tolerates_a_pathological_project_dir(bad_dir, monkeypatch):
     _fake_claude_json(monkeypatch, {"mcpServers": {"u1": {}}})
@@ -113,11 +111,37 @@ def test_scope_map_tolerates_a_pathological_project_dir(bad_dir, monkeypatch):
     assert smap.get("u1") == ["user"]  # user scope still reported; project skipped
 
 
-@pytest.mark.xfail(reason="finding #7: audit_scopes surfaces the raw _scope_map crash", strict=True)
-def test_audit_scopes_tolerates_a_pathological_project_dir(monkeypatch):
+@pytest.mark.parametrize("bad_dir", ["a" * 300, "/tmp/a\x00b"])
+def test_audit_scopes_tolerates_a_pathological_project_dir(bad_dir, monkeypatch):
+    # both vectors must NOT crash and must still report the user scope + degrade
+    # the project scope to [] (the two vectors fail at different points — NUL at
+    # resolve(), the over-long path only at .exists() — but neither is fatal).
     _fake_claude_json(monkeypatch, {"mcpServers": {"u1": {}}})
-    out = call_tool("audit_scopes", {"project_dir": "a" * 300})
+    out = call_tool("audit_scopes", {"project_dir": bad_dir})
     assert isinstance(out, dict) and "error" not in out
+    assert out["scopes"]["user"]["servers"] == ["u1"]   # user scope still reported
+    assert out["scopes"]["project"]["servers"] == []    # project degraded, not crashed
+
+
+def test_audit_scopes_reports_unresolvable_root_for_nul_byte(monkeypatch):
+    # a NUL byte fails at resolve() -> proj_root None -> the root is annotated
+    _fake_claude_json(monkeypatch, {"mcpServers": {"u1": {}}})
+    out = call_tool("audit_scopes", {"project_dir": "/tmp/a\x00b"})
+    assert "could not be resolved" in out["project_root"]
+
+
+def test_resolve_project_root_helper():
+    # NUL byte fails at resolve() -> None; an over-long path RESOLVES (resolve()
+    # doesn't touch the fs) and only trips later at .exists(); None -> cwd.
+    assert server._resolve_project_root("/tmp/a\x00b") is None
+    assert isinstance(server._resolve_project_root("a" * 300), Path)
+    assert isinstance(server._resolve_project_root(None), Path)
+
+
+def test_project_mcp_names_tolerates_non_object_json(tmp_path):
+    # .mcp.json holding a JSON array (not an object) must degrade to [], not raise
+    (tmp_path / ".mcp.json").write_text("[1, 2, 3]")
+    assert server._project_mcp_names(Path(tmp_path).resolve()) == []
 
 
 # --------------------------------------------------------------------------- #
