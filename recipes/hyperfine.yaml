@@ -1,0 +1,45 @@
+# erbina recipe — hyperfine, a cli-tool. A command-line benchmarking tool.
+id: hyperfine
+kind: cli-tool
+title: "hyperfine — a command-line benchmarking tool"
+description: >
+  hyperfine benchmarks commands with statistical analysis, warmup runs, and
+  parameter sweeps. Installs the `hyperfine` binary.
+  https://github.com/sharkdp/hyperfine
+
+# 1. DETECT — already installed? `hyperfine --version` exits 0 when present.
+detect:
+  command: "hyperfine --version"
+  expect_exit: 0
+
+# 2. INSTALL — prefer brew; fall back to cargo (crate + binary are `hyperfine`).
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install hyperfine"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install hyperfine"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "hyperfine --version"
+    expect_exit: 0
+
+# 4. VERSION — `hyperfine --version` prints "hyperfine 1.18.0"; tags "v1.18.0".
+version:
+  current: "hyperfine --version"
+  latest: 'curl -fsSL https://api.github.com/repos/sharkdp/hyperfine/releases/latest | grep ''"tag_name"'''
+
+# 5. UPDATE — brew upgrade, else re-run cargo install (upgrades in place).
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade hyperfine"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install hyperfine"
+
+scope: user
