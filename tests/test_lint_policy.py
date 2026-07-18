@@ -88,6 +88,33 @@ def test_verify_honesty_flags_the_right_index():
     assert "verify[1]" in problems[0]
 
 
+def test_verify_honesty_survives_unbalanced_quotes_and_still_flags():
+    # a verify command with an unbalanced quote makes shlex.split raise; the check
+    # must NOT crash — it falls back to a rough split and still catches the
+    # file-inspecting first word (`find`).
+    r = _valid_policy_recipe()
+    r["verify"] = [{"command": 'find "unterminated /usr/bin/foo'}]
+    problems = server.lint_recipe_policy(r)
+    assert any("verify" in p and "filesystem" in p for p in problems), problems
+
+
+def test_verify_honesty_survives_unbalanced_quotes_on_an_honest_cmd():
+    # same broken-quote path, but the first word runs the tool -> not flagged
+    r = _valid_policy_recipe()
+    r["verify"] = [{"command": 'foo --json "unterminated'}]
+    assert not any("filesystem" in p for p in server.lint_recipe_policy(r))
+
+
+@pytest.mark.parametrize("bad_entry", [{"command": "   "}, {"command": ""}, {}, "notadict", None])
+def test_verify_honesty_skips_empty_or_non_dict_entries(bad_entry):
+    # an empty/blank command or a non-mapping verify entry contributes no
+    # filesystem-honesty problem (and never raises) — that's a schema concern,
+    # handled elsewhere.
+    r = _valid_policy_recipe()
+    r["verify"] = [bad_entry]
+    assert not any("filesystem" in p for p in server.lint_recipe_policy(r))
+
+
 # --------------------------------------------------------------------------- #
 # the separation: a recipe can be schema-valid (load-time OK) yet fail policy,
 # and the LINTER (lint_path) must catch it.

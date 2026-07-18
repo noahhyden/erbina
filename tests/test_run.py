@@ -55,3 +55,15 @@ def test_run_respects_cwd(tmp_path):
     res = server._run("ls", cwd=str(tmp_path))
     assert res["exit"] == 0
     assert "marker.txt" in res["stdout"]
+
+
+def test_run_never_raises_when_subprocess_itself_errors(tmp_path):
+    # A nonexistent cwd makes subprocess.run RAISE (FileNotFoundError /
+    # NotADirectoryError) before the shell even starts -- distinct from a
+    # shell-level nonzero exit. _run must catch it and report exit 1, never raise.
+    missing = str(tmp_path / "does" / "not" / "exist")
+    res = server._run("true", cwd=missing)
+    assert isinstance(res, dict)
+    assert res["exit"] == 1
+    assert res["stdout"] == ""
+    assert res["stderr"]  # the exception type/message is surfaced, not swallowed

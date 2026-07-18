@@ -423,9 +423,26 @@ changes, bugs, and development possibilities.
   BLE catch, `_recipe_ids` no-dir, and `mcp.run()` remain). Stable across 2 repeats
   + ordering; ruff + recipe-lint + byte-compile clean.
 
+### Iteration 20 (2026-07-18) — last testable branches → effective 100%
+- Covered the final reachable branches: `_run`'s generic `except` (a nonexistent
+  `cwd` makes `subprocess.run` itself raise — distinct from a shell nonzero exit —
+  and `_run` must report exit 1, not raise); `lint_recipe_policy`'s verify-honesty
+  unbalanced-quote `shlex.split` fallback (+ empty/non-dict verify entries); and
+  `_recipe_ids` over a missing `RECIPES_DIR`. Suite 534 → **544**; server.py now
+  **99% with only `mcp.run()` (the unreachable stdio entry point) uncovered** —
+  effectively 100% of testable code.
+- Red-team of the new tests: `_run` narrow-except → RED; lint quote-fallback
+  removed → RED; **but `_recipe_ids`-guard removed → still GREEN.** That exposed a
+  false discriminator in my OWN test: `Path.glob` already returns empty on a
+  missing dir, so the `if not RECIPES_DIR.exists()` guard is belt-and-suspenders
+  and my first comment ("rather than raising on the glob") was inaccurate.
+  Corrected the comment to pin the CONTRACT, not that redundant guard. (Left the
+  guard: it states intent clearly and is harmless; not worth product churn.)
+- Stable at 544 across 2 repeats + ordering; ruff + recipe-lint clean.
+
 ## Status: steady state + opportunistic hardening
 Comprehensive coverage reached — all 6 tools + all helpers + load/validate/run
-edges, **534 tests, 99% server.py coverage**, **6 bugs/robustness findings fixed**
+edges, **544 tests, 99% (effective 100%) server.py coverage**, **6 bugs/robustness findings fixed**
 (all validated ≥1 iteration before fixing: #1 parse misclassification, #2
 unterminated `${`, #3(2) non-optional configure gate, #4 permissive version
 regex, #6 non-string top-level key crashes validate_recipe, #7 pathological
