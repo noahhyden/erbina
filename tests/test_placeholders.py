@@ -78,13 +78,24 @@ def test_subst_leaves_unknown_tokens_untouched():
 
 
 # --------------------------------------------------------------------------- #
-# CANDIDATE FINDING #2 (low priority): a dangling `${scope` (missing closing
-# brace) is NOT flagged by the linter AND survives _subst untouched, so it would
-# reach an executed command literally. The placeholder regex requires a closing
-# `}`. Characterization test — documents current behavior; revisit before fixing.
+# Regression for finding #2, FIXED in iteration 5: a dangling `${scope` (missing
+# closing brace) survives _subst untouched (the regex needs a closing `}`), so
+# the linter now flags an unterminated `${` explicitly — refusing the recipe at
+# load time rather than letting a literal `${` reach an executed command.
 # --------------------------------------------------------------------------- #
-def test_dangling_brace_is_currently_neither_flagged_nor_expanded():
+@pytest.mark.parametrize("text", [
+    "echo ${scope",                 # lone dangling
+    "cd ${project_dir} && ${scope", # one closed, one dangling
+    "${",                           # bare opener
+])
+def test_unterminated_placeholder_is_flagged(text):
     errs: list[str] = []
-    server._check_placeholders("echo ${scope", "loc", errs)
-    assert errs == []  # current behavior: not flagged (no closing brace to match)
-    assert server._subst("echo ${scope", "user", "/p") == "echo ${scope"  # survives literally
+    server._check_placeholders(text, "loc", errs)
+    assert errs, f"{text!r} should be flagged as unterminated"
+    assert any("unterminated" in e for e in errs)
+
+
+def test_dangling_brace_still_survives_subst_literally():
+    # _subst is unchanged (only expands closed known tokens); the LINTER is what
+    # now stops a dangling ${ from reaching a command.
+    assert server._subst("echo ${scope", "user", "/p") == "echo ${scope"

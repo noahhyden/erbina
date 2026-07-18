@@ -20,6 +20,26 @@ def _fake_claude_json(monkeypatch, data: dict) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# _claude_json — must degrade to {} rather than raise on a missing/broken file
+# --------------------------------------------------------------------------- #
+def test_claude_json_missing_file_returns_empty(tmp_path, monkeypatch):
+    monkeypatch.setattr(server.Path, "home", staticmethod(lambda: tmp_path))
+    assert server._claude_json() == {}  # no ~/.claude.json present
+
+
+def test_claude_json_malformed_returns_empty(tmp_path, monkeypatch):
+    (tmp_path / ".claude.json").write_text("{ not valid json ")
+    monkeypatch.setattr(server.Path, "home", staticmethod(lambda: tmp_path))
+    assert server._claude_json() == {}  # parse error swallowed, not raised
+
+
+def test_claude_json_valid_is_parsed(tmp_path, monkeypatch):
+    (tmp_path / ".claude.json").write_text(json.dumps({"mcpServers": {"x": {}}}))
+    monkeypatch.setattr(server.Path, "home", staticmethod(lambda: tmp_path))
+    assert server._claude_json() == {"mcpServers": {"x": {}}}
+
+
+# --------------------------------------------------------------------------- #
 # _scope_map — name -> which scope(s) define it
 # --------------------------------------------------------------------------- #
 def test_scope_map_aggregates_all_three_scopes(tmp_path, monkeypatch):

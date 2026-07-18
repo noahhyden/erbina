@@ -101,10 +101,24 @@ changes, bugs, and development possibilities.
   validate-always-clean (15 caught), no-stdout-trim (caught), never-flag-
   placeholder (caught). Stable across repeats incl. the wall-clock timeout test.
 
+### Iteration 5 (2026-07-18)
+- **APPLIED FIX for finding #2:** `_check_placeholders` now flags an unterminated
+  `${` (missing closing brace) via `text.count("${") > len(closed tokens)`, so a
+  missing-brace typo is refused at load time instead of reaching a command. Real
+  recipes still lint clean (no false positives). Characterization test replaced
+  with a parametrized regression test.
+- Added `test_tool_surface_edges.py`: `list_recipes` skips a malformed / an
+  unparseable-YAML recipe (still lists the good ones); inspect_recipe.will_run ==
+  bootstrap(dry_run).plan parity across ataegina/fetch×scopes AND both prototype
+  kinds; dry-run plan carries project_dir.
+- Added `_claude_json` tolerance tests (missing / malformed / valid) to
+  test_scopes.py.
+- Suite: 122 → 137 passed. Red-team: unterminated-check-off (3 caught),
+  list_recipes-no-skip (caught), _claude_json-no-tolerance (caught); stable x3.
+
 ## Backlog (future iterations)
-- Fix candidate #2 (dangling `${`): flag an unclosed `${` in `_check_placeholders`.
 - `bootstrap` detect `needs_project_dir` propagation (detect runs in project_dir).
-- `list_recipes` behavior when a recipe in the dir is malformed (silently skipped).
-- `inspect_recipe` vs `bootstrap` dry_run plan parity (same `will_run`/`plan`).
-- `_claude_json` tolerance of a missing / malformed `~/.claude.json`.
+- `configure` step `optional: true` allows a nonzero exit to still be "ok".
 - Concurrency/isolation: registry() nested usage; multiple prototypes at once.
+- `audit_scopes` precedence/where-string correctness; empty-config report.
+- Consider consolidating the whole harness into a short tests/README update.

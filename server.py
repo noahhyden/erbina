@@ -116,6 +116,12 @@ def _check_placeholders(text: Any, where: str, errors: list[str]) -> None:
                 f"{where}: unknown placeholder '${{{tok}}}' "
                 f"(only {', '.join('${' + p + '}' for p in sorted(KNOWN_PLACEHOLDERS))} are substituted)"
             )
+    # A `${` with no matching `}` is neither expanded by _subst nor caught by the
+    # loop above, so it would reach an executed command literally. Every `${`
+    # must open a closed token, so more `${` than closed tokens ⇒ an unterminated
+    # placeholder (a missing-brace typo).
+    if text.count("${") > len(_PLACEHOLDER_RE.findall(text)):
+        errors.append(f"{where}: unterminated placeholder — a '${{' has no closing '}}'")
 
 
 def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
