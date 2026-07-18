@@ -1,0 +1,45 @@
+# erbina recipe — zoxide, a cli-tool. A smarter `cd` that learns your habits.
+id: zoxide
+kind: cli-tool
+title: "zoxide — a smarter cd command that learns your habits"
+description: >
+  zoxide is a fast directory jumper: it remembers the directories you use most so
+  you can jump to them in a few keystrokes. Installs the `zoxide` binary.
+  https://github.com/ajeetdsouza/zoxide
+
+# 1. DETECT — already installed? `zoxide --version` exits 0 when present.
+detect:
+  command: "zoxide --version"
+  expect_exit: 0
+
+# 2. INSTALL — prefer brew; fall back to cargo (crate + binary are both `zoxide`).
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install zoxide"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install zoxide --locked"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "zoxide --version"
+    expect_exit: 0
+
+# 4. VERSION — `zoxide --version` prints "zoxide 0.9.6"; tags look like "v0.9.6".
+version:
+  current: "zoxide --version"
+  latest: 'curl -fsSL https://api.github.com/repos/ajeetdsouza/zoxide/releases/latest | grep ''"tag_name"'''
+
+# 5. UPDATE — brew upgrade, else re-run cargo install (upgrades in place).
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade zoxide"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install zoxide --locked"
+
+scope: user

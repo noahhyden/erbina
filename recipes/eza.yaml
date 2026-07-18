@@ -1,0 +1,45 @@
+# erbina recipe — eza, a cli-tool. A modern replacement for `ls`.
+id: eza
+kind: cli-tool
+title: "eza — a modern, maintained replacement for ls"
+description: >
+  eza is a modern `ls` replacement with colours, Git status, tree view, and
+  sensible defaults. Installs the `eza` binary. https://github.com/eza-community/eza
+
+# 1. DETECT — already installed? `eza --version` exits 0 when present.
+detect:
+  command: "eza --version"
+  expect_exit: 0
+
+# 2. INSTALL — prefer brew; fall back to cargo (crate + binary are both `eza`).
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install eza"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install eza"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "eza --version"
+    expect_exit: 0
+
+# 4. VERSION — `eza --version` prints a banner line then "v0.20.4 [+git]"; erbina
+# extracts the first version token (the banner has no X.Y number). Tags: "v0.20.4".
+version:
+  current: "eza --version"
+  latest: 'curl -fsSL https://api.github.com/repos/eza-community/eza/releases/latest | grep ''"tag_name"'''
+
+# 5. UPDATE — brew upgrade, else re-run cargo install (upgrades in place).
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade eza"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install eza"
+
+scope: user

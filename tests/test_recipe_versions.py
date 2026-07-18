@@ -23,6 +23,11 @@ VERSION_SAMPLES = [
     ("jq", "jq-1.7.1", '  "tag_name": "jq-1.7.1",', "1.7.1", "1.7.1"),
     ("bat", "bat 0.24.0", '  "tag_name": "v0.24.0",', "0.24.0", "0.24.0"),
     ("delta", "delta 0.18.2", '  "tag_name": "0.18.2",', "0.18.2", "0.18.2"),
+    ("zoxide", "zoxide 0.9.6", '  "tag_name": "v0.9.6",', "0.9.6", "0.9.6"),
+    # eza prints a banner line (no version) then "v0.20.4 [+git]" — extraction
+    # must skip the banner and find the token on the second line.
+    ("eza", "eza - A modern, maintained replacement for ls\nv0.20.4 [+git]", '  "tag_name": "v0.20.4",', "0.20.4", "0.20.4"),
+    ("uv", "uv 0.5.11 (abc1234 2024-11-27)", '  "tag_name": "0.5.11",', "0.5.11", "0.5.11"),
     ("ataegina", "ataegina 0.1.0", '  "tag_name": "v0.2.0",', "0.1.0", "0.2.0"),
 ]
 
@@ -59,6 +64,9 @@ def test_every_versioned_recipe_is_covered_by_a_sample():
     ("bat", "bat --version", {"homebrew": "brew install bat", "cargo": "cargo install bat"}, "bat --version"),
     # delta: binary is `delta`, but the brew formula AND cargo crate are `git-delta`
     ("delta", "delta --version", {"homebrew": "brew install git-delta", "cargo": "cargo install git-delta"}, "delta --version"),
+    ("zoxide", "zoxide --version", {"homebrew": "brew install zoxide", "cargo": "cargo install zoxide --locked"}, "zoxide --version"),
+    ("eza", "eza --version", {"homebrew": "brew install eza", "cargo": "cargo install eza"}, "eza --version"),
+    ("uv", "uv --version", {"homebrew": "brew install uv", "standalone": "curl -LsSf https://astral.sh/uv/install.sh | sh"}, "uv --version"),
 ])
 def test_cli_recipe_plan_commands(rid, detect_cmd, methods, verify_cmd):
     plan = call_tool("inspect_recipe", {"recipe_id": rid})["will_run"]
@@ -78,6 +86,7 @@ def test_cli_recipe_plan_commands(rid, detect_cmd, methods, verify_cmd):
     ("git", "uvx mcp-server-git"),
     ("time", "uvx mcp-server-time"),
     ("sequentialthinking", "npx -y @modelcontextprotocol/server-sequential-thinking"),
+    ("memory", "npx -y @modelcontextprotocol/server-memory"),
 ])
 def test_mcp_server_wiring_command(rid, runner):
     for scope in ("user", "project", "local"):
