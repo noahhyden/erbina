@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["fastmcp>=2.0", "pyyaml>=6.0"]
+# dependencies = ["fastmcp>=2.0", "pyyaml>=6.0", "packaging>=23"]
 # ///
 """
 erbina — a Claude-Code-only MCP server that bootstraps a dev environment.
@@ -32,6 +32,7 @@ from typing import Any
 
 import yaml
 from fastmcp import FastMCP
+from packaging.version import InvalidVersion, Version
 
 HERE = Path(__file__).resolve().parent
 RECIPES_DIR = HERE / "recipes"
@@ -41,8 +42,12 @@ VALID_KINDS = ("cli-tool", "mcp-server")
 # The closed set of top-level keys SCHEMA.md defines. `_path` is injected by the
 # loader AFTER validation, so it is not part of the recipe's authored contract.
 TOP_LEVEL_KEYS = frozenset(
-    {"id", "kind", "title", "description", "detect", "install", "configure", "verify", "scope"}
+    {"id", "kind", "title", "description", "detect", "install", "configure", "verify", "scope", "version"}
 )
+# Matches the first version-looking token in arbitrary command output, e.g.
+# "ataegina 0.1.0" -> "0.1.0", "v1.2.3 (build 4)" -> "1.2.3". A leading `v` is
+# stripped by _extract_version before parsing.
+_VERSION_RE = re.compile(r"v?(\d+\.\d+(?:\.\d+)?(?:[-.][0-9A-Za-z][0-9A-Za-z.-]*)?)")
 # The only placeholders `_subst` expands; any other ${...} token would pass through
 # into an executed command literally, so it is a recipe bug.
 KNOWN_PLACEHOLDERS = frozenset({"scope", "project_dir"})
@@ -122,6 +127,41 @@ def _check_placeholders(text: Any, where: str, errors: list[str]) -> None:
     # placeholder (a missing-brace typo).
     if text.count("${") > len(_PLACEHOLDER_RE.findall(text)):
         errors.append(f"{where}: unterminated placeholder — a '${{' has no closing '}}'")
+
+
+def _extract_version(text: str | None) -> str | None:
+    """Pull the first version-looking token out of arbitrary command output.
+
+    e.g. "ataegina 0.1.0\\n" -> "0.1.0", "v1.2.3 (build 4)" -> "1.2.3". Returns
+    None when nothing looks like a version, so callers report "unknown" rather
+    than guess a comparison.
+    """
+    if not isinstance(text, str):
+        return None
+    m = _VERSION_RE.search(text)
+    return m.group(1) if m else None
+
+
+def _version_status(current_out: str | None, latest_out: str | None) -> dict[str, Any]:
+    """Compare two raw command outputs and report whether an update is available.
+
+    Extracts a version token from each, parses with `packaging`, and compares.
+    `update_available` is True/False when both parse, or None when either cannot
+    be parsed — so erbina NEVER claims an update it can't actually justify.
+    """
+    cur, lat = _extract_version(current_out), _extract_version(latest_out)
+    if cur is None or lat is None:
+        return {
+            "current": cur,
+            "latest": lat,
+            "update_available": None,
+            "reason": "could not parse a version from the command output",
+        }
+    try:
+        cv, lv = Version(cur), Version(lat)
+    except InvalidVersion as e:
+        return {"current": cur, "latest": lat, "update_available": None, "reason": f"unparseable version: {e}"}
+    return {"current": cur, "latest": lat, "update_available": lv > cv}
 
 
 def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
@@ -220,6 +260,19 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
             if not (isinstance(v.get("command"), str) and v["command"].strip()):
                 errors.append(f"{tag}: missing non-empty 'command'")
             _check_placeholders(v.get("command"), f"{tag}.command", errors)
+
+    # version — optional, but if present needs `current` + `latest` commands so
+    # check_updates can compare the installed version against what's available.
+    version = recipe.get("version")
+    if version is not None:
+        if not isinstance(version, dict):
+            errors.append("'version' must be a mapping with 'current' and 'latest' commands")
+        else:
+            for key in ("current", "latest"):
+                val = version.get(key)
+                if not (isinstance(val, str) and val.strip()):
+                    errors.append(f"'version.{key}' is required and must be a non-empty string")
+                _check_placeholders(val, f"version.{key}", errors)
 
     # scope — optional, but if present must be a valid scope
     scope = recipe.get("scope")
@@ -513,6 +566,65 @@ def bootstrap(
     if recipe.get("kind") == "mcp-server" and all_ok:
         report["next"] = "A new MCP server was wired — reload Claude Code so it connects."
     return report
+
+
+@mcp.tool
+def check_updates(recipe_id: str | None = None, project_dir: str | None = None) -> dict[str, Any]:
+    """
+    Report whether installed tools have newer versions available — read-only.
+
+    For each recipe that declares a `version:` block (with `current` + `latest`
+    commands), erbina confirms the tool is installed (via `detect`), then runs the
+    two version commands and compares them. Pass a `recipe_id` to check one tool,
+    or omit it to check every recipe that supports update checks. Nothing is
+    installed or changed; to apply an update, re-run `bootstrap`.
+    """
+    ids = [recipe_id] if recipe_id else _recipe_ids()
+    checked: list[dict[str, Any]] = []
+    for rid in ids:
+        try:
+            recipe = _load_recipe(rid)
+        except Exception as e:  # noqa: BLE001
+            if recipe_id:  # an explicit request should surface the load error
+                return {"error": str(e)}
+            continue  # bulk scan skips a recipe it can't load
+        ver = recipe.get("version")
+        if not ver:
+            if recipe_id:
+                return {"error": f"recipe '{rid}' declares no `version:` block, so updates can't be checked"}
+            continue  # bulk scan only reports recipes that opted in
+        scope = recipe.get("scope", "user")
+
+        # is it installed? nothing to update if it isn't.
+        det = recipe.get("detect", {})
+        det_cwd = project_dir if det.get("needs_project_dir") else None
+        installed = False
+        if det.get("command"):
+            d = _run(_subst(det["command"], scope, project_dir), cwd=det_cwd, timeout=30)
+            installed = d["exit"] == det.get("expect_exit", 0)
+        entry: dict[str, Any] = {"id": rid, "kind": recipe.get("kind"), "installed": installed}
+        if not installed:
+            entry["note"] = "not installed — run bootstrap first"
+            checked.append(entry)
+            continue
+
+        v_cwd = project_dir if ver.get("needs_project_dir") else None
+        cur = _run(_subst(ver["current"], scope, project_dir), cwd=v_cwd, timeout=30)
+        lat = _run(_subst(ver["latest"], scope, project_dir), cwd=v_cwd, timeout=60)
+        entry.update(_version_status(cur["stdout"], lat["stdout"]))
+        checked.append(entry)
+
+    updates = [e["id"] for e in checked if e.get("update_available")]
+    return {
+        "checked": checked,
+        "updates_available": updates,
+        "hint": (
+            f"{len(updates)} update(s) available: {', '.join(updates)}. "
+            "Review, then re-run bootstrap to apply."
+            if updates
+            else "No updates found (tools are current, not installed, or version info unavailable)."
+        ),
+    }
 
 
 @mcp.tool

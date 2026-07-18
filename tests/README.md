@@ -17,7 +17,7 @@ deterministic and produce no side effects.
 From the repo root:
 
 ```bash
-uv run --with pytest --with fastmcp --with pyyaml pytest tests/ -v
+uv run --with pytest --with fastmcp --with pyyaml --with packaging pytest tests/ -v
 ```
 
 No `pyproject.toml`, lockfile, or build step — matching erbina's single-file,

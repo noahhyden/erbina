@@ -55,10 +55,37 @@ verify:
     optional: false
     needs_project_dir: false   # optional; run the check inside project_dir
 
+# VERSION — optional. Powers `check_updates`: `current` prints the installed
+# version, `latest` prints the newest available (from a registry / releases API).
+# erbina extracts the version token from each command's output and compares them,
+# so extra text around the number is fine. Only present when a tool can be
+# meaningfully version-checked.
+version:
+  current: "<cmd that prints the installed version>"
+  latest: "<cmd that prints the latest available version>"
+  needs_project_dir: false   # optional; run both commands inside project_dir
+
 # scope this recipe targets when wiring an mcp-server (local | project | user).
 # Informational for cli-tool recipes.
 scope: user
 ```
+
+## Version checks (`check_updates`)
+
+A recipe with a `version:` block opts into `check_updates`, which reports whether
+an installed tool has a newer version available (read-only — it never installs).
+For each such recipe erbina:
+
+1. confirms the tool is installed (runs `detect`); if not, reports "not installed"
+   and stops — nothing to update;
+2. runs `version.current` and `version.latest` and extracts a version token from
+   each (e.g. `ataegina 0.1.0` → `0.1.0`, `v1.2.3 (build 4)` → `1.2.3`);
+3. compares them with [`packaging`](https://packaging.pypa.io) semantics (numeric,
+   not lexical; a release outranks its pre-releases).
+
+If either output has no parseable version, `update_available` is `null` — erbina
+never claims an update it can't justify. To apply an update, re-run `bootstrap`
+(a dedicated `update` action is planned).
 
 ## `needs_project_dir` when no `project_dir` is given
 

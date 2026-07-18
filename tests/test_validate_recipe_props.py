@@ -95,6 +95,28 @@ def test_mcp_server_requires_scope_aware_configure():
     assert any("${scope}" in e for e in errs)
 
 
+# --------------------------------------------------------------------------- #
+# version block (optional; powers check_updates)
+# --------------------------------------------------------------------------- #
+def test_valid_version_block_validates_clean():
+    r = cli_recipe("t", version={"current": "t --version", "latest": "echo 1.2.3"})
+    assert _errs(r) == []
+
+
+@pytest.mark.parametrize("version,needle", [
+    ("not-a-mapping", "version"),
+    ({"latest": "echo 1"}, "current"),          # missing current
+    ({"current": "t --version"}, "latest"),     # missing latest
+    ({"current": "  ", "latest": "echo 1"}, "current"),  # blank current
+    ({"current": "echo ${scopee}", "latest": "echo 1"}, "scopee"),  # bad placeholder
+])
+def test_bad_version_block_is_reported(version, needle):
+    r = cli_recipe("t", version=version)
+    errs = _errs(r)
+    assert errs, f"version={version!r} should error"
+    assert needle in " ".join(errs)
+
+
 def test_corruptions_are_independent():
     # sanity: the pristine copy each test mutates really was valid to begin with
     base = cli_recipe("t")
