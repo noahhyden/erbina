@@ -175,3 +175,11 @@ def test_cli_tool_success_has_no_reload_hint():
     out = _boot(cli_recipe(detect={"command": TRUE}))
     assert out["ok"] is True
     assert "next" not in out
+
+
+def test_mcp_server_failed_verify_omits_reload_hint():
+    # The reload hint is gated on all_ok — a failed wiring must not tell the user
+    # to reload for a server that isn't actually there.
+    out = _boot(mcp_recipe(detect={"command": TRUE}, verify=[{"command": FALSE}]))
+    assert out["ok"] is False
+    assert "next" not in out

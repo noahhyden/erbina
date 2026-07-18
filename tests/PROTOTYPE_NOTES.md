@@ -82,13 +82,29 @@ changes, bugs, and development possibilities.
 - Suite: 63 → 77 passed (0 xfailed now). Red-team: parse revert-to-whole-line
   caught by regression test; shlex-quote drop caught; stable across repeats.
 
+### Iteration 4 (2026-07-18)
+- Added `test_placeholders.py` (`_check_placeholders` flagging + the lint↔subst
+  invariant: lint-clean known tokens always fully expand), `test_validate_recipe_props.py`
+  (property fuzzing: factory recipe → 0 errors; 13 single-defect corruptions each
+  → ≥1 matching error; id≠stem; mcp-server needs ${scope}), and `test_run.py`
+  (exit passthrough, stderr, timeout→124 no-raise, stdout 4000-char trim, cwd,
+  never-raises-on-broken-cmd). Plus mcp-server-failed-bootstrap omits reload hint.
+- Suite: 77 → 122 passed.
+- **CANDIDATE FINDING #2 (low priority):** a dangling `${scope` (missing closing
+  brace) passes the linter AND survives `_subst` untouched, so it reaches an
+  executed command literally. Captured as a characterization test
+  (`test_dangling_brace_is_currently_neither_flagged_nor_expanded`). Not fixed —
+  revisit; if fixed, flag both an unclosed `${` in the linter.
+- Red-team: two of my OWN new tests failed first (KeyError on dropped-id helper;
+  a trim-test command that only emitted 2500 chars) — fixed before commit (this
+  is exactly the false-negative red-teaming is meant to catch). Mutations:
+  validate-always-clean (15 caught), no-stdout-trim (caught), never-flag-
+  placeholder (caught). Stable across repeats incl. the wall-clock timeout test.
+
 ## Backlog (future iterations)
-- Placeholder/validation edge cases: `${scopee}` typos, adjacent/nested tokens,
-  empty `${}`, `${scope}` used in detect/verify (not just configure).
-- Property-based fuzzing of `validate_recipe` (round-trip: a mutated-invalid
-  recipe must produce ≥1 error; a valid one must produce none).
-- `_run` behavior: timeout path (exit 124), non-zero exit capture, output
-  trimming to last 4000 chars, stderr capture.
+- Fix candidate #2 (dangling `${`): flag an unclosed `${` in `_check_placeholders`.
 - `bootstrap` detect `needs_project_dir` propagation (detect runs in project_dir).
-- Probe: does an mcp-server recipe whose bootstrap FAILS still omit the reload
-  `next` hint? (currently gated on `all_ok` — worth a test.)
+- `list_recipes` behavior when a recipe in the dir is malformed (silently skipped).
+- `inspect_recipe` vs `bootstrap` dry_run plan parity (same `will_run`/`plan`).
+- `_claude_json` tolerance of a missing / malformed `~/.claude.json`.
+- Concurrency/isolation: registry() nested usage; multiple prototypes at once.
