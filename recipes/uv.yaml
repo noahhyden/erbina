@@ -1,0 +1,48 @@
+# erbina recipe — uv, a cli-tool. An extremely fast Python package/project manager.
+# (erbina itself runs under uv, so on any machine running erbina this recipe will
+# typically detect uv as already present — it's here for completeness + updates.)
+id: uv
+kind: cli-tool
+title: "uv — an extremely fast Python package and project manager"
+description: >
+  uv is a fast Python package/project manager and script runner (a drop-in for
+  pip/pip-tools/virtualenv and more), from Astral. Installs the `uv` binary.
+  https://github.com/astral-sh/uv
+
+# 1. DETECT — already installed? `uv --version` exits 0 when present.
+detect:
+  command: "uv --version"
+  expect_exit: 0
+
+# 2. INSTALL — prefer brew; else the official standalone installer (no sudo).
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install uv"
+    - id: standalone
+      when: "command -v curl"
+      run: "curl -LsSf https://astral.sh/uv/install.sh | sh"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "uv --version"
+    expect_exit: 0
+
+# 4. VERSION — `uv --version` prints "uv 0.5.11 (<hash> <date>)"; tags are "0.5.11".
+version:
+  current: "uv --version"
+  latest: 'curl -fsSL https://api.github.com/repos/astral-sh/uv/releases/latest | grep ''"tag_name"'''
+
+# 5. UPDATE — brew upgrade if brew-managed; otherwise uv can update itself
+# (only works for standalone-installer installs, which is why brew is tried first).
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade uv"
+    - id: self
+      when: "command -v uv"
+      run: "uv self update"
+
+scope: user
