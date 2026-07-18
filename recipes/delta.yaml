@@ -1,0 +1,48 @@
+# erbina recipe — delta, a cli-tool. A syntax-highlighting pager for git diffs.
+id: delta
+kind: cli-tool
+title: "delta — a syntax-highlighting pager for git, diff, and grep output"
+description: >
+  delta gives git and diff output language-aware syntax highlighting, side-by-side
+  views, and better readability. Installs the `delta` binary.
+  https://github.com/dandavison/delta
+
+# 1. DETECT — already installed? `delta --version` exits 0 when present.
+detect:
+  command: "delta --version"
+  expect_exit: 0
+
+# 2. INSTALL — prefer brew; fall back to cargo. NOTE the name mismatch: the brew
+# formula and cargo crate are both `git-delta`, but the installed binary is
+# `delta`.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install git-delta"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install git-delta"
+
+# 3. VERIFY — prove it actually runs (by the binary name, `delta`).
+verify:
+  - command: "delta --version"
+    expect_exit: 0
+
+# 4. VERSION — `delta --version` prints "delta 0.18.2"; dandavison/delta tags
+# look like "0.18.2" (no v prefix). erbina extracts + compares the token.
+version:
+  current: "delta --version"
+  latest: 'curl -fsSL https://api.github.com/repos/dandavison/delta/releases/latest | grep ''"tag_name"'''
+
+# 5. UPDATE — brew upgrade, else re-run cargo install (upgrades in place).
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade git-delta"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install git-delta"
+
+scope: user

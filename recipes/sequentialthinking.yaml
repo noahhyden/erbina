@@ -1,0 +1,38 @@
+# erbina recipe — the official MCP "sequential thinking" server (mcp-server).
+# Unlike fetch/git/time (uvx / Python), this one runs via npx (a Node package),
+# exercising a different runtime — the scope-aware wiring is otherwise identical.
+id: sequentialthinking
+kind: mcp-server
+title: "sequentialthinking — official MCP server for structured step-by-step reasoning"
+description: >
+  The Model Context Protocol reference "sequential thinking" server: gives an
+  agent a tool for breaking problems into revisable, branching thought steps.
+  Runs via npx, so there is no separate install — wiring it into a scope is the
+  work.
+
+# 1. DETECT — already registered? `claude mcp get` resolves project scope by cwd.
+detect:
+  command: "claude mcp get sequentialthinking"
+  expect_exit: 0
+  needs_project_dir: true
+
+# 2. INSTALL — nothing to download; confirm the runtime that launches it (npx).
+install:
+  methods:
+    - id: npx
+      when: "command -v npx"
+      run: "command -v npx"
+
+# 3. CONFIGURE — scope-aware wiring at ${scope}, via npx.
+configure:
+  steps:
+    - run: "claude mcp add sequentialthinking --scope ${scope} -- npx -y @modelcontextprotocol/server-sequential-thinking"
+      needs_project_dir: true
+
+# 4. VERIFY — Claude Code can see the server at the chosen scope.
+verify:
+  - command: "claude mcp get sequentialthinking"
+    expect_exit: 0
+    needs_project_dir: true
+
+scope: project

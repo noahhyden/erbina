@@ -1,0 +1,44 @@
+# erbina recipe — bat, a cli-tool. A `cat` clone with syntax highlighting.
+id: bat
+kind: cli-tool
+title: "bat — a cat clone with syntax highlighting and Git integration"
+description: >
+  bat is a drop-in `cat` replacement with syntax highlighting, Git integration,
+  and automatic paging. Installs the `bat` binary. https://github.com/sharkdp/bat
+
+# 1. DETECT — already installed? `bat --version` exits 0 when present.
+detect:
+  command: "bat --version"
+  expect_exit: 0
+
+# 2. INSTALL — prefer brew; fall back to cargo (crate + binary are both `bat`).
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install bat"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install bat"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "bat --version"
+    expect_exit: 0
+
+# 4. VERSION — `bat --version` prints "bat 0.24.0"; tags look like "v0.24.0".
+version:
+  current: "bat --version"
+  latest: 'curl -fsSL https://api.github.com/repos/sharkdp/bat/releases/latest | grep ''"tag_name"'''
+
+# 5. UPDATE — brew upgrade, else re-run cargo install (upgrades in place).
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade bat"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install bat"
+
+scope: user
