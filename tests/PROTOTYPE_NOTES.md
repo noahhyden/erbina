@@ -306,13 +306,37 @@ changes, bugs, and development possibilities.
 - Backlog note (NOT worth a test): epoch (`1!x`) and non-common local segments are
   dropped by `_extract_version`; astronomically rare in real `--version` output.
 
+### Iteration 15 (2026-07-18) — extend to REAL tools: version-output corpus
+- **New surface: `_extract_version` vs authentic `--version` output.** Built a
+  24-line corpus of real formats from the tools erbina installs (git, jq, ripgrep,
+  go's `go1.22.0`, uv's `0.5.11 (hash date)`, eza's blurb+`v0.20.5`, bottom's
+  `btm`, tealdeer's `tldr`, …) plus common runtimes. **All 24 extract correctly** —
+  the regex is robust on the happy path. Captured as `test_real_version_output.py`
+  (regression guard that would catch a regex change silently breaking
+  `check_updates` for a whole class of tools). Suite 443 → **471**.
+- **CANDIDATE FINDING #5 (characterized, NOT fixed):** "first version-looking
+  token wins", so a dotted date/number appearing BEFORE the real version is
+  misextracted — `Built 2024.01.15, version 2.3.4` → `2024.01.15`;
+  `release 10.0 build 2.3.4` → `10.0`. Pinned with `test_CURRENT_leading_dotted_
+  number_shadows_the_real_version`. **None of the 16 versioned recipes trigger it**
+  (their outputs are single clean lines), so it's a latent limitation, not an
+  active bug → validate 1-2 iters before deciding. A fix (prefer the token after
+  "version"/"v", or skip a leading 4-digit year) is a real design call.
+- Red-team of the CORPUS itself (guard against a false pass): `search`→`match`
+  mutation → 27 RED (proves non-anchored extraction is exercised); a naive
+  drop-patch-segment mutation PASSED but is semantically equivalent (the suffix
+  group re-absorbs `.0`) — so I used a real truncation (major.minor only) → 26 RED,
+  proving patch-level sensitivity. Stable at 471 across 2 repeats + ordering; ruff
+  + recipe-lint clean.
+
 ## Status: steady state + opportunistic hardening
 Comprehensive coverage reached — all 6 tools + all helpers + load/validate/run
-edges, **443 tests, 97% server.py coverage**, **4 bugs/robustness findings fixed**
+edges, **471 tests, 97% server.py coverage**, **4 bugs/robustness findings fixed**
 (all validated ≥1 iteration before fixing: #1 parse misclassification, #2
 unterminated `${`, #3(2) non-optional configure gate, #4 permissive version
-regex), 1 design quirk documented. The loop continues opportunistically, one
-validated finding at a time.
+regex), 1 design quirk documented (#3(1)), and 1 latent limitation characterized
+& pending (#5 leading-dotted-number shadows the version — no recipe triggers it).
+The loop continues opportunistically, one validated finding at a time.
 
 ## Backlog (low value)
 - A tiny CI smoke that imports the harness modules (guards against renames).
