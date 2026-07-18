@@ -11,6 +11,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 import server
 from helpers import call_tool
 
@@ -74,6 +76,48 @@ def test_scope_map_tolerates_broken_project_mcp_json(tmp_path, monkeypatch):
     assert smap["u1"] == ["user"]
     # the unreadable project file contributes no entries (swallowed, not fatal)
     assert not any("project" in scopes for scopes in smap.values())
+
+
+def test_scope_map_tolerates_a_project_dir_that_is_a_regular_file(tmp_path, monkeypatch):
+    # a project_dir routed THROUGH a regular file (afile/subdir) => ENOTDIR; Path
+    # handles this by returning False from .exists(), so it already degrades.
+    _fake_claude_json(monkeypatch, {"mcpServers": {"u1": {}}})
+    f = tmp_path / "afile"
+    f.write_text("x")
+    smap = server._scope_map(project_dir=str(f / "subdir"))
+    assert smap["u1"] == ["user"]
+
+
+# --------------------------------------------------------------------------- #
+# FINDING #7 (pinned, fix next iteration): _scope_map goes out of its way to
+# tolerate a missing/malformed .mcp.json, but an OS-level bad project_dir slips
+# past that intent and raises. Two vectors:
+#   * an over-long path component  -> OSError (ENAMETOOLONG) at mcp_json.exists()
+#     (the .exists() call sits OUTSIDE the try/except that guards the read)
+#   * an embedded NUL byte         -> ValueError at Path(project_dir).resolve()
+# Both crash audit_scopes / bootstrap / check_updates / remove_mcp (any tool that
+# threads project_dir through _scope_map) with a raw exception instead of
+# degrading to the user-scope map. Strict xfail: the fix (guard resolve() and the
+# exists()/read together) makes these return a dict -> XPASS -> flips to failure,
+# the reminder to remove the marker.
+# --------------------------------------------------------------------------- #
+@pytest.mark.xfail(reason="finding #7: _scope_map raises on a pathological project_dir", strict=True)
+@pytest.mark.parametrize("bad_dir", [
+    "a" * 300,          # over-long single component -> ENAMETOOLONG
+    "/tmp/a\x00b",      # embedded NUL -> ValueError from resolve()
+])
+def test_scope_map_tolerates_a_pathological_project_dir(bad_dir, monkeypatch):
+    _fake_claude_json(monkeypatch, {"mcpServers": {"u1": {}}})
+    smap = server._scope_map(project_dir=bad_dir)
+    assert isinstance(smap, dict)
+    assert smap.get("u1") == ["user"]  # user scope still reported; project skipped
+
+
+@pytest.mark.xfail(reason="finding #7: audit_scopes surfaces the raw _scope_map crash", strict=True)
+def test_audit_scopes_tolerates_a_pathological_project_dir(monkeypatch):
+    _fake_claude_json(monkeypatch, {"mcpServers": {"u1": {}}})
+    out = call_tool("audit_scopes", {"project_dir": "a" * 300})
+    assert isinstance(out, dict) and "error" not in out
 
 
 # --------------------------------------------------------------------------- #

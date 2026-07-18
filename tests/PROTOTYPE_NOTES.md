@@ -374,9 +374,38 @@ changes, bugs, and development possibilities.
   restore → green. Stable at 525 across 2 repeats + ordering; ruff + recipe-lint
   + byte-compile clean.
 
+### Iteration 18 (2026-07-18) — fuzzed the TOOL entry points; found #7
+- **Fuzzed every MCP tool's args** (recipe_id / scope / project_dir / name +
+  pin's `pinned`) with adversarial strings — the tools should return an error
+  dict, never let an exception escape to the client.
+- **Two observations:**
+  - `inspect_recipe`/`bootstrap`/`update` propagate a `_load_recipe` error as a
+    ToolError on a bad `recipe_id` (whereas `check_updates` catches it and returns
+    `{"error": …}`). Judged intentional, not a bug: fastmcp surfaces the clean,
+    helpful `ValueError` message ("no recipe 'x'. Available: …") to the client.
+    Documented, not flagged.
+  - **CONFIRMED FINDING #7 (pinned, fix next iteration):** a pathological
+    `project_dir` crashes the scope surface with a RAW exception instead of
+    degrading to the user-scope map — despite that code going out of its way to
+    tolerate a missing/malformed `.mcp.json`. Two vectors: an over-long path
+    component → `OSError` (ENAMETOOLONG) at `mcp_json.exists()` (the `.exists()`
+    sits OUTSIDE the guarding try), and an embedded NUL byte → `ValueError` at
+    `Path(project_dir).resolve()`. The gap is DUPLICATED in **both** `_scope_map`
+    AND `audit_scopes` (they hand-roll the same config read), so it hits
+    audit_scopes/bootstrap/check_updates/remove_mcp. (A project_dir routed
+    through a regular file → ENOTDIR already degrades fine; pinned as a passing
+    test.)
+- Pinned with strict xfails (long-path + NUL for `_scope_map`; long-path for
+  `audit_scopes`). Validated by applying the candidate fix (guard `resolve()` and
+  `exists()`/read with `(OSError, ValueError)`): the two `_scope_map` xfails XPASS,
+  while `audit_scopes` stays red — proving the fix must touch BOTH sites, not just
+  the helper. Reverted. (Note: a stale `.pyc` briefly masked the XPASS — cleared.)
+- Suite 525 → **526 passed, 3 xfailed**. Stable across 2 repeats + ordering; ruff
+  + recipe-lint clean.
+
 ## Status: steady state + opportunistic hardening
 Comprehensive coverage reached — all 6 tools + all helpers + load/validate/run
-edges, **525 tests, 97% server.py coverage**, **5 bugs/robustness findings fixed**
+edges, **526 tests, 97% server.py coverage**, **5 bugs/robustness findings fixed**
 (all validated ≥1 iteration before fixing: #1 parse misclassification, #2
 unterminated `${`, #3(2) non-optional configure gate, #4 permissive version
 regex, #6 non-string top-level key crashes validate_recipe), and 2 limitations
