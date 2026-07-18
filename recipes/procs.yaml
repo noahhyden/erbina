@@ -1,0 +1,45 @@
+# erbina recipe — procs, a cli-tool. A modern replacement for `ps`.
+id: procs
+kind: cli-tool
+title: "procs — a modern replacement for ps"
+description: >
+  procs is a modern `ps` alternative with coloured, human-friendly output, search,
+  and extra columns (TCP/UDP ports, Docker, etc.). Installs the `procs` binary.
+  https://github.com/dalance/procs
+
+# 1. DETECT — already installed? `procs --version` exits 0 when present.
+detect:
+  command: "procs --version"
+  expect_exit: 0
+
+# 2. INSTALL — prefer brew; fall back to cargo (crate + binary are both `procs`).
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install procs"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install procs"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "procs --version"
+    expect_exit: 0
+
+# 4. VERSION — `procs --version` prints "procs 0.14.5"; tags look like "v0.14.5".
+version:
+  current: "procs --version"
+  latest: 'curl -fsSL https://api.github.com/repos/dalance/procs/releases/latest | grep ''"tag_name"'''
+
+# 5. UPDATE — brew upgrade, else re-run cargo install (upgrades in place).
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade procs"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install procs"
+
+scope: user

@@ -31,6 +31,11 @@ VERSION_SAMPLES = [
     ("hyperfine", "hyperfine 1.18.0", '  "tag_name": "v1.18.0",', "1.18.0", "1.18.0"),
     ("dust", "Dust 1.1.1", '  "tag_name": "v1.1.1",', "1.1.1", "1.1.1"),
     ("bottom", "btm 0.10.2", '  "tag_name": "0.10.2",', "0.10.2", "0.10.2"),
+    ("sd", "sd 1.0.0", '  "tag_name": "v1.0.0",', "1.0.0", "1.0.0"),
+    ("tokei", "tokei 12.1.2", '  "tag_name": "v12.1.2",', "12.1.2", "12.1.2"),
+    # tealdeer's binary is `tldr`; `tldr --version` prints "tealdeer 1.7.0".
+    ("tealdeer", "tealdeer 1.7.0", '  "tag_name": "v1.7.0",', "1.7.0", "1.7.0"),
+    ("procs", "procs 0.14.5", '  "tag_name": "v0.14.5",', "0.14.5", "0.14.5"),
     ("ataegina", "ataegina 0.1.0", '  "tag_name": "v0.2.0",', "0.1.0", "0.2.0"),
 ]
 
@@ -75,6 +80,11 @@ def test_every_versioned_recipe_is_covered_by_a_sample():
     ("dust", "dust --version", {"homebrew": "brew install dust", "cargo": "cargo install du-dust"}, "dust --version"),
     # bottom: formula/crate are `bottom`, but the binary is `btm`
     ("bottom", "btm --version", {"homebrew": "brew install bottom", "cargo": "cargo install bottom --locked"}, "btm --version"),
+    ("sd", "sd --version", {"homebrew": "brew install sd", "cargo": "cargo install sd"}, "sd --version"),
+    ("tokei", "tokei --version", {"homebrew": "brew install tokei", "cargo": "cargo install tokei"}, "tokei --version"),
+    # tealdeer: formula/crate are `tealdeer`, but the binary is `tldr`
+    ("tealdeer", "tldr --version", {"homebrew": "brew install tealdeer", "cargo": "cargo install tealdeer"}, "tldr --version"),
+    ("procs", "procs --version", {"homebrew": "brew install procs", "cargo": "cargo install procs"}, "procs --version"),
 ])
 def test_cli_recipe_plan_commands(rid, detect_cmd, methods, verify_cmd):
     plan = call_tool("inspect_recipe", {"recipe_id": rid})["will_run"]

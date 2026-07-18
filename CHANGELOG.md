@@ -14,14 +14,15 @@ are reconstructed from the git history. Everything is therefore under
 ### Added
 
 - **Recipes: `ripgrep`, `fd`, `jq`, `bat`, `delta`, `zoxide`, `eza`, `uv`,
-  `hyperfine`, `dust`, `bottom`** (`kind: cli-tool`) and **`git`, `time`,
-  `sequentialthinking`, `memory`, `everything`** (`kind: mcp-server`, scope-aware
-  like `fetch`; the last three run via `npx` rather than `uvx`, exercising a
-  second runtime). The recipes get name/format gotchas right (and tests lock
-  them): `delta`'s binary is `delta` but its formula/crate are `git-delta`,
-  `dust`'s crate is `du-dust`, `bottom`'s binary is `btm`, `fd`'s crate is
-  `fd-find`, `jq --version` prints `jq-1.7.1`, and `eza --version` emits a banner
-  line before the version token. The cli-tools use Homebrew with
+  `hyperfine`, `dust`, `bottom`, `sd`, `tokei`, `tealdeer`, `procs`**
+  (`kind: cli-tool`) and **`git`, `time`, `sequentialthinking`, `memory`,
+  `everything`** (`kind: mcp-server`, scope-aware like `fetch`; the last three
+  run via `npx` rather than `uvx`, exercising a second runtime). The recipes get
+  name/format gotchas right (and tests lock them): `delta`'s binary is `delta`
+  but its formula/crate are `git-delta`, `dust`'s crate is `du-dust`, `bottom`'s
+  binary is `btm`, `tealdeer`'s binary is `tldr`, `fd`'s crate is `fd-find`,
+  `jq --version` prints `jq-1.7.1`, and `eza --version` emits a banner line
+  before the version token. The cli-tools use Homebrew with
   a guarded fallback (cargo — the fd crate is `fd-find`; apt for jq) and carry
   `version:` + `update:` blocks so they participate in `check_updates` / `update`.
   Plus a **recipe conformance test suite** that every recipe (present and future)
