@@ -231,11 +231,41 @@ changes, bugs, and development possibilities.
     the full token fails `Version()`, so suffixed versions still compare. Flip
     `test_CURRENT_suffixed_current_misses_a_real_update` to expect the update.
 
+### Iteration 12 (2026-07-18) — red-teamed my OWN fix; uncovered-branch sweep
+- **Pushed back on iteration 11's proposed fix and rejected it (for now).**
+  Iter 11 proposed "fall back to the numeric release core on BOTH sides." Bench
+  test showed that's unsafe: if `latest` is an unparseable dev build (e.g.
+  `1.2.4-SNAPSHOT`), reducing it to core `1.2.4` would flag an update to a
+  non-release — against erbina's "never claim an update it can't justify" ethos.
+  (Also learned `1.2.4-alpha.1` already parses via packaging today, so the
+  prerelease worry is narrower than feared.) → Sharpened the fix plan: fall back
+  to the core for **`current` only**, and **require a clean `latest`**. Pinned
+  the invariant with `test_CURRENT_unparseable_latest_is_not_claimed_as_an_update`
+  so the eventual fix can't regress it. Finding #4 stays UNFIXED — now validated
+  twice, ready to fix next iteration with the corrected asymmetric approach.
+- **Uncovered-branch sweep** (95% → **97%**, missing 27 → 19 lines), targeting
+  real behavioral paths not just guards:
+  - `remove_mcp` LIVE (non-dry) exit mapping (server.py:1112-1118): +2 tests via
+    a monkeypatched `_run` — success → `removed`/`ok`, nonzero exit → `removed:
+    None`/`failed`. Previously only dry-run/error paths ran.
+  - `check_updates` load-error split (server.py:762-765): +2 tests — an explicit
+    unloadable `recipe_id` surfaces the `_load_recipe` refusal; a bulk scan skips
+    it and still reports the good recipes.
+- Suite 422 → **427**. Red-team: **M1** remove_mcp always-`ok` → failure test
+  RED; **M2** explicit-load-error swallowed → explicit test RED; both revert
+  green. Stable at 427 across 2 repeats + new-files-first ordering; ruff +
+  recipe-lint clean.
+- Remaining uncovered (19 lines) are near-pure defensive guards (`_run`'s BLE
+  catch 104-105, validate non-mapping method arms, `_plan` unbalanced-quote
+  fallback, `_recipe_ids` no-dir, `audit_scopes` broken-json 1040-1041,
+  `mcp.run()` 1122). Low value; will pick off only if a behavioral angle appears.
+
 ## Status: steady state + opportunistic hardening
 Comprehensive coverage reached — all 6 tools + all helpers + load/validate/run
-edges, **422 tests**, 3 bugs fixed (all validated before fixing), 1 design quirk
-documented, 1 candidate finding (#4) pending validation. Remaining ideas are
-low-value; the loop continues opportunistically, one validated finding at a time.
+edges, **427 tests, 97% server.py coverage**, 3 bugs fixed (all validated before
+fixing), 1 design quirk documented, 1 candidate finding (#4, permissive version
+regex) validated twice and queued for an asymmetric fix next iteration. The loop
+continues opportunistically, one validated finding at a time.
 
 ## Backlog (low value)
 - A tiny CI smoke that imports the harness modules (guards against renames).

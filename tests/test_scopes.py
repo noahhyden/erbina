@@ -198,3 +198,41 @@ def test_remove_mcp_shell_quotes_a_name_with_spaces(monkeypatch):
     out = call_tool("remove_mcp", {"name": "weird name", "dry_run": True})
     # shlex.quote must protect the name so it isn't split into two args
     assert "'weird name'" in out["would_run"]
+
+
+# --------------------------------------------------------------------------- #
+# remove_mcp — LIVE (non-dry) exit-code mapping. `_run` is monkeypatched so the
+# `claude` CLI is never actually invoked; we only assert how remove_mcp turns a
+# process result into its report shape (server.py:1112-1118, previously only the
+# dry-run/error paths were exercised).
+# --------------------------------------------------------------------------- #
+def _fake_run(monkeypatch, exit_code: int):
+    captured = {}
+
+    def fake(cmd, *a, **k):
+        captured["cmd"] = cmd
+        return {"cmd": cmd, "exit": exit_code, "stdout": "", "stderr": ""}
+
+    monkeypatch.setattr(server, "_run", fake)
+    return captured
+
+
+def test_remove_mcp_live_success_reports_removed_ok(monkeypatch):
+    _fake_scope_map(monkeypatch, {"dead": ["user"]})
+    captured = _fake_run(monkeypatch, 0)
+    out = call_tool("remove_mcp", {"name": "dead"})  # dry_run defaults False -> live
+    assert captured["cmd"] == "claude mcp remove dead -s user"  # it actually ran the cmd
+    assert out["removed"] == "dead"
+    assert out["status"] == "ok"
+    assert out["scope"] == "user"
+    assert out["exit"] == 0  # process result spread into the report
+
+
+def test_remove_mcp_live_failure_reports_not_removed(monkeypatch):
+    _fake_scope_map(monkeypatch, {"dead": ["user"]})
+    _fake_run(monkeypatch, 1)
+    out = call_tool("remove_mcp", {"name": "dead"})
+    # a nonzero exit must NOT claim the server was removed
+    assert out["removed"] is None
+    assert out["status"] == "failed"
+    assert out["exit"] == 1

@@ -95,6 +95,27 @@ def test_bulk_scan_over_multiple_versioned_recipes():
 
 
 # --------------------------------------------------------------------------- #
+# load failures: an EXPLICIT recipe_id surfaces the error; a bulk scan skips the
+# unloadable recipe and still reports the good ones (server.py:762-765).
+# --------------------------------------------------------------------------- #
+def test_explicit_unloadable_recipe_surfaces_error():
+    with registry(_versioned("good")) as tmp:
+        (tmp / "broken.yaml").write_text("id: broken\nkind: not-a-kind\n")  # fails validate
+        out = call_tool("check_updates", {"recipe_id": "broken"})
+    assert "error" in out
+    assert "malformed" in out["error"]  # the _load_recipe refusal is surfaced verbatim
+
+
+def test_bulk_scan_skips_an_unloadable_recipe():
+    with registry(_versioned("good", current="1.0.0", latest="2.0.0")) as tmp:
+        (tmp / "broken.yaml").write_text("id: broken\nkind: not-a-kind\n")
+        out = call_tool("check_updates", {})  # no recipe_id -> scan all
+    # broken is silently skipped; the good versioned recipe is still checked
+    assert {e["id"] for e in out["checked"]} == {"good"}
+    assert out["updates_available"] == ["good"]
+
+
+# --------------------------------------------------------------------------- #
 # unparseable version output never claims an update
 # --------------------------------------------------------------------------- #
 def test_unparseable_version_output_is_safe():
@@ -144,4 +165,18 @@ def test_CURRENT_suffixed_current_misses_a_real_update():
     out = _check(_versioned("t", current="1.2.3-git20240101", latest="1.2.4"))
     entry = out["checked"][0]
     assert entry["update_available"] is None  # <- the lossy behavior being pinned
+    assert out["updates_available"] == []
+
+
+def test_CURRENT_unparseable_latest_is_not_claimed_as_an_update():
+    """Why the naive 'fall back to release core on BOTH sides' fix is unsafe and
+    was NOT applied: if `latest` is an unparseable dev build (e.g.
+    '1.2.4-SNAPSHOT'), reducing it to core 1.2.4 would flag an update to a
+    non-release — against erbina's 'never claim an update it can't justify'
+    ethos. Current behavior correctly refuses. A future fix must keep this
+    None: fall back to the core for `current` only, and require a clean
+    `latest`. This test guards that invariant."""
+    out = _check(_versioned("t", current="1.2.3", latest="1.2.4-SNAPSHOT"))
+    entry = out["checked"][0]
+    assert entry["update_available"] is None
     assert out["updates_available"] == []
