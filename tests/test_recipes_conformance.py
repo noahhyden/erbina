@@ -29,23 +29,12 @@ def test_recipe_loads_and_validates_clean(rid):
 
 
 @pytest.mark.parametrize("rid", RECIPE_IDS)
-def test_recipe_has_human_title_and_description(rid):
+def test_recipe_meets_registry_policy(rid):
+    # non-empty title + description and a `when:` guard on every install method.
+    # Single source of truth: server.lint_recipe_policy (also run by the linter).
     recipe = server._load_recipe(rid)
-    assert isinstance(recipe.get("title"), str) and recipe["title"].strip(), f"{rid}: needs a title"
-    assert isinstance(recipe.get("description"), str) and recipe["description"].strip(), (
-        f"{rid}: needs a description"
-    )
-
-
-@pytest.mark.parametrize("rid", RECIPE_IDS)
-def test_every_install_method_is_guarded(rid):
-    # Never run a package manager unconditionally — each method must gate on a
-    # `when:` guard (e.g. `command -v brew`) so it only fires where it applies.
-    recipe = server._load_recipe(rid)
-    for m in recipe["install"]["methods"]:
-        assert isinstance(m.get("when"), str) and m["when"].strip(), (
-            f"{rid}: install method {m.get('id')!r} needs a `when:` guard"
-        )
+    problems = server.lint_recipe_policy(recipe)
+    assert problems == [], f"{rid}: {problems}"
 
 
 @pytest.mark.parametrize("rid", RECIPE_IDS)

@@ -48,10 +48,14 @@ the server. Adding a recipe is just dropping one YAML file in `recipes/`.
    filename, `kind` is valid, `detect.command` / `install.methods` / `verify`
    are present and well-formed, an `mcp-server` recipe's configure step wires
    `${scope}`, and there are no typo'd `${...}` placeholders. It exits non-zero
-   on any problem. The same checks run at recipe *load* time (`validate_recipe`
-   in `server.py`), so `bootstrap` / `inspect_recipe` now refuse a malformed
-   recipe instead of silently no-op'ing a phase — linting first just gives you
-   the errors up front.
+   on any problem. Those schema checks run at recipe *load* time too
+   (`validate_recipe` in `server.py`), so `bootstrap` / `inspect_recipe` refuse a
+   malformed recipe instead of silently no-op'ing a phase. On top of the schema,
+   the linter also enforces **curated-registry policy** (`lint_recipe_policy`): a
+   non-empty `title` and `description`, and a `when:` guard on every install
+   method (so a method only fires where its package manager exists). Policy is
+   linter-only — the schema stays lenient for programmatic/test recipes — so if
+   you're contributing to `recipes/`, get a clean `lint_recipes.py` run first.
 5. Test it end-to-end (below) before opening a PR. Include the
    `bootstrap(dry_run=true)` plan and a real run in the PR description.
 

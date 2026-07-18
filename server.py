@@ -404,6 +404,37 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
     return errors
 
 
+def lint_recipe_policy(recipe: Any) -> list[str]:
+    """Curated-registry POLICY — stricter than the schema (`validate_recipe`).
+
+    These run in the linter (`lint_recipes.py`) so a contributor's recipe PR fails
+    fast, but are intentionally NOT enforced at load time. The schema deliberately
+    allows, e.g., an unguarded install method or a title-less recipe for
+    programmatic/test use (the test harness builds minimal recipes); the shipped
+    registry is held to this higher bar. Returns human-readable problem strings;
+    empty means the recipe meets registry policy.
+    """
+    problems: list[str] = []
+    if not isinstance(recipe, dict):
+        return problems  # structural errors are validate_recipe's job
+    # a curated recipe must explain itself
+    for key in ("title", "description"):
+        val = recipe.get(key)
+        if not (isinstance(val, str) and val.strip()):
+            problems.append(f"{key}: a curated recipe needs a non-empty '{key}'")
+    # every install method must be guarded, so it only runs where its package
+    # manager exists (never fire a package manager the machine lacks)
+    install = recipe.get("install")
+    if isinstance(install, dict) and isinstance(install.get("methods"), list):
+        for i, m in enumerate(install["methods"]):
+            if isinstance(m, dict) and not (isinstance(m.get("when"), str) and m["when"].strip()):
+                problems.append(
+                    f"install.methods[{i}] ({m.get('id')!r}): needs a `when:` guard "
+                    "(curated policy — gate each method on its package manager)"
+                )
+    return problems
+
+
 def _load_recipe(recipe_id: str) -> dict[str, Any]:
     safe = Path(recipe_id).name  # no path traversal
     path = RECIPES_DIR / f"{safe}.yaml"

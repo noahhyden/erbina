@@ -13,6 +13,13 @@ are reconstructed from the git history. Everything is therefore under
 
 ### Added
 
+- **Curated-registry linter policy (`lint_recipe_policy`).** On top of the schema
+  contract, `lint_recipes.py` now also enforces registry policy so a recipe PR
+  fails fast: a non-empty `title` and `description`, and a `when:` guard on every
+  install method (each method only fires where its package manager exists). The
+  policy is linter-only — `validate_recipe` / load-time validation stays lenient
+  so the test harness can build minimal recipes — and is the single source shared
+  by the linter and the recipe conformance tests.
 - **Recipes: `ripgrep`, `fd`, `jq`, `bat`, `delta`, `zoxide`, `eza`, `uv`,
   `hyperfine`, `dust`, `bottom`, `sd`, `tokei`, `tealdeer`, `procs`**
   (`kind: cli-tool`) and **`git`, `time`, `sequentialthinking`, `memory`,
