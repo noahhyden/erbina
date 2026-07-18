@@ -28,6 +28,9 @@ VERSION_SAMPLES = [
     # must skip the banner and find the token on the second line.
     ("eza", "eza - A modern, maintained replacement for ls\nv0.20.4 [+git]", '  "tag_name": "v0.20.4",', "0.20.4", "0.20.4"),
     ("uv", "uv 0.5.11 (abc1234 2024-11-27)", '  "tag_name": "0.5.11",', "0.5.11", "0.5.11"),
+    ("hyperfine", "hyperfine 1.18.0", '  "tag_name": "v1.18.0",', "1.18.0", "1.18.0"),
+    ("dust", "Dust 1.1.1", '  "tag_name": "v1.1.1",', "1.1.1", "1.1.1"),
+    ("bottom", "btm 0.10.2", '  "tag_name": "0.10.2",', "0.10.2", "0.10.2"),
     ("ataegina", "ataegina 0.1.0", '  "tag_name": "v0.2.0",', "0.1.0", "0.2.0"),
 ]
 
@@ -67,6 +70,11 @@ def test_every_versioned_recipe_is_covered_by_a_sample():
     ("zoxide", "zoxide --version", {"homebrew": "brew install zoxide", "cargo": "cargo install zoxide --locked"}, "zoxide --version"),
     ("eza", "eza --version", {"homebrew": "brew install eza", "cargo": "cargo install eza"}, "eza --version"),
     ("uv", "uv --version", {"homebrew": "brew install uv", "standalone": "curl -LsSf https://astral.sh/uv/install.sh | sh"}, "uv --version"),
+    ("hyperfine", "hyperfine --version", {"homebrew": "brew install hyperfine", "cargo": "cargo install hyperfine"}, "hyperfine --version"),
+    # dust: binary/formula are `dust`, but the cargo crate is `du-dust`
+    ("dust", "dust --version", {"homebrew": "brew install dust", "cargo": "cargo install du-dust"}, "dust --version"),
+    # bottom: formula/crate are `bottom`, but the binary is `btm`
+    ("bottom", "btm --version", {"homebrew": "brew install bottom", "cargo": "cargo install bottom --locked"}, "btm --version"),
 ])
 def test_cli_recipe_plan_commands(rid, detect_cmd, methods, verify_cmd):
     plan = call_tool("inspect_recipe", {"recipe_id": rid})["will_run"]
@@ -87,6 +95,7 @@ def test_cli_recipe_plan_commands(rid, detect_cmd, methods, verify_cmd):
     ("time", "uvx mcp-server-time"),
     ("sequentialthinking", "npx -y @modelcontextprotocol/server-sequential-thinking"),
     ("memory", "npx -y @modelcontextprotocol/server-memory"),
+    ("everything", "npx -y @modelcontextprotocol/server-everything"),
 ])
 def test_mcp_server_wiring_command(rid, runner):
     for scope in ("user", "project", "local"):

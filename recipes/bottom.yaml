@@ -1,0 +1,47 @@
+# erbina recipe — bottom, a cli-tool. A cross-platform graphical system monitor.
+id: bottom
+kind: cli-tool
+title: "bottom (btm) — a cross-platform graphical process/system monitor"
+description: >
+  bottom is a customizable, cross-platform terminal system monitor (CPU, memory,
+  network, processes). NOTE: the project/formula/crate are all "bottom", but the
+  installed binary is `btm`. https://github.com/ClementTsang/bottom
+
+# 1. DETECT — already installed? The binary is `btm`, so detect on `btm`.
+detect:
+  command: "btm --version"
+  expect_exit: 0
+
+# 2. INSTALL — prefer brew; fall back to cargo. Formula and crate are `bottom`
+# (the binary they install is `btm`).
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install bottom"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install bottom --locked"
+
+# 3. VERIFY — prove it actually runs (binary name `btm`).
+verify:
+  - command: "btm --version"
+    expect_exit: 0
+
+# 4. VERSION — `btm --version` prints "btm 0.10.2"; ClementTsang/bottom tags
+# look like "0.10.2" (no v prefix). erbina extracts + compares the token.
+version:
+  current: "btm --version"
+  latest: 'curl -fsSL https://api.github.com/repos/ClementTsang/bottom/releases/latest | grep ''"tag_name"'''
+
+# 5. UPDATE — brew upgrade (formula `bottom`), else re-run cargo install.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade bottom"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install bottom --locked"
+
+scope: user

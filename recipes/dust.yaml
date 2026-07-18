@@ -1,0 +1,45 @@
+# erbina recipe — dust, a cli-tool. A more intuitive `du` (disk usage).
+id: dust
+kind: cli-tool
+title: "dust — a more intuitive version of du"
+description: >
+  dust gives an instant, tree-style view of what's using disk space, sorted and
+  colourised. Installs the `dust` binary. https://github.com/bootandy/dust
+
+# 1. DETECT — already installed? `dust --version` exits 0 when present.
+detect:
+  command: "dust --version"
+  expect_exit: 0
+
+# 2. INSTALL — prefer brew; fall back to cargo. NOTE the name mismatch: the brew
+# formula and binary are `dust`, but the cargo crate is `du-dust`.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install dust"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install du-dust"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "dust --version"
+    expect_exit: 0
+
+# 4. VERSION — `dust --version` prints "Dust 1.1.1"; bootandy/dust tags "v1.1.1".
+version:
+  current: "dust --version"
+  latest: 'curl -fsSL https://api.github.com/repos/bootandy/dust/releases/latest | grep ''"tag_name"'''
+
+# 5. UPDATE — brew upgrade (formula `dust`), else re-run cargo install (`du-dust`).
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade dust"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install du-dust"
+
+scope: user
