@@ -8,8 +8,11 @@ verification proves the result actually works rather than that a config line was
 written.
 
 > Validate a recipe against this contract with `uv run --script lint_recipes.py`
-> (the same checks run at recipe load time, so `bootstrap` refuses a malformed
-> recipe rather than silently skipping a phase).
+> (the same schema checks run at recipe load time, so `bootstrap` refuses a
+> malformed recipe rather than silently skipping a phase). The linter additionally
+> enforces **curated-registry policy** on top of this schema — a non-empty
+> `title`/`description` and a `when:` guard on every install method — so a recipe
+> PR fails fast; that policy is linter-only, not enforced at load time.
 
 ```yaml
 id: <slug>                 # stable id; must match the filename (<id>.yaml)
