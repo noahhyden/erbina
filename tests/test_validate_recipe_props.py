@@ -139,6 +139,28 @@ def test_bad_update_block_is_reported(update, needle):
     assert needle in " ".join(errs)
 
 
+# --------------------------------------------------------------------------- #
+# rollback block (optional; powers auto-rollback)
+# --------------------------------------------------------------------------- #
+def test_valid_rollback_block_validates_clean():
+    r = cli_recipe("t", rollback={"methods": [{"id": "rb", "run": "brew install t@$ERBINA_ROLLBACK_VERSION"}]})
+    assert _errs(r) == []
+
+
+@pytest.mark.parametrize("rollback,needle", [
+    ("not-a-mapping", "rollback"),
+    ({"methods": []}, "methods"),
+    ({"methods": [{"run": "x"}]}, "id"),
+    ({"methods": [{"id": "rb"}]}, "run"),
+    ({"methods": [{"id": "rb", "run": "echo ${bad}"}]}, "bad"),
+])
+def test_bad_rollback_block_is_reported(rollback, needle):
+    r = cli_recipe("t", rollback=rollback)
+    errs = _errs(r)
+    assert errs, f"rollback={rollback!r} should error"
+    assert needle in " ".join(errs)
+
+
 def test_corruptions_are_independent():
     # sanity: the pristine copy each test mutates really was valid to begin with
     base = cli_recipe("t")

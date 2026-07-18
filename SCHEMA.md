@@ -75,6 +75,17 @@ update:
       when: "<guard command>"   # optional
       run: "<upgrade command>"  # e.g. brew upgrade <pkg>
 
+# ROLLBACK — optional. If an `update`'s re-verify fails, erbina runs the first
+# eligible rollback method to restore the prior version, then re-verifies. The
+# `run` receives the recorded previous version in $ERBINA_ROLLBACK_VERSION (a
+# normal env var — use it WITHOUT ${...} braces). Omit this block if the tool has
+# no safe way to reinstall a specific version; erbina then just reports a plan.
+rollback:
+  methods:
+    - id: <method id>
+      when: "<guard command>"   # optional
+      run: "<reinstall a specific version, e.g. brew install <pkg>@$ERBINA_ROLLBACK_VERSION>"
+
 # scope this recipe targets when wiring an mcp-server (local | project | user).
 # Informational for cli-tool recipes.
 scope: user
@@ -104,7 +115,21 @@ methods when `install.upgrade_safe: true`, then **re-runs `verify`** as the
 safety net — if verify fails after the upgrade, the update is reported failed and
 the tool flagged as possibly broken. `dry_run: true` shows the exact command
 first (consent surface, like `bootstrap`). It refuses a tool that isn't installed
-yet (run `bootstrap` first).
+yet (run `bootstrap` first), and refuses a **pinned** tool unless `force: true`.
+
+If the re-verify FAILS after an upgrade, erbina tries to recover: it runs the
+recipe's `rollback:` method (passing the recorded previous version in
+`$ERBINA_ROLLBACK_VERSION`) and re-verifies. If that restores a working tool, the
+result reports `rolled_back_to`; otherwise — or when no `rollback:` is declared —
+the tool is marked `broken` in the state manifest and a `rollback_plan` (the
+previous version + manual instructions) is returned.
+
+## Pinning (`pin`)
+
+`pin(recipe_id, pinned=True)` records a pin in the state manifest.
+`check_updates` still shows a pinned tool's version status but excludes it from
+`updates_available`, and `update` refuses it unless `force: true`. Unpin with
+`pin(recipe_id, pinned=false)`.
 
 ## `needs_project_dir` when no `project_dir` is given
 
