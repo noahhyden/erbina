@@ -27,6 +27,7 @@ import json
 import re
 import shlex
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +37,9 @@ from packaging.version import InvalidVersion, Version
 
 HERE = Path(__file__).resolve().parent
 RECIPES_DIR = HERE / "recipes"
+# erbina's state manifest: what it installed/updated, versions, and pins. This is
+# the one place erbina is stateful. Overridable (tests point it at a temp dir).
+STATE_DIR = Path.home() / ".erbina"
 VALID_SCOPES = ("local", "project", "user")
 VALID_KINDS = ("cli-tool", "mcp-server")
 
@@ -162,6 +166,58 @@ def _version_status(current_out: str | None, latest_out: str | None) -> dict[str
     except InvalidVersion as e:
         return {"current": cur, "latest": lat, "update_available": None, "reason": f"unparseable version: {e}"}
     return {"current": cur, "latest": lat, "update_available": lv > cv}
+
+
+def _state_file() -> Path:
+    return STATE_DIR / "state.json"
+
+
+def _read_state() -> dict[str, Any]:
+    """Read the erbina state manifest, tolerating a missing/malformed file.
+
+    Always returns a well-shaped {"version": 1, "tools": {...}} dict so callers
+    never have to guard — a corrupt file degrades to empty rather than raising.
+    """
+    p = _state_file()
+    if not p.exists():
+        return {"version": 1, "tools": {}}
+    try:
+        data = json.loads(p.read_text())
+    except Exception:  # noqa: BLE001
+        return {"version": 1, "tools": {}}
+    if not isinstance(data, dict) or not isinstance(data.get("tools"), dict):
+        return {"version": 1, "tools": {}}
+    return data
+
+
+def _write_state(state: dict[str, Any]) -> None:
+    """Atomically persist the state manifest (temp file + os.replace), creating
+    STATE_DIR if needed, so a crash mid-write can't corrupt the file."""
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    p = _state_file()
+    tmp = p.parent / (p.name + ".tmp")
+    tmp.write_text(json.dumps(state, indent=2, sort_keys=True))
+    tmp.replace(p)
+
+
+def _record_tool(recipe_id: str, **fields: Any) -> dict[str, Any]:
+    """Merge non-None fields into a tool's state record and persist it.
+
+    Always refreshes 'updated_at'; sets 'installed_at' the first time a tool is
+    recorded. Returns the updated record. A pin (see `pin`) is preserved because
+    we never overwrite fields not supplied here.
+    """
+    state = _read_state()
+    rec = state["tools"].get(recipe_id, {})
+    now = datetime.now(timezone.utc).isoformat()
+    rec.setdefault("installed_at", now)
+    rec["updated_at"] = now
+    for k, v in fields.items():
+        if v is not None:
+            rec[k] = v
+    state["tools"][recipe_id] = rec
+    _write_state(state)
+    return rec
 
 
 def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
@@ -607,6 +663,18 @@ def bootstrap(
     report["phases"]["verify"] = verify_results
     report["ok"] = all_ok
 
+    # record what erbina now manages, so check_updates/update know about it later
+    if all_ok:
+        install_phase = report["phases"].get("install", {})
+        method_id = install_phase.get("method") or ("already-present" if detected else None)
+        _record_tool(
+            recipe_id,
+            kind=recipe.get("kind"),
+            installed_version=_current_version(recipe, scope, project_dir),
+            install_method=method_id,
+        )
+        report["recorded"] = True
+
     if recipe.get("kind") == "mcp-server" and all_ok:
         report["next"] = "A new MCP server was wired — reload Claude Code so it connects."
     return report
@@ -769,6 +837,15 @@ def update(
     after = _current_version(recipe, scope, project_dir)
     report["version"] = {"before": before, "after": after}
     report["ok"] = all_ok
+    if all_ok:
+        _record_tool(
+            recipe_id,
+            kind=recipe.get("kind"),
+            installed_version=after,
+            previous_version=before,
+            update_method=method.get("id"),
+        )
+        report["recorded"] = True
     if not all_ok:
         report["warning"] = (
             "verify FAILED after update — the tool may be broken. Consider reinstalling via "

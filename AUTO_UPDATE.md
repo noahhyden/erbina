@@ -12,7 +12,7 @@ awareness** and (later) **state**.
 | **0** | `version:` recipe block + version compare core | ✅ done (iter 1) |
 | **1** | `check_updates` tool — read-only current-vs-latest report | ✅ done (iter 1) |
 | **2** | `update(recipe_id, dry_run)` — apply update, re-run `verify` | ✅ done (iter 2); `pin`/`unpin` deferred to phase 3 |
-| **3** | state manifest (`~/.erbina/state.json`): what was installed, versions, pins, last-checked | planned |
+| **3** | state manifest (`~/.erbina/state.json`): what was installed, versions, pins, last-checked | 🚧 3a done (manifest + recording); 3b pins, 3c rollback next |
 | **4** | automatic trigger — SessionStart hook or `/schedule` routine that runs `check_updates` and offers to apply | planned |
 
 ## How it works today (phases 0–1)
@@ -87,3 +87,23 @@ awareness** and (later) **state**.
   1.1.0 with verify passing.
 - Red-team: mutations caught — verify-no-longer-gates-ok, always-fallback-to-
   install; no flakiness across repeats.
+
+### Iteration 3a (2026-07-18) — state manifest core + recording
+- erbina is now stateful: `~/.erbina/state.json` (overridable via `server.STATE_DIR`).
+  Schema `{"version": 1, "tools": {<id>: {kind, installed_version, install_method,
+  update_method, previous_version, installed_at, updated_at, pinned?}}}`.
+- Helpers: `_read_state` (tolerates missing/malformed/wrong-shape → default),
+  `_write_state` (atomic: temp file + `os.replace`), `_record_tool` (merges
+  non-None fields, sets timestamps, keeps first `installed_at`, PRESERVES unrelated
+  fields like a future pin).
+- Wiring: `bootstrap` records on success (kind, install_method, version if the
+  recipe has a version block); `update` records before/after + update_method.
+  Both add `recorded: true` to their report. Failures and dry-runs never record.
+- **Test isolation**: an autouse `_isolate_erbina_state` fixture (conftest.py)
+  redirects STATE_DIR to a temp dir for EVERY test — no test touches real ~/.erbina.
+- Tests: +15 (222 → 237). Red-team: mutations caught — record-None (1),
+  drop-existing-record (2), bootstrap-skip-recording (2); no flakiness or
+  cross-test state pollution (verified reverse-order too).
+- Deferred to 3b/3c: a `pin` tool + honoring pins in check_updates/update;
+  rollback using `previous_version`. `_record_tool` already preserves pins, so 3b
+  is a small addition.
