@@ -185,9 +185,25 @@ changes, bugs, and development possibilities.
 - No product logic change; 157 passed, ruff + recipe-lint clean. No mutation
   testing this round (docs/docstring only — nothing behavioral changed).
 
-## Backlog (deeper edges, lower value)
-- install `when:` guard that ERRORS (not just exits nonzero); empty recipe file
-  (yaml → None); id valid but body None; same name shadowed across all 3 scopes.
+### Iteration 10 (2026-07-18) — edge hardening
+- Added `test_recipe_load_edges.py`: empty / comment-only / top-level-list recipe
+  files are refused (ValueError, "malformed"); `validate_recipe` rejects a
+  non-mapping (None/list/str/int) with a single clear error.
+- `test_bootstrap_engine.py`: an install `when:` guard pointing at a MISSING
+  binary (exit 127) is treated as ineligible → falls through to the next method;
+  a method with no `when` is always eligible.
+- `test_scopes.py`: a name shadowed across ALL three scopes is flagged with all
+  three and counted once (total_distinct == 1).
+- Suite: 157 → 168 passed. No product bug found (all edges already robust).
+  Red-team: guard-always-eligible (3 caught), non-mapping-swallowed (5 caught);
+  stable x2.
+
+## Status: steady state
+Comprehensive coverage reached — all 6 tools + all helpers + load/validate/run
+edges, 168 tests, 3 bugs fixed (all validated before fixing), 1 design quirk
+documented. Remaining ideas are low-value; the loop can wind down or continue
+opportunistically.
+
+## Backlog (low value)
 - A tiny CI smoke that imports the harness modules (guards against renames).
-- The suite is now comprehensive (all 6 tools + all helpers, 157 tests, 3 bugs
-  fixed). Further iterations are diminishing-returns edge hardening.
+- Fuzz recipe YAML with random types per field (broader than the curated corruptions).

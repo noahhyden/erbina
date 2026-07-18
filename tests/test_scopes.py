@@ -112,6 +112,19 @@ def test_audit_scopes_no_shadowing_is_a_clear_message(tmp_path, monkeypatch):
     assert out["shadowed"] == "none — no server name is defined in more than one scope"
 
 
+def test_audit_scopes_flags_name_in_all_three_scopes(tmp_path, monkeypatch):
+    proj = str(Path(tmp_path).resolve())
+    _fake_claude_json(monkeypatch, {
+        "mcpServers": {"tri": {}},                        # user
+        "projects": {proj: {"mcpServers": {"tri": {}}}},  # local
+    })
+    (tmp_path / ".mcp.json").write_text(json.dumps({"mcpServers": {"tri": {}}}))  # project
+    out = call_tool("audit_scopes", {"project_dir": proj})
+    assert set(out["shadowed"]["tri"]) == {"user", "project", "local"}
+    # counted once despite living in three scopes
+    assert out["total_distinct"] == 1
+
+
 def test_audit_scopes_empty_config_reports_nothing(tmp_path, monkeypatch):
     proj = str(Path(tmp_path).resolve())
     _fake_claude_json(monkeypatch, {})

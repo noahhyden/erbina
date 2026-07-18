@@ -77,6 +77,29 @@ def test_install_picks_earliest_among_multiple_eligible_methods():
     assert out["phases"]["install"]["method"] == "first"
 
 
+def test_install_guard_that_errors_is_treated_as_ineligible():
+    # A `when:` guard pointing at a missing binary exits nonzero (127), so the
+    # method is skipped — never run a package manager the machine lacks.
+    recipe = cli_recipe(
+        detect={"command": FALSE},
+        install={"methods": [
+            {"id": "brewish", "when": "this_binary_does_not_exist_xyz", "run": TRUE},
+            {"id": "fallback", "when": TRUE, "run": TRUE},
+        ]},
+    )
+    out = _boot(recipe)
+    assert out["phases"]["install"]["method"] == "fallback"
+
+
+def test_install_method_without_guard_is_always_eligible():
+    recipe = cli_recipe(
+        detect={"command": FALSE},
+        install={"methods": [{"id": "unguarded", "run": TRUE}]},  # no `when`
+    )
+    out = _boot(recipe)
+    assert out["phases"]["install"]["method"] == "unguarded"
+
+
 def test_install_fails_when_no_guard_passes():
     recipe = cli_recipe(
         detect={"command": FALSE},
