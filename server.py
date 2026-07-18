@@ -220,6 +220,11 @@ def _record_tool(recipe_id: str, **fields: Any) -> dict[str, Any]:
     return rec
 
 
+def _is_pinned(recipe_id: str) -> bool:
+    """True if the tool is pinned in the state manifest (pins block updates)."""
+    return bool(_read_state()["tools"].get(recipe_id, {}).get("pinned"))
+
+
 def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
     """Validate a parsed recipe dict against the SCHEMA.md contract.
 
@@ -714,7 +719,12 @@ def check_updates(recipe_id: str | None = None, project_dir: str | None = None) 
         if det.get("command"):
             d = _run(_subst(det["command"], scope, project_dir), cwd=det_cwd, timeout=30)
             installed = d["exit"] == det.get("expect_exit", 0)
-        entry: dict[str, Any] = {"id": rid, "kind": recipe.get("kind"), "installed": installed}
+        entry: dict[str, Any] = {
+            "id": rid,
+            "kind": recipe.get("kind"),
+            "installed": installed,
+            "pinned": _is_pinned(rid),
+        }
         if not installed:
             entry["note"] = "not installed — run bootstrap first"
             checked.append(entry)
@@ -726,17 +736,17 @@ def check_updates(recipe_id: str | None = None, project_dir: str | None = None) 
         entry.update(_version_status(cur["stdout"], lat["stdout"]))
         checked.append(entry)
 
-    updates = [e["id"] for e in checked if e.get("update_available")]
-    return {
-        "checked": checked,
-        "updates_available": updates,
-        "hint": (
-            f"{len(updates)} update(s) available: {', '.join(updates)}. "
-            "Review, then re-run bootstrap to apply."
-            if updates
-            else "No updates found (tools are current, not installed, or version info unavailable)."
-        ),
-    }
+    # a pinned tool is never offered for (automatic) update, even if newer exists
+    updates = [e["id"] for e in checked if e.get("update_available") and not e.get("pinned")]
+    pinned_with_update = [e["id"] for e in checked if e.get("update_available") and e.get("pinned")]
+    hint = (
+        f"{len(updates)} update(s) available: {', '.join(updates)}. Review, then run `update` to apply."
+        if updates
+        else "No updates found (tools are current, pinned, not installed, or version info unavailable)."
+    )
+    if pinned_with_update:
+        hint += f" Pinned (skipped despite an update): {', '.join(pinned_with_update)}."
+    return {"checked": checked, "updates_available": updates, "hint": hint}
 
 
 def _current_version(recipe: dict[str, Any], scope: str, project_dir: str | None) -> str | None:
@@ -755,6 +765,7 @@ def update(
     scope: str = "user",
     dry_run: bool = False,
     project_dir: str | None = None,
+    force: bool = False,
 ) -> dict[str, Any]:
     """
     Update an already-installed tool, then re-run its `verify` as a safety net.
@@ -764,11 +775,18 @@ def update(
     passes — then re-runs `verify`. If verify fails, the update is reported failed
     and flagged (the tool may be broken). Set dry_run=true to see the exact
     command without executing. Only updates a tool that is already installed; run
-    `bootstrap` first otherwise.
+    `bootstrap` first otherwise. A pinned tool is refused unless force=true.
     """
     if scope not in VALID_SCOPES:
         return {"error": f"scope must be one of {VALID_SCOPES}"}
     recipe = _load_recipe(recipe_id)
+    if _is_pinned(recipe_id) and not force:
+        return {
+            "recipe": recipe_id,
+            "pinned": True,
+            "skipped": True,
+            "note": f"'{recipe_id}' is pinned; unpin it (pin('{recipe_id}', pinned=false)) or pass force=true to update anyway.",
+        }
     methods, source = _update_methods(recipe)
     method = _pick_method(methods)
 
@@ -854,6 +872,35 @@ def update(
     elif before and after and before == after:
         report["note"] = f"Already at {after} — update was a no-op."
     return report
+
+
+@mcp.tool
+def pin(recipe_id: str, pinned: bool = True) -> dict[str, Any]:
+    """
+    Pin (or unpin) a tool so automatic updates skip it.
+
+    A pinned tool is flagged by `check_updates` and excluded from its
+    `updates_available` list, and `update` refuses it unless called with
+    force=true. Call `pin(recipe_id, pinned=false)` to unpin. Pinning is recorded
+    in the state manifest and does not install or change the tool.
+    """
+    if recipe_id not in _recipe_ids():
+        return {"error": f"no recipe '{recipe_id}'. Available: {', '.join(_recipe_ids()) or '(none)'}"}
+    state = _read_state()
+    rec = state["tools"].get(recipe_id, {})
+    rec["pinned"] = pinned
+    state["tools"][recipe_id] = rec
+    _write_state(state)
+    return {
+        "recipe": recipe_id,
+        "pinned": pinned,
+        "note": (
+            f"'{recipe_id}' is pinned — check_updates will flag it and update will refuse it "
+            "until you unpin (pin(recipe_id, pinned=false)) or pass force=true."
+            if pinned
+            else f"'{recipe_id}' is unpinned — updates apply normally again."
+        ),
+    }
 
 
 @mcp.tool

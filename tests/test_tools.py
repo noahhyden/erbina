@@ -14,6 +14,7 @@ EXPECTED_TOOLS = {
     "bootstrap",
     "check_updates",
     "update",
+    "pin",
     "audit_scopes",
     "find_dead_mcps",
     "remove_mcp",

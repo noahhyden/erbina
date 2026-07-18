@@ -12,7 +12,7 @@ awareness** and (later) **state**.
 | **0** | `version:` recipe block + version compare core | ✅ done (iter 1) |
 | **1** | `check_updates` tool — read-only current-vs-latest report | ✅ done (iter 1) |
 | **2** | `update(recipe_id, dry_run)` — apply update, re-run `verify` | ✅ done (iter 2); `pin`/`unpin` deferred to phase 3 |
-| **3** | state manifest (`~/.erbina/state.json`): what was installed, versions, pins, last-checked | 🚧 3a done (manifest + recording); 3b pins, 3c rollback next |
+| **3** | state manifest (`~/.erbina/state.json`): what was installed, versions, pins, last-checked | 🚧 3a manifest+recording ✅, 3b pins ✅, 3c rollback next |
 | **4** | automatic trigger — SessionStart hook or `/schedule` routine that runs `check_updates` and offers to apply | planned |
 
 ## How it works today (phases 0–1)
@@ -107,3 +107,18 @@ awareness** and (later) **state**.
 - Deferred to 3b/3c: a `pin` tool + honoring pins in check_updates/update;
   rollback using `previous_version`. `_record_tool` already preserves pins, so 3b
   is a small addition.
+
+### Iteration 3b (2026-07-18) — pinning
+- New `pin(recipe_id, pinned=True)` tool: sets the pinned flag in the state
+  manifest (direct write, no timestamps — pinning isn't an install event), errors
+  on an unknown recipe. `_is_pinned` helper reads it.
+- `check_updates` now annotates each entry with `pinned` and EXCLUDES pinned tools
+  from `updates_available` (still shows their version status for transparency; the
+  hint calls out "Pinned (skipped despite an update)").
+- `update` gained `force: bool = False`; it refuses a pinned tool (returns
+  skipped + note) unless force=true.
+- Tool count 8 → 9 (test + python-floor updated).
+- Tests: +10 (237 → 246). test_pin.py covers set/clear, unknown-recipe error,
+  pin-doesn't-clobber-record, check_updates exclude/include, update refuse/force/
+  unpinned. Red-team: mutations caught — check_updates-ignores-pins (1), update-
+  pin-logic-inverted (2); no flakiness.
