@@ -9,6 +9,13 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ### Added
 
+- **`doctor` tool — health-check installed CLI tools.** Re-runs each recorded
+  tool's `detect` (still present?) and, when present, `verify` (still runs?),
+  classifying every entry in the state manifest as healthy / missing / broken.
+  Read-only (only the recipe's own non-destructive checks); the CLI-tool
+  counterpart to `find_dead_mcps`, which stays responsible for MCP servers. Brings
+  the tool surface to ten.
+
 - **Structured GitHub version source (`version.latest: { github: "owner/repo" }`).**
   `version.latest` may now be the GitHub shorthand instead of a hand-rolled
   command; erbina expands it to the releases-API call that isolates the latest tag

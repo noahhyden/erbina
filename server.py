@@ -1241,6 +1241,60 @@ def find_dead_mcps(project_dir: str | None = None) -> dict[str, Any]:
 
 
 @mcp.tool
+def doctor(project_dir: str | None = None) -> dict[str, Any]:
+    """
+    Health-check the CLI tools erbina has installed (from its state manifest):
+    re-run each recorded tool's `detect` (is it still present?) and, when present,
+    its `verify` (does it still run?), classifying each as healthy / missing /
+    broken. Read-only — it runs only the recipe's own non-destructive
+    detect/verify commands. This is the CLI-tool counterpart to `find_dead_mcps`
+    (which health-checks MCP servers); mcp-server records are deferred to it.
+    """
+    recorded = _read_state()["tools"]
+    healthy: list[str] = []
+    problems: list[dict[str, Any]] = []
+    checked = 0
+    for rid in sorted(recorded):
+        try:
+            recipe = _load_recipe(rid)
+        except Exception:  # noqa: BLE001 - recorded but the recipe is gone from the registry
+            checked += 1
+            problems.append({
+                "recipe": rid, "status": "recipe-missing",
+                "detail": "recorded in state but no longer in the registry — can't health-check",
+            })
+            continue
+        if recipe.get("kind") == "mcp-server":
+            continue  # an mcp-server's health is find_dead_mcps' job, not a CLI detect/verify
+        checked += 1
+        scope = recipe.get("scope", "user")
+        det = recipe.get("detect", {})
+        det_cwd = project_dir if det.get("needs_project_dir") else None
+        d = _run(_subst(det.get("command"), scope, project_dir), cwd=det_cwd, timeout=30)
+        if d["exit"] != det.get("expect_exit", 0):
+            problems.append({
+                "recipe": rid, "status": "missing",
+                "detail": "recorded as installed but detect now fails — reinstall via bootstrap",
+            })
+            continue
+        _results, ok = _run_verify(recipe, scope, project_dir)
+        if ok:
+            healthy.append(rid)
+        else:
+            problems.append({
+                "recipe": rid, "status": "broken",
+                "detail": "present but verify failed — the tool may be corrupted; re-run bootstrap",
+            })
+    hint = (
+        f"{len(problems)} recorded tool(s) need attention — re-run `bootstrap` for each. "
+        "For MCP servers, use find_dead_mcps."
+        if problems
+        else "All recorded tools are healthy."
+    )
+    return {"checked": checked, "healthy": healthy, "problems": problems, "hint": hint}
+
+
+@mcp.tool
 def remove_mcp(name: str, scope: str | None = None, dry_run: bool = False) -> dict[str, Any]:
     """
     Remove a configured MCP server by name (e.g. a dead one surfaced by

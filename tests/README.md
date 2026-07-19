@@ -48,7 +48,7 @@ See `PROTOTYPE_NOTES.md` for the design, the iteration log, the loop discipline
 | file | covers |
 |---|---|
 | `test_import.py` | `import server` succeeds and does **not** start the server (`mcp.run()` stays `__main__`-guarded). |
-| `test_tools.py` | The 6 expected tools register; `list_recipes` sees both real recipes; `inspect_recipe` / `bootstrap(dry_run)` return a plan and execute nothing; path-traversal ids rejected; bad `scope` rejected. |
+| `test_tools.py` | The 10 expected tools register; `list_recipes` sees both real recipes; `inspect_recipe` / `bootstrap(dry_run)` return a plan and execute nothing; path-traversal ids rejected; bad `scope` rejected. |
 | `test_helpers.py` | `_subst` expansion (incl. missing-`project_dir` → `.`); `_load_recipe` traversal guard; `_parse_mcp_list` on a realistic capture (monkeypatched `_run`). |
 | `test_validate_recipe.py` | Both real recipes validate clean; a malformed recipe reports each seeded problem; the load path refuses a malformed recipe (temp recipes dir, never `recipes/`). |
 | `test_prototype_factory.py` | Self-tests for the harness: prototypes validate clean, `registry()` swaps + restores (incl. nesting and on-exception), tool registry undisturbed. |
