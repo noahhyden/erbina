@@ -16,9 +16,11 @@ threshold a tool crosses to become part of your environment. Sibling to
 is also erbina's proof-of-concept recipe #1.
 
 > **The recipe contract is the core idea.** One server, eleven tools, and a curated
-> set of recipes spanning `cli-tool`s and scope-wiring `mcp-server`s (see the
-> [Recipe gallery](#recipe-gallery)). Each is one YAML file held to a conformance
-> bar (schema + linter policy + tests), and adding one is the point.
+> set of recipes spanning `cli-tool`s, scope-wiring `mcp-server`s, and `profile`s
+> that bundle them (see the [Recipe gallery](#recipe-gallery)). Each is one YAML
+> file held to a conformance bar — schema + linter policy + a 100%-covered offline
+> suite, plus a weekly job that actually installs it on macOS, Linux, and Windows —
+> and adding one is the point.
 
 ## Why this exists
 
@@ -38,10 +40,17 @@ erbina makes setup a thing an **agent does for you, and proves worked**:
 - **Recipes, not one-shot installs.** Each entry is a contract:
   **detect → install → configure → verify**. Idempotent by construction — it
   detects what's already there and skips it, and success means the tool *runs*,
-  not that a line was written to a file.
+  not that a line was written to a file. Recipes also **compose** (`requires:`
+  prerequisites, `profile`s that bundle a whole set) and cover the **full
+  lifecycle**: `update` → re-verify → rollback, `uninstall`, and a `doctor`
+  health-check over everything erbina installed.
 - **Scope-aware.** It knows about Claude Code's `local` / `project` / `user`
   scopes, wires MCP-server recipes into the right one, and audits all three so
   you finally have one place that answers "what's installed, and where?"
+- **Proven, not just written.** On top of the offline suite, a weekly (and
+  on-demand) CI job bootstraps recipes *for real* against live package managers on
+  **macOS, Linux, and Windows** — so a renamed brew formula, a dead URL, or a bad
+  winget id is caught, not shipped.
 
 ## Install
 
@@ -58,8 +67,10 @@ Then, in Claude Code, just ask: *"use erbina to set up ataegina"* — the agent
 inspects the recipe, shows you exactly what it will run, then bootstraps and
 verifies it.
 
-Requirements: `uv` and Claude Code. `git` and a package manager (`brew`, or
-`curl` for the fallback) for whatever a recipe installs.
+Requirements: `uv` and Claude Code, on macOS, Linux, or Windows. Plus whatever a
+recipe's install method needs — typically `brew` on macOS, `winget` on Windows, or
+a language toolchain (`cargo` / `go` / `pipx`) or `curl` fallback elsewhere. Every
+method is guarded, so only one that actually exists on your machine ever runs.
 
 ## Tools
 
@@ -100,9 +111,16 @@ verify:   [ { command: "ataegina --version", expect_exit: 0 } ]
 A `kind: mcp-server` recipe instead wires a server into a chosen scope — its
 configure step is `claude mcp add <name> --scope ${scope} -- …`, where `${scope}`
 is substituted from the `scope` you pass to `bootstrap`. See
-[`recipes/fetch.yaml`](recipes/fetch.yaml). The full schema — including the
-`local`/`project`/`user` scope model and command placeholders — is in
-[SCHEMA.md](SCHEMA.md).
+[`recipes/fetch.yaml`](recipes/fetch.yaml). A `kind: profile` recipe installs
+nothing itself — it just `requires:` a curated set, so one prompt bootstraps the
+whole bundle.
+
+Recipes can also declare optional blocks: `requires:` (prerequisites bootstrapped
+first), `version:` + `update:` / `rollback:` (auto-updates, with `latest:` as a
+command or the `{ github: owner/repo }` shorthand), and `uninstall:` (teardown).
+Because each install method's `when:` guard runs in the host shell, methods are
+cross-platform — a `winget` method fires only on Windows, `brew`/`cargo`/`curl`
+only where they apply. The full schema is in [SCHEMA.md](SCHEMA.md).
 
 ## Auto-updating tools
 
@@ -112,7 +130,8 @@ methods. Then:
 
 - **`check_updates`** compares installed vs latest (numeric/pre-release aware, via
   `packaging`) and reports what's out of date — it never claims an update it can't
-  parse, and skips **pinned** tools.
+  parse, skips **pinned** tools, and for a `{ github: … }` source includes a
+  release-notes link so you can review before applying.
 - **`update`** applies the upgrade and **re-runs `verify`**; if verify fails it
   rolls back to the recorded previous version (when the recipe declares a
   `rollback:` command) or marks the tool broken and returns a plan.
@@ -127,8 +146,8 @@ See [AUTO_UPDATE.md](AUTO_UPDATE.md) for the design, the `version:`/`update:`/
 ## Recipe gallery
 
 The curated registry today. Each links to its YAML; `cli-tool`s install a binary,
-`mcp-server`s wire a server into a chosen Claude Code scope. (This list is kept in
-sync with `recipes/` by a test.)
+`mcp-server`s wire a server into a chosen Claude Code scope, and `profile`s bundle
+several recipes. (This list is kept in sync with `recipes/` by a test.)
 
 **CLI tools**
 
@@ -171,8 +190,8 @@ sync with `recipes/` by a test.)
 
 Drop a `<id>.yaml` in `recipes/` following [SCHEMA.md](SCHEMA.md). `kind:
 cli-tool` installs a binary; `kind: mcp-server` additionally wires it into the
-chosen Claude Code scope. Keep `detect` cheap and `verify` honest (prove it
-runs).
+chosen Claude Code scope; `kind: profile` just bundles others via `requires:`.
+Keep `detect` cheap and `verify` honest (prove it runs).
 
 ## What this is *not*
 
