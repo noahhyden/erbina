@@ -1,0 +1,54 @@
+# erbina recipe — difftastic, a cli-tool.
+id: difftastic
+kind: cli-tool
+title: "difftastic — a structural (syntax-aware) diff tool"
+description: >
+  difftastic compares files by their syntax tree, so diffs track code structure
+  rather than lines. Installs the `difft` binary. https://github.com/Wilfred/difftastic
+
+# 1. DETECT — already installed? `difft --version` exits 0 when present.
+detect:
+  command: "difft --version"
+  expect_exit: 0
+
+# 2. INSTALL — first guard to pass wins. Prefer brew; fall back to cargo.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install difftastic"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install difftastic"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "difft --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed `--version` vs the GitHub release tag).
+version:
+  current: "difft --version"
+  latest: { github: Wilfred/difftastic }
+
+# 5. UPDATE — how `update` upgrades it (brew, else re-run the cargo install).
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade difftastic"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install difftastic"
+
+# 6. UNINSTALL — reverse the install (brew when it manages the formula, else rm the binary).
+uninstall:
+  methods:
+    - id: homebrew
+      when: "brew list difftastic"
+      run: "brew uninstall difftastic"
+    - id: rm
+      when: "command -v difft"
+      run: "rm -f \"$(command -v difft)\""
+
+scope: user

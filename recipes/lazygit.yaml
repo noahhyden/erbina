@@ -1,0 +1,54 @@
+# erbina recipe — lazygit, a cli-tool.
+id: lazygit
+kind: cli-tool
+title: "lazygit — a simple terminal UI for git commands"
+description: >
+  lazygit is a fast, keyboard-driven terminal UI for staging, committing, branching,
+  rebasing, and more. Installs the `lazygit` binary. https://github.com/jesseduffield/lazygit
+
+# 1. DETECT — already installed? `lazygit --version` exits 0 when present.
+detect:
+  command: "lazygit --version"
+  expect_exit: 0
+
+# 2. INSTALL — first guard to pass wins. Prefer brew; fall back to go.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install lazygit"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/jesseduffield/lazygit@latest"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "lazygit --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed `--version` vs the GitHub release tag).
+version:
+  current: "lazygit --version"
+  latest: { github: jesseduffield/lazygit }
+
+# 5. UPDATE — how `update` upgrades it (brew, else re-run the go install).
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade lazygit"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/jesseduffield/lazygit@latest"
+
+# 6. UNINSTALL — reverse the install (brew when it manages the formula, else rm the binary).
+uninstall:
+  methods:
+    - id: homebrew
+      when: "brew list lazygit"
+      run: "brew uninstall lazygit"
+    - id: rm
+      when: "command -v lazygit"
+      run: "rm -f \"$(command -v lazygit)\""
+
+scope: user

@@ -136,17 +136,22 @@ sync with `recipes/` by a test.)
 - [`bat`](recipes/bat.yaml) — a cat clone with syntax highlighting and Git integration
 - [`bottom`](recipes/bottom.yaml) — a cross-platform graphical process/system monitor
 - [`delta`](recipes/delta.yaml) — a syntax-highlighting pager for git, diff, and grep output
+- [`difftastic`](recipes/difftastic.yaml) — a structural (syntax-aware) diff tool
 - [`dust`](recipes/dust.yaml) — a more intuitive version of du
 - [`eza`](recipes/eza.yaml) — a modern, maintained replacement for ls
 - [`fd`](recipes/fd.yaml) — a fast, friendly alternative to find
+- [`gh`](recipes/gh.yaml) — GitHub's official command-line tool
+- [`httpie`](recipes/httpie.yaml) — a human-friendly command-line HTTP client
 - [`hyperfine`](recipes/hyperfine.yaml) — a command-line benchmarking tool
 - [`jq`](recipes/jq.yaml) — command-line JSON processor
+- [`lazygit`](recipes/lazygit.yaml) — a simple terminal UI for git commands
 - [`procs`](recipes/procs.yaml) — a modern replacement for ps
 - [`ripgrep`](recipes/ripgrep.yaml) — blazing-fast recursive search
 - [`sd`](recipes/sd.yaml) — intuitive find & replace (a friendlier sed)
 - [`tealdeer`](recipes/tealdeer.yaml) — a very fast tldr client (simplified man pages)
 - [`tokei`](recipes/tokei.yaml) — count your code, quickly
 - [`uv`](recipes/uv.yaml) — an extremely fast Python package and project manager
+- [`yq`](recipes/yq.yaml) — a portable command-line YAML/JSON/XML processor
 - [`zoxide`](recipes/zoxide.yaml) — a smarter cd command that learns your habits
 
 **MCP servers**

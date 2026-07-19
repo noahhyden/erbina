@@ -1,0 +1,54 @@
+# erbina recipe — gh, a cli-tool.
+id: gh
+kind: cli-tool
+title: "gh — GitHub's official command-line tool"
+description: >
+  gh brings GitHub to the terminal: pull requests, issues, releases, gists, and
+  GitHub Actions. Installs the `gh` binary. https://github.com/cli/cli
+
+# 1. DETECT — already installed? `gh --version` exits 0 when present.
+detect:
+  command: "gh --version"
+  expect_exit: 0
+
+# 2. INSTALL — first guard to pass wins. Prefer brew; fall back to webi.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install gh"
+    - id: webi
+      when: "command -v curl"
+      run: "curl -sS https://webi.sh/gh | sh"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "gh --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed `--version` vs the GitHub release tag).
+version:
+  current: "gh --version"
+  latest: { github: cli/cli }
+
+# 5. UPDATE — how `update` upgrades it (brew, else re-run the webi install).
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade gh"
+    - id: webi
+      when: "command -v curl"
+      run: "curl -sS https://webi.sh/gh | sh"
+
+# 6. UNINSTALL — reverse the install (brew when it manages the formula, else rm the binary).
+uninstall:
+  methods:
+    - id: homebrew
+      when: "brew list gh"
+      run: "brew uninstall gh"
+    - id: rm
+      when: "command -v gh"
+      run: "rm -f \"$(command -v gh)\""
+
+scope: user

@@ -9,6 +9,14 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ### Added
 
+- **Five new cli-tool recipes** (registry 22 → 27): `gh` (GitHub CLI), `lazygit`,
+  `yq`, `difftastic` (`difft`), and `httpie` (`http`). Each ships the full contract
+  — brew plus a native-ecosystem fallback (webi / `go install` / `cargo install` /
+  `pipx`), an honest `verify`, the `{github: …}` version source, and `update` +
+  `uninstall` blocks — and each has a real `--version` sample in the version-format
+  suite (gh's two-line banner, lazygit's field soup, and yq's repo-URL line all
+  verified to extract cleanly). Added to the README gallery.
+
 - **`uninstall` tool — reverse a cli-tool install.** Runs the recipe's new
   `uninstall:` block (guarded methods, same shape as install/update), confirms the
   tool is actually gone by re-running `detect`, and forgets it in the state

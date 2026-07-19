@@ -37,6 +37,18 @@ VERSION_SAMPLES = [
     ("tealdeer", "tealdeer 1.7.0", '  "tag_name": "v1.7.0",', "1.7.0", "1.7.0"),
     ("procs", "procs 0.14.5", '  "tag_name": "v0.14.5",', "0.14.5", "0.14.5"),
     ("ataegina", "ataegina 0.1.0", '  "tag_name": "v0.2.0",', "0.1.0", "0.2.0"),
+    # gh prints a two-line banner with a trailing URL + an ISO date; extraction
+    # must take the version and ignore both (dates use '-', so no dotted token).
+    ("gh", "gh version 2.62.0 (2024-11-27)\nhttps://github.com/cli/cli/releases/tag/v2.62.0",
+     '  "tag_name": "v2.63.0",', "2.62.0", "2.63.0"),
+    # lazygit embeds the version among commit=/build date=/os= fields.
+    ("lazygit", "commit=abcdef0, build date=2024-11-20, build source=binaryRelease, version=0.44.1, os=darwin, arch=arm64",
+     '  "tag_name": "v0.44.1",', "0.44.1", "0.44.1"),
+    # yq prints its repo URL before "version v4.44.3".
+    ("yq", "yq (https://github.com/mikefarah/yq/) version v4.44.3", '  "tag_name": "v4.44.3",', "4.44.3", "4.44.3"),
+    ("difftastic", "Difftastic 0.61.0", '  "tag_name": "0.61.0",', "0.61.0", "0.61.0"),
+    # httpie's `http --version` prints just the bare version number.
+    ("httpie", "3.2.4", '  "tag_name": "3.2.4",', "3.2.4", "3.2.4"),
 ]
 
 
