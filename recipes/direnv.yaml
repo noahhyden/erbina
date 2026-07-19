@@ -1,0 +1,39 @@
+# erbina recipe — direnv, a cli-tool. Per-directory environment loader.
+id: direnv
+kind: cli-tool
+title: "direnv — unclutter your .profile with per-directory environments"
+description: >
+  direnv is an extension for your shell that loads and unloads environment
+  variables per directory via an .envrc file, keeping project-specific
+  config out of your profile. https://github.com/direnv/direnv
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "direnv version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install direnv"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "direnv version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "direnv version"
+  latest: { github: direnv/direnv }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade direnv"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — wasmer, a cli-tool. Universal WebAssembly runtime.
+id: wasmer
+kind: cli-tool
+title: "wasmer — the leading WebAssembly runtime supporting WASI and Emscripten"
+description: >
+  Wasmer is a fast and secure WebAssembly runtime that enables running
+  WASM everywhere, supporting WASI and Emscripten and embedding into many
+  languages. https://github.com/wasmerio/wasmer
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "wasmer --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install wasmer"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "wasmer --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "wasmer --version"
+  latest: { github: wasmerio/wasmer }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade wasmer"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — lerna, a cli-tool. Manage JS monorepos.
+id: lerna
+kind: cli-tool
+title: "lerna — a tool for managing JavaScript projects with multiple packages"
+description: >
+  Lerna is a fast, modern build system for managing and publishing
+  multiple JavaScript/TypeScript packages from the same monorepo.
+  https://github.com/lerna/lerna
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "lerna --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g lerna"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "lerna --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "lerna --version"
+  latest: { github: lerna/lerna }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g lerna"
+
+scope: user

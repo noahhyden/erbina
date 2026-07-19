@@ -1,0 +1,39 @@
+# erbina recipe — gitmoji, a cli-tool. Emoji-driven commit helper (`gitmoji`).
+id: gitmoji
+kind: cli-tool
+title: "gitmoji-cli — an interactive command-line tool for using emojis on commits (`gitmoji`)"
+description: >
+  gitmoji-cli is an interactive command-line tool for using emojis on git
+  commits, helping you follow the gitmoji convention for expressive commit
+  messages. https://github.com/carloscuesta/gitmoji-cli
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "gitmoji --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g gitmoji-cli"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "gitmoji --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "gitmoji --version"
+  latest: { github: carloscuesta/gitmoji-cli }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g gitmoji-cli"
+
+scope: user

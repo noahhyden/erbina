@@ -1,0 +1,39 @@
+# erbina recipe — ollama, a cli-tool. Run LLMs locally.
+id: ollama
+kind: cli-tool
+title: "ollama — get up and running with large language models locally"
+description: >
+  Ollama lets you get up and running with large language models locally,
+  pulling and running models like Llama and Mistral with a single command.
+  https://github.com/ollama/ollama
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "ollama --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install ollama"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "ollama --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "ollama --version"
+  latest: { github: ollama/ollama }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade ollama"
+
+scope: user

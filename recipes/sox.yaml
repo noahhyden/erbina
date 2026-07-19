@@ -1,0 +1,34 @@
+# erbina recipe — sox, a cli-tool. Command-line audio processing.
+id: sox
+kind: cli-tool
+title: "sox — the Swiss Army knife of sound processing programs"
+description: >
+  SoX (Sound eXchange) is the Swiss Army knife of sound processing
+  programs, converting audio formats and applying a wide range of effects
+  from the command line. https://sox.sourceforge.net/
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "sox --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install sox"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "sox --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade sox"
+
+scope: user

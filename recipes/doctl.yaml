@@ -1,0 +1,39 @@
+# erbina recipe — doctl, a cli-tool. DigitalOcean from the CLI.
+id: doctl
+kind: cli-tool
+title: "doctl — the official command-line interface for the DigitalOcean API"
+description: >
+  doctl is the official CLI for the DigitalOcean API, managing droplets,
+  Kubernetes, databases, networking and more from your terminal.
+  https://github.com/digitalocean/doctl
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "doctl version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install doctl"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "doctl version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "doctl version"
+  latest: { github: digitalocean/doctl }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade doctl"
+
+scope: user

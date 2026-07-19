@@ -1,0 +1,39 @@
+# erbina recipe — mongosh, a cli-tool. Modern MongoDB shell.
+id: mongosh
+kind: cli-tool
+title: "mongosh — the MongoDB Shell, a modern command-line interface for MongoDB"
+description: >
+  mongosh is the modern MongoDB Shell, a fully featured JavaScript and
+  Node.js command-line environment for interacting with MongoDB
+  deployments. https://github.com/mongodb-js/mongosh
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "mongosh --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install mongosh"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "mongosh --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "mongosh --version"
+  latest: { github: mongodb-js/mongosh }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade mongosh"
+
+scope: user

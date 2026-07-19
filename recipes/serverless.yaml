@@ -1,0 +1,39 @@
+# erbina recipe — serverless, a cli-tool. Multi-cloud serverless framework.
+id: serverless
+kind: cli-tool
+title: "serverless — build and deploy serverless applications across cloud providers"
+description: >
+  The Serverless Framework helps you build and deploy serverless
+  applications and functions across AWS and other providers with a simple
+  YAML configuration. https://github.com/serverless/serverless
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "serverless --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g serverless"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "serverless --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "serverless --version"
+  latest: { github: serverless/serverless }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g serverless"
+
+scope: user

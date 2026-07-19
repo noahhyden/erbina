@@ -1,0 +1,45 @@
+# erbina recipe — hexyl, a cli-tool. Colorful command-line hex viewer.
+id: hexyl
+kind: cli-tool
+title: "hexyl — a command-line hex viewer"
+description: >
+  hexyl is a simple hex viewer for the terminal that uses colored output
+  to distinguish byte categories (NULL, printable ASCII, whitespace,
+  etc.). https://github.com/sharkdp/hexyl
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "hexyl --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install hexyl"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install hexyl"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "hexyl --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "hexyl --version"
+  latest: { github: sharkdp/hexyl }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade hexyl"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install hexyl"
+
+scope: user

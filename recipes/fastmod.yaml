@@ -1,0 +1,45 @@
+# erbina recipe — fastmod, a cli-tool. Fast interactive codemods.
+id: fastmod
+kind: cli-tool
+title: "fastmod — a fast partial replacement for the codemod tool"
+description: >
+  fastmod is a fast, interactive partial replacement for the codemod tool
+  that helps you make large-scale, regex-based edits across a codebase.
+  https://github.com/facebookincubator/fastmod
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "fastmod --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install fastmod"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install fastmod"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "fastmod --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "fastmod --version"
+  latest: { github: facebookincubator/fastmod }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade fastmod"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install fastmod"
+
+scope: user

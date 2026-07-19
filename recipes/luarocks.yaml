@@ -1,0 +1,34 @@
+# erbina recipe — luarocks, a cli-tool. Package manager for Lua.
+id: luarocks
+kind: cli-tool
+title: "luarocks — the package manager for Lua modules"
+description: >
+  LuaRocks is the package manager for Lua modules, letting you create and
+  install Lua modules as self-contained packages called rocks.
+  https://luarocks.org/
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "luarocks --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install luarocks"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "luarocks --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade luarocks"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — vdirsyncer, a cli-tool. Sync CalDAV/CardDAV locally.
+id: vdirsyncer
+kind: cli-tool
+title: "vdirsyncer — synchronize calendars and addressbooks between servers and the local filesystem"
+description: >
+  vdirsyncer synchronizes calendars and address books between
+  CalDAV/CardDAV servers and the local filesystem, complementing tools
+  like khal. https://github.com/pimutils/vdirsyncer
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "vdirsyncer --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install vdirsyncer"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "vdirsyncer --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "vdirsyncer --version"
+  latest: { github: pimutils/vdirsyncer }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade vdirsyncer"
+
+scope: user

@@ -1,0 +1,34 @@
+# erbina recipe — rlwrap, a cli-tool. Add readline editing to any command.
+id: rlwrap
+kind: cli-tool
+title: "rlwrap — a readline wrapper for any command"
+description: >
+  rlwrap is a small utility that uses the GNU Readline library to add line
+  editing, history and completion to the keyboard input of any command.
+  https://github.com/hanslub42/rlwrap
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "rlwrap --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install rlwrap"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "rlwrap --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade rlwrap"
+
+scope: user

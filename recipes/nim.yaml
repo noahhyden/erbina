@@ -1,0 +1,39 @@
+# erbina recipe — nim, a cli-tool. Efficient statically typed compiled language.
+id: nim
+kind: cli-tool
+title: "nim — an efficient, expressive, elegant statically typed compiled language"
+description: >
+  Nim is an efficient, expressive and elegant statically typed compiled
+  systems programming language that compiles to C, C++ and JavaScript.
+  https://github.com/nim-lang/Nim
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "nim --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install nim"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "nim --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "nim --version"
+  latest: { github: nim-lang/Nim }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade nim"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — cspell, a cli-tool. Spell checker for source code.
+id: cspell
+kind: cli-tool
+title: "cspell — a spell checker for code"
+description: >
+  cspell is a spell checker for code that is fast enough to run in CI,
+  understanding common code styles like camelCase and many programming
+  languages. https://github.com/streetsidesoftware/cspell
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "cspell --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g cspell"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "cspell --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "cspell --version"
+  latest: { github: streetsidesoftware/cspell }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g cspell"
+
+scope: user

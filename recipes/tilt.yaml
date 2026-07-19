@@ -1,0 +1,39 @@
+# erbina recipe — tilt, a cli-tool. Fast local Kubernetes dev loops.
+id: tilt
+kind: cli-tool
+title: "tilt — local Kubernetes development with no stress"
+description: >
+  Tilt powers a fast, smart development loop for teams building on
+  Kubernetes, watching your files and automatically rebuilding and
+  redeploying services. https://github.com/tilt-dev/tilt
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "tilt version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install tilt"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "tilt version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "tilt version"
+  latest: { github: tilt-dev/tilt }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade tilt"
+
+scope: user

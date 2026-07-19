@@ -1,0 +1,39 @@
+# erbina recipe — beets, a cli-tool. Organize and tag music libraries (`beet`).
+id: beets
+kind: cli-tool
+title: "beets — the music geek's media organizer (`beet`)"
+description: >
+  beets is a media library management system for obsessive music geeks
+  that catalogs your collection, auto-tags files with MusicBrainz data and
+  more. https://github.com/beetbox/beets
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "beet version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install beets"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "beet version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "beet version"
+  latest: { github: beetbox/beets }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade beets"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — pipx, a cli-tool. Install Python CLI apps in isolation.
+id: pipx
+kind: cli-tool
+title: "pipx — install and run Python applications in isolated environments"
+description: >
+  pipx installs and runs Python command-line applications in isolated
+  virtual environments, keeping global tools tidy and conflict-free.
+  https://github.com/pypa/pipx
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "pipx --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install pipx"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "pipx --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "pipx --version"
+  latest: { github: pypa/pipx }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade pipx"
+
+scope: user

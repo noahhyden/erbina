@@ -1,0 +1,45 @@
+# erbina recipe — dysk, a cli-tool. A better `df` for filesystems.
+id: dysk
+kind: cli-tool
+title: "dysk — a linux utility to get information on filesystems, like df but better"
+description: >
+  dysk is a utility to get information on mounted filesystems, like df but
+  with a cleaner table, sorting, filtering and more readable output.
+  https://github.com/Canop/dysk
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "dysk --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install dysk"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install dysk"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "dysk --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "dysk --version"
+  latest: { github: Canop/dysk }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade dysk"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install dysk"
+
+scope: user

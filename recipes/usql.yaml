@@ -1,0 +1,39 @@
+# erbina recipe — usql, a cli-tool. Universal SQL CLI client.
+id: usql
+kind: cli-tool
+title: "usql — a universal command-line interface for SQL databases"
+description: >
+  usql is a universal command-line interface for SQL databases: one
+  psql-like client that connects to PostgreSQL, MySQL, SQLite, SQL Server,
+  Oracle and more. https://github.com/xo/usql
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "usql --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install usql"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "usql --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "usql --version"
+  latest: { github: xo/usql }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade usql"
+
+scope: user

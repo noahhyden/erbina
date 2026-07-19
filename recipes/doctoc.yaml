@@ -1,0 +1,34 @@
+# erbina recipe — doctoc, a cli-tool. Generate a markdown table of contents.
+id: doctoc
+kind: cli-tool
+title: "doctoc — generates a table of contents for markdown files"
+description: >
+  doctoc generates a table of contents for markdown files, automatically
+  inserting anchor links so long READMEs and docs stay navigable.
+  https://github.com/thlorenz/doctoc
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "doctoc --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g doctoc"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "doctoc --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g doctoc"
+
+scope: user

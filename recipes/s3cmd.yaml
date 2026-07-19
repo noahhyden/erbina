@@ -1,0 +1,39 @@
+# erbina recipe — s3cmd, a cli-tool. Manage S3 buckets from the CLI.
+id: s3cmd
+kind: cli-tool
+title: "s3cmd — command-line tool for managing Amazon S3 and compatible object stores"
+description: >
+  s3cmd is a command-line tool for managing Amazon S3 and S3-compatible
+  object storage, uploading, downloading and syncing data and setting
+  bucket policies. https://github.com/s3tools/s3cmd
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "s3cmd --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install s3cmd"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "s3cmd --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "s3cmd --version"
+  latest: { github: s3tools/s3cmd }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade s3cmd"
+
+scope: user

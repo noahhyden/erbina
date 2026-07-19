@@ -1,0 +1,34 @@
+# erbina recipe — glab, a cli-tool. GitLab from the command line.
+id: glab
+kind: cli-tool
+title: "glab — an open-source GitLab CLI tool"
+description: >
+  glab is a GitLab CLI tool that brings GitLab merge requests, issues,
+  pipelines and repositories to your terminal, next to your code.
+  https://gitlab.com/gitlab-org/cli
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "glab --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install glab"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "glab --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade glab"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — aws-vault, a cli-tool. Securely store AWS credentials.
+id: aws-vault
+kind: cli-tool
+title: "aws-vault — a vault for securely storing and accessing AWS credentials"
+description: >
+  aws-vault is a tool to securely store and access AWS credentials in a
+  development environment, generating temporary credentials and keeping
+  keys out of plaintext. https://github.com/99designs/aws-vault
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "aws-vault --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install aws-vault"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "aws-vault --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "aws-vault --version"
+  latest: { github: 99designs/aws-vault }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade aws-vault"
+
+scope: user

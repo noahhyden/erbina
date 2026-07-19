@@ -1,0 +1,39 @@
+# erbina recipe — terragrunt, a cli-tool. DRY wrapper around Terraform.
+id: terragrunt
+kind: cli-tool
+title: "terragrunt — a thin wrapper for Terraform for keeping configurations DRY"
+description: >
+  Terragrunt is a thin wrapper for OpenTofu/Terraform that provides extra
+  tools for keeping configurations DRY, working with multiple modules, and
+  more. https://github.com/gruntwork-io/terragrunt
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "terragrunt --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install terragrunt"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "terragrunt --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "terragrunt --version"
+  latest: { github: gruntwork-io/terragrunt }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade terragrunt"
+
+scope: user

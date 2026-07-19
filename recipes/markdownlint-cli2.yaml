@@ -1,0 +1,39 @@
+# erbina recipe — markdownlint-cli2, a cli-tool. Configurable markdown linter.
+id: markdownlint-cli2
+kind: cli-tool
+title: "markdownlint-cli2 — a fast, flexible, configuration-based command-line interface for linting markdown"
+description: >
+  markdownlint-cli2 is a fast, flexible, configuration-based command-line
+  interface for linting markdown files with the markdownlint library,
+  ideal for CI. https://github.com/DavidAnson/markdownlint-cli2
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "markdownlint-cli2 --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g markdownlint-cli2"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "markdownlint-cli2 --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "markdownlint-cli2 --version"
+  latest: { github: DavidAnson/markdownlint-cli2 }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g markdownlint-cli2"
+
+scope: user

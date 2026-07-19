@@ -1,0 +1,39 @@
+# erbina recipe — artillery, a cli-tool. Load and smoke testing toolkit.
+id: artillery
+kind: cli-tool
+title: "artillery — a modern load testing and smoke testing toolkit"
+description: >
+  Artillery is a modern, powerful and easy-to-use load testing and smoke
+  testing toolkit that lets you test HTTP, WebSocket and other services
+  with YAML scenarios. https://github.com/artilleryio/artillery
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "artillery --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g artillery"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "artillery --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "artillery --version"
+  latest: { github: artilleryio/artillery }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g artillery"
+
+scope: user

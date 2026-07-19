@@ -1,0 +1,45 @@
+# erbina recipe — lazydocker, a cli-tool. Terminal UI for Docker.
+id: lazydocker
+kind: cli-tool
+title: "lazydocker — a simple terminal UI for docker and docker-compose"
+description: >
+  lazydocker is a simple terminal UI for both docker and docker-compose,
+  letting you inspect, log, restart and manage containers and images fast.
+  https://github.com/jesseduffield/lazydocker
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "lazydocker --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install lazydocker"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/jesseduffield/lazydocker@latest"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "lazydocker --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "lazydocker --version"
+  latest: { github: jesseduffield/lazydocker }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade lazydocker"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/jesseduffield/lazydocker@latest"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — vector, a cli-tool. Observability data pipeline.
+id: vector
+kind: cli-tool
+title: "vector — a high-performance observability data pipeline"
+description: >
+  Vector is a high-performance, end-to-end observability data pipeline
+  that collects, transforms and routes logs, metrics and traces to many
+  destinations. https://github.com/vectordotdev/vector
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "vector --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install vector"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "vector --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "vector --version"
+  latest: { github: vectordotdev/vector }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade vector"
+
+scope: user

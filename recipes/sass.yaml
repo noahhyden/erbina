@@ -1,0 +1,39 @@
+# erbina recipe — sass, a cli-tool. Compile Sass/SCSS to CSS.
+id: sass
+kind: cli-tool
+title: "sass — the reference implementation of Sass, written in Dart"
+description: >
+  Dart Sass is the primary implementation of Sass, compiling .scss and
+  .sass stylesheets to CSS quickly from the command line.
+  https://github.com/sass/dart-sass
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "sass --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g sass"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "sass --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "sass --version"
+  latest: { github: sass/dart-sass }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g sass"
+
+scope: user

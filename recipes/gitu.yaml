@@ -1,0 +1,39 @@
+# erbina recipe — gitu, a cli-tool. Magit-style git TUI.
+id: gitu
+kind: cli-tool
+title: "gitu — a TUI git client inspired by Magit"
+description: >
+  gitu is a terminal UI git client inspired by Emacs Magit, offering fast
+  keyboard-driven staging, committing, branching and history browsing.
+  https://github.com/altsem/gitu
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "gitu --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install gitu"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "gitu --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "gitu --version"
+  latest: { github: altsem/gitu }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install gitu"
+
+scope: user

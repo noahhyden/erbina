@@ -1,0 +1,39 @@
+# erbina recipe — k3d, a cli-tool. Run k3s Kubernetes in Docker.
+id: k3d
+kind: cli-tool
+title: "k3d — little helper to run k3s in Docker"
+description: >
+  k3d is a lightweight wrapper to run k3s (a minimal Kubernetes
+  distribution) in Docker, making it trivial to create local multi-node
+  clusters. https://github.com/k3d-io/k3d
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "k3d version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install k3d"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "k3d version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "k3d version"
+  latest: { github: k3d-io/k3d }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade k3d"
+
+scope: user

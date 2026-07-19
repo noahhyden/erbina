@@ -1,0 +1,45 @@
+# erbina recipe — mcfly, a cli-tool. Neural-network-powered shell history search.
+id: mcfly
+kind: cli-tool
+title: "mcfly — an intelligent shell history search"
+description: >
+  McFly replaces your default Ctrl-R shell history search with an
+  intelligent, context-aware search prioritized by a small neural network.
+  https://github.com/cantino/mcfly
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "mcfly --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install mcfly"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install mcfly"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "mcfly --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "mcfly --version"
+  latest: { github: cantino/mcfly }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade mcfly"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install mcfly"
+
+scope: user

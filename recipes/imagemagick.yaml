@@ -1,0 +1,39 @@
+# erbina recipe — imagemagick, a cli-tool. Image manipulation toolkit (`magick`).
+id: imagemagick
+kind: cli-tool
+title: "imagemagick — create, edit, compose or convert digital images (`magick`)"
+description: >
+  ImageMagick is a software suite to create, edit, compose or convert
+  digital images in over 200 formats from the command line via the magick
+  command. https://github.com/ImageMagick/ImageMagick
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "magick --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install imagemagick"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "magick --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "magick --version"
+  latest: { github: ImageMagick/ImageMagick }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade imagemagick"
+
+scope: user

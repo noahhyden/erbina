@@ -1,0 +1,39 @@
+# erbina recipe — kubeseal, a cli-tool. Encrypt Kubernetes SealedSecrets.
+id: kubeseal
+kind: cli-tool
+title: "kubeseal — a CLI to encrypt secrets into SealedSecrets for Kubernetes"
+description: >
+  kubeseal encrypts Kubernetes Secrets into SealedSecrets that are safe to
+  store in git; only the controller in the target cluster can decrypt
+  them. https://github.com/bitnami-labs/sealed-secrets
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "kubeseal --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install kubeseal"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "kubeseal --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "kubeseal --version"
+  latest: { github: bitnami-labs/sealed-secrets }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade kubeseal"
+
+scope: user

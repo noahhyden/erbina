@@ -1,0 +1,45 @@
+# erbina recipe — nushell, a cli-tool. Structured-data shell (`nu`).
+id: nushell
+kind: cli-tool
+title: "nushell — a new type of shell"
+description: >
+  Nushell is a new kind of shell that treats data as structured tables
+  flowing through a pipeline, with commands that understand JSON, CSV, and
+  more. https://github.com/nushell/nushell
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "nu --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install nushell"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install nu"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "nu --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "nu --version"
+  latest: { github: nushell/nushell }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade nushell"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install nu"
+
+scope: user

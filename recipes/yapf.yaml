@@ -1,0 +1,39 @@
+# erbina recipe — yapf, a cli-tool. Configurable Python formatter.
+id: yapf
+kind: cli-tool
+title: "yapf — a formatter for Python files from Google"
+description: >
+  YAPF is a Python formatter from Google that reformats code to the best
+  formatting that conforms to a configurable style, based on
+  clang-format's approach. https://github.com/google/yapf
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "yapf --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install yapf"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "yapf --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "yapf --version"
+  latest: { github: google/yapf }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade yapf"
+
+scope: user

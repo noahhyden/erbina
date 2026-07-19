@@ -1,0 +1,45 @@
+# erbina recipe — jc, a cli-tool. Pipe CLI output into JSON.
+id: jc
+kind: cli-tool
+title: "jc — convert the output of many CLI tools and file types to JSON"
+description: >
+  jc converts the output of dozens of common command-line tools and file
+  types to JSON, making legacy tool output easy to process in scripts and
+  jq. https://github.com/kellyjonbrazil/jc
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "jc --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install jc"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install jc"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "jc --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "jc --version"
+  latest: { github: kellyjonbrazil/jc }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade jc"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade jc"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — helm, a cli-tool. Package manager for Kubernetes.
+id: helm
+kind: cli-tool
+title: "helm — the Kubernetes package manager"
+description: >
+  Helm helps you manage Kubernetes applications through charts: define,
+  install, and upgrade even the most complex Kubernetes applications.
+  https://github.com/helm/helm
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "helm version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install helm"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "helm version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "helm version"
+  latest: { github: helm/helm }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade helm"
+
+scope: user

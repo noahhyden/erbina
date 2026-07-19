@@ -1,0 +1,39 @@
+# erbina recipe — cppcheck, a cli-tool. Static analysis for C/C++.
+id: cppcheck
+kind: cli-tool
+title: "cppcheck — a static analysis tool for C/C++ code"
+description: >
+  Cppcheck is a static analysis tool for C/C++ code that detects bugs and
+  focuses on undefined behavior and dangerous coding constructs with few
+  false positives. https://github.com/danmar/cppcheck
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "cppcheck --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install cppcheck"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "cppcheck --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "cppcheck --version"
+  latest: { github: danmar/cppcheck }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade cppcheck"
+
+scope: user

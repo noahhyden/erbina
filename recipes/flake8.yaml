@@ -1,0 +1,39 @@
+# erbina recipe — flake8, a cli-tool. Python style + error linter.
+id: flake8
+kind: cli-tool
+title: "flake8 — the modular source code checker for Python"
+description: >
+  flake8 is a wrapper around pyflakes, pycodestyle and McCabe that checks
+  Python source for style violations, errors and complexity in one
+  command. https://github.com/PyCQA/flake8
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "flake8 --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install flake8"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "flake8 --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "flake8 --version"
+  latest: { github: PyCQA/flake8 }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade flake8"
+
+scope: user

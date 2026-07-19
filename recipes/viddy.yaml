@@ -1,0 +1,39 @@
+# erbina recipe — viddy, a cli-tool. Modern `watch` with a time machine.
+id: viddy
+kind: cli-tool
+title: "viddy — a modern watch command with time machine and pause"
+description: >
+  viddy is a modern watch command that periodically runs a command,
+  highlights differences, and lets you rewind through historical output
+  like a time machine. https://github.com/sachaos/viddy
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "viddy --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install viddy"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "viddy --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "viddy --version"
+  latest: { github: sachaos/viddy }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade viddy"
+
+scope: user

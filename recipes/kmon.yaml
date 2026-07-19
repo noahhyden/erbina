@@ -1,0 +1,45 @@
+# erbina recipe — kmon, a cli-tool. TUI Linux kernel module manager.
+id: kmon
+kind: cli-tool
+title: "kmon — Linux kernel manager and activity monitor"
+description: >
+  kmon is a terminal-based Linux kernel manager and activity monitor for
+  viewing, loading and unloading kernel modules and watching kernel
+  activity live. https://github.com/orhun/kmon
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "kmon --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install kmon"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install kmon"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "kmon --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "kmon --version"
+  latest: { github: orhun/kmon }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade kmon"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install kmon"
+
+scope: user

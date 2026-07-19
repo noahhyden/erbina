@@ -1,0 +1,39 @@
+# erbina recipe — crane, a cli-tool. Manage remote container images.
+id: crane
+kind: cli-tool
+title: "crane — a tool for interacting with remote images and registries"
+description: >
+  crane (from go-containerregistry) is a tool for interacting with remote
+  container images and registries: copy, list, digest, and manipulate
+  images without a daemon. https://github.com/google/go-containerregistry
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "crane version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install crane"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "crane version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "crane version"
+  latest: { github: google/go-containerregistry }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade crane"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — stern, a cli-tool. Tail logs across Kubernetes pods.
+id: stern
+kind: cli-tool
+title: "stern — multi pod and container log tailing for Kubernetes"
+description: >
+  stern lets you tail multiple pods and containers in Kubernetes at once,
+  color-coding output by pod so you can follow logs across a whole
+  deployment. https://github.com/stern/stern
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "stern --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install stern"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "stern --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "stern --version"
+  latest: { github: stern/stern }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade stern"
+
+scope: user

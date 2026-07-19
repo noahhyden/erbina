@@ -1,0 +1,45 @@
+# erbina recipe — wasm-pack, a cli-tool. Build Rust to WebAssembly.
+id: wasm-pack
+kind: cli-tool
+title: "wasm-pack — build, test and publish Rust-generated WebAssembly"
+description: >
+  wasm-pack helps you build, test and publish Rust-generated WebAssembly,
+  wiring Rust crates into the JavaScript/npm ecosystem for the web.
+  https://github.com/rustwasm/wasm-pack
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "wasm-pack --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install wasm-pack"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install wasm-pack"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "wasm-pack --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "wasm-pack --version"
+  latest: { github: rustwasm/wasm-pack }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade wasm-pack"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install wasm-pack"
+
+scope: user

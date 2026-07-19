@@ -1,0 +1,39 @@
+# erbina recipe — watchman, a cli-tool. Watch files and trigger actions.
+id: watchman
+kind: cli-tool
+title: "watchman — a file watching service from Meta"
+description: >
+  Watchman is a file-watching service that watches files and records or
+  triggers actions when they change, powering fast rebuilds in large
+  repositories. https://github.com/facebook/watchman
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "watchman --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install watchman"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "watchman --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "watchman --version"
+  latest: { github: facebook/watchman }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade watchman"
+
+scope: user

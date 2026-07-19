@@ -1,0 +1,39 @@
+# erbina recipe — scrapy, a cli-tool. Web crawling & scraping framework.
+id: scrapy
+kind: cli-tool
+title: "scrapy — a fast high-level web crawling and web scraping framework for Python"
+description: >
+  Scrapy is a fast, high-level web crawling and scraping framework for
+  Python used to crawl websites and extract structured data from their
+  pages. https://github.com/scrapy/scrapy
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "scrapy version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install scrapy"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "scrapy version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "scrapy version"
+  latest: { github: scrapy/scrapy }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade scrapy"
+
+scope: user

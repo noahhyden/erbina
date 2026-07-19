@@ -1,0 +1,45 @@
+# erbina recipe — vivid, a cli-tool. Themeable LS_COLORS generator.
+id: vivid
+kind: cli-tool
+title: "vivid — a generator for LS_COLORS with support for multiple color themes"
+description: >
+  vivid is a generator for the LS_COLORS environment variable, supporting
+  multiple themes and a database of file types for consistent colored
+  listings. https://github.com/sharkdp/vivid
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "vivid --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install vivid"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install vivid"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "vivid --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "vivid --version"
+  latest: { github: sharkdp/vivid }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade vivid"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install vivid"
+
+scope: user

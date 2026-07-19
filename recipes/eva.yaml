@@ -1,0 +1,45 @@
+# erbina recipe — eva, a cli-tool. Calculator REPL (bc-like).
+id: eva
+kind: cli-tool
+title: "eva — a simple calculator REPL, similar to bc"
+description: >
+  eva is a simple calculator REPL similar to bc, supporting standard math
+  functions, previous-answer references and a friendly one-line evaluation
+  mode. https://github.com/nerdypepper/eva
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "eva --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install eva"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install eva"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "eva --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "eva --version"
+  latest: { github: nerdypepper/eva }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade eva"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install eva"
+
+scope: user

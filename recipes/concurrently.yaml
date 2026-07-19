@@ -1,0 +1,39 @@
+# erbina recipe — concurrently, a cli-tool. Run multiple commands at once.
+id: concurrently
+kind: cli-tool
+title: "concurrently — run multiple commands concurrently"
+description: >
+  concurrently runs multiple commands concurrently with prefixed,
+  color-coded output and unified kill behavior, handy for running a server
+  and watcher together. https://github.com/open-cli-tools/concurrently
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "concurrently --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g concurrently"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "concurrently --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "concurrently --version"
+  latest: { github: open-cli-tools/concurrently }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g concurrently"
+
+scope: user

@@ -1,0 +1,45 @@
+# erbina recipe — grex, a cli-tool. Build regexes from example strings.
+id: grex
+kind: cli-tool
+title: "grex — generate regular expressions from user-provided examples"
+description: >
+  grex is a library and command-line tool that generates regular
+  expressions matching a set of user-provided test cases, a fast way to
+  draft a pattern. https://github.com/pemistahl/grex
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "grex --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install grex"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install grex"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "grex --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "grex --version"
+  latest: { github: pemistahl/grex }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade grex"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install grex"
+
+scope: user

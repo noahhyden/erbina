@@ -1,0 +1,34 @@
+# erbina recipe — ruby, a cli-tool. Dynamic, productivity-focused language.
+id: ruby
+kind: cli-tool
+title: "ruby — a dynamic, open-source programming language with a focus on simplicity and productivity"
+description: >
+  Ruby is a dynamic, open-source programming language with a focus on
+  simplicity and productivity, with an elegant syntax that is natural to
+  read and easy to write. https://www.ruby-lang.org/
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "ruby --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install ruby"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "ruby --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade ruby"
+
+scope: user

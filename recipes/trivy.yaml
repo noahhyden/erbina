@@ -1,0 +1,39 @@
+# erbina recipe — trivy, a cli-tool. Vulnerability & misconfig scanner.
+id: trivy
+kind: cli-tool
+title: "trivy — a comprehensive and versatile security scanner"
+description: >
+  Trivy is a comprehensive security scanner that finds vulnerabilities,
+  misconfigurations, secrets and SBOM issues in containers, filesystems
+  and git repos. https://github.com/aquasecurity/trivy
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "trivy --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install trivy"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "trivy --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "trivy --version"
+  latest: { github: aquasecurity/trivy }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade trivy"
+
+scope: user

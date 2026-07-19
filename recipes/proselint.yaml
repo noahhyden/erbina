@@ -1,0 +1,39 @@
+# erbina recipe — proselint, a cli-tool. Linter for English prose.
+id: proselint
+kind: cli-tool
+title: "proselint — a linter for prose"
+description: >
+  proselint is a linter for prose that checks writing for common style and
+  usage errors, helping you produce clearer, more professional text.
+  https://github.com/amperser/proselint
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "proselint --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install proselint"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "proselint --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "proselint --version"
+  latest: { github: amperser/proselint }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade proselint"
+
+scope: user

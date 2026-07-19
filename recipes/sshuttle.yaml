@@ -1,0 +1,45 @@
+# erbina recipe — sshuttle, a cli-tool. Poor man's VPN over SSH.
+id: sshuttle
+kind: cli-tool
+title: "sshuttle — a transparent proxy server that works as a poor man's VPN over ssh"
+description: >
+  sshuttle is a transparent proxy server that works as a poor man's VPN,
+  forwarding traffic over an existing SSH connection with no admin on the
+  remote side. https://github.com/sshuttle/sshuttle
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "sshuttle --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install sshuttle"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install sshuttle"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "sshuttle --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "sshuttle --version"
+  latest: { github: sshuttle/sshuttle }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade sshuttle"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade sshuttle"
+
+scope: user

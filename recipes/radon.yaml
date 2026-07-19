@@ -1,0 +1,39 @@
+# erbina recipe — radon, a cli-tool. Compute Python code metrics.
+id: radon
+kind: cli-tool
+title: "radon — various code metrics for Python code"
+description: >
+  Radon is a Python tool that computes various code metrics, including
+  cyclomatic complexity, raw metrics and maintainability index, for whole
+  codebases. https://github.com/rubik/radon
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "radon --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install radon"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "radon --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "radon --version"
+  latest: { github: rubik/radon }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade radon"
+
+scope: user

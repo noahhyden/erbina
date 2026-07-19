@@ -1,0 +1,34 @@
+# erbina recipe — sqlite, a cli-tool. Self-contained SQL database (`sqlite3`).
+id: sqlite
+kind: cli-tool
+title: "sqlite — a small, fast, self-contained SQL database engine (`sqlite3`)"
+description: >
+  SQLite is a small, fast, self-contained, serverless SQL database engine;
+  the sqlite3 CLI lets you create and query .db files directly from the
+  terminal. https://sqlite.org/
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "sqlite3 --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install sqlite"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "sqlite3 --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade sqlite"
+
+scope: user

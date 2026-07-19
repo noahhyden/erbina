@@ -1,0 +1,45 @@
+# erbina recipe — rav1e, a cli-tool. AV1 video encoder.
+id: rav1e
+kind: cli-tool
+title: "rav1e — the fastest and safest AV1 encoder"
+description: >
+  rav1e is an AV1 video encoder written in Rust that aims to be the
+  fastest and safest AV1 encoder, suitable for encoding video from the
+  command line. https://github.com/xiph/rav1e
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "rav1e --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install rav1e"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install rav1e"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "rav1e --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "rav1e --version"
+  latest: { github: xiph/rav1e }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade rav1e"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install rav1e"
+
+scope: user

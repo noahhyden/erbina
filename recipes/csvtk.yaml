@@ -1,0 +1,39 @@
+# erbina recipe — csvtk, a cli-tool. Cross-platform CSV/TSV toolkit.
+id: csvtk
+kind: cli-tool
+title: "csvtk — a cross-platform, efficient and practical CSV/TSV toolkit"
+description: >
+  csvtk is a cross-platform, efficient and practical CSV/TSV toolkit with
+  many subcommands for filtering, joining, statistics and reshaping
+  tabular data. https://github.com/shenwei356/csvtk
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "csvtk version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install csvtk"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "csvtk version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "csvtk version"
+  latest: { github: shenwei356/csvtk }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade csvtk"
+
+scope: user

@@ -1,0 +1,45 @@
+# erbina recipe — gping, a cli-tool. Ping with a live terminal graph.
+id: gping
+kind: cli-tool
+title: "gping — ping, but with a graph"
+description: >
+  gping is ping with a live graph: it plots round-trip times in the
+  terminal and can compare multiple hosts at once.
+  https://github.com/orf/gping
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "gping --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install gping"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install gping"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "gping --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "gping --version"
+  latest: { github: orf/gping }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade gping"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install gping"
+
+scope: user

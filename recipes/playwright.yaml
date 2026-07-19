@@ -1,0 +1,39 @@
+# erbina recipe — playwright, a cli-tool. Cross-browser end-to-end testing.
+id: playwright
+kind: cli-tool
+title: "playwright — reliable end-to-end testing for modern web apps"
+description: >
+  Playwright enables reliable end-to-end testing for modern web apps
+  across Chromium, Firefox and WebKit with a single API and auto-waiting.
+  https://github.com/microsoft/playwright
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "playwright --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g playwright"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "playwright --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "playwright --version"
+  latest: { github: microsoft/playwright }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g playwright"
+
+scope: user

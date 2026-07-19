@@ -1,0 +1,34 @@
+# erbina recipe — gnuplot, a cli-tool. Command-line plotting/graphing.
+id: gnuplot
+kind: cli-tool
+title: "gnuplot — a portable command-line driven graphing utility"
+description: >
+  gnuplot is a portable command-line driven graphing utility that produces
+  plots of data and functions in many formats, scriptable for reproducible
+  figures. http://www.gnuplot.info/
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "gnuplot --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install gnuplot"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "gnuplot --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade gnuplot"
+
+scope: user

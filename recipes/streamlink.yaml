@@ -1,0 +1,45 @@
+# erbina recipe — streamlink, a cli-tool. Pipe web video streams to a player.
+id: streamlink
+kind: cli-tool
+title: "streamlink — a CLI utility that pipes video streams into a video player"
+description: >
+  Streamlink is a command-line utility that extracts video streams from
+  various services and pipes them into a video player of your choice.
+  https://github.com/streamlink/streamlink
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "streamlink --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install streamlink"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install streamlink"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "streamlink --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "streamlink --version"
+  latest: { github: streamlink/streamlink }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade streamlink"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade streamlink"
+
+scope: user

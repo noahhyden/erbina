@@ -1,0 +1,45 @@
+# erbina recipe — mycli, a cli-tool. Better MySQL CLI client.
+id: mycli
+kind: cli-tool
+title: "mycli — a command line client for MySQL with auto-completion and syntax highlighting"
+description: >
+  mycli is a command-line client for MySQL and MariaDB with
+  auto-completion and syntax highlighting, a friendlier replacement for
+  the default mysql client. https://github.com/dbcli/mycli
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "mycli --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install mycli"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install mycli"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "mycli --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "mycli --version"
+  latest: { github: dbcli/mycli }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade mycli"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade mycli"
+
+scope: user

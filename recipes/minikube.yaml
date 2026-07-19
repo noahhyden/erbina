@@ -1,0 +1,39 @@
+# erbina recipe — minikube, a cli-tool. Local single-node Kubernetes.
+id: minikube
+kind: cli-tool
+title: "minikube — run Kubernetes locally"
+description: >
+  minikube quickly sets up a local Kubernetes cluster on macOS, Linux and
+  Windows for learning and development, supporting many drivers and
+  add-ons. https://github.com/kubernetes/minikube
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "minikube version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install minikube"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "minikube version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "minikube version"
+  latest: { github: kubernetes/minikube }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade minikube"
+
+scope: user

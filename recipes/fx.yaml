@@ -1,0 +1,45 @@
+# erbina recipe — fx, a cli-tool. Interactive JSON viewer/processor.
+id: fx
+kind: cli-tool
+title: "fx — terminal JSON viewer and processor"
+description: >
+  fx is a terminal JSON viewer and processor with an interactive mode for
+  exploring documents and a streaming mode for transforming them.
+  https://github.com/antonmedv/fx
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "fx --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install fx"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/antonmedv/fx@latest"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "fx --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "fx --version"
+  latest: { github: antonmedv/fx }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade fx"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/antonmedv/fx@latest"
+
+scope: user

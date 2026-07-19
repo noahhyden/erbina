@@ -1,0 +1,34 @@
+# erbina recipe — zsh, a cli-tool. Feature-rich Bourne-style shell.
+id: zsh
+kind: cli-tool
+title: "zsh — the Z shell, an extended Bourne shell with many improvements"
+description: >
+  Zsh is an extended Bourne shell with many improvements, including
+  powerful completion, globbing and theming, and a large ecosystem
+  (oh-my-zsh, prezto). https://www.zsh.org/
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "zsh --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install zsh"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "zsh --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade zsh"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — aws-sam-cli, a cli-tool. Build/test AWS serverless apps (`sam`).
+id: aws-sam-cli
+kind: cli-tool
+title: "aws-sam-cli — build and test serverless applications with the AWS Serverless Application Model (`sam`)"
+description: >
+  The AWS SAM CLI (sam) is a tool for building, testing and deploying
+  serverless applications defined with the AWS Serverless Application
+  Model. https://github.com/aws/aws-sam-cli
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "sam --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install aws-sam-cli"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "sam --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "sam --version"
+  latest: { github: aws/aws-sam-cli }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade aws-sam-cli"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — git-town, a cli-tool. High-level git branching workflows.
+id: git-town
+kind: cli-tool
+title: "git-town — generic, high-level git workflow support"
+description: >
+  Git Town adds high-level commands for common git branching workflows
+  (sync, ship, hack, propose), automating the tedious branch bookkeeping
+  around your commits. https://github.com/git-town/git-town
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "git-town version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install git-town"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "git-town version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "git-town version"
+  latest: { github: git-town/git-town }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade git-town"
+
+scope: user

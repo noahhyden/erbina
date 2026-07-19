@@ -1,0 +1,39 @@
+# erbina recipe — tailscale, a cli-tool. Zero-config WireGuard mesh VPN.
+id: tailscale
+kind: cli-tool
+title: "tailscale — the easiest, most secure way to use WireGuard and 2FA"
+description: >
+  Tailscale is a zero-config mesh VPN built on WireGuard that connects
+  your devices and servers into a private network with SSO and access
+  controls. https://github.com/tailscale/tailscale
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "tailscale version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install tailscale"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "tailscale version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "tailscale version"
+  latest: { github: tailscale/tailscale }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade tailscale"
+
+scope: user

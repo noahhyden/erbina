@@ -1,0 +1,39 @@
+# erbina recipe — hadolint, a cli-tool. Linter for Dockerfiles.
+id: hadolint
+kind: cli-tool
+title: "hadolint — a smarter Dockerfile linter"
+description: >
+  Haskell Dockerfile Linter (hadolint) is a smarter Dockerfile linter that
+  helps you build best-practice Docker images by validating instructions.
+  https://github.com/hadolint/hadolint
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "hadolint --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install hadolint"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "hadolint --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "hadolint --version"
+  latest: { github: hadolint/hadolint }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade hadolint"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — step, a cli-tool. Certificate & CA swiss-army knife.
+id: step
+kind: cli-tool
+title: "step — a zero-trust swiss-army knife for working with certificates and CAs"
+description: >
+  step is a zero-trust command-line tool for building, operating and
+  automating public key infrastructure: create certificates, run a CA, and
+  manage keys. https://github.com/smallstep/cli
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "step version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install step"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "step version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "step version"
+  latest: { github: smallstep/cli }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade step"
+
+scope: user

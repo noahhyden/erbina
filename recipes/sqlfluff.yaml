@@ -1,0 +1,39 @@
+# erbina recipe — sqlfluff, a cli-tool. SQL linter and formatter.
+id: sqlfluff
+kind: cli-tool
+title: "sqlfluff — a modular SQL linter and auto-formatter with support for multiple dialects"
+description: >
+  SQLFluff is a modular SQL linter and auto-formatter with support for
+  many dialects and templating engines like dbt and Jinja, built for CI
+  and editors. https://github.com/sqlfluff/sqlfluff
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "sqlfluff --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install sqlfluff"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "sqlfluff --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "sqlfluff --version"
+  latest: { github: sqlfluff/sqlfluff }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade sqlfluff"
+
+scope: user

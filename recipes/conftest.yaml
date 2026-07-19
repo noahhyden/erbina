@@ -1,0 +1,39 @@
+# erbina recipe — conftest, a cli-tool. Policy-test config files with Rego.
+id: conftest
+kind: cli-tool
+title: "conftest — write tests against structured configuration data using OPA/Rego"
+description: >
+  conftest helps you write tests against structured configuration data
+  (Kubernetes, Terraform, JSON, YAML) using the Rego policy language from
+  Open Policy Agent. https://github.com/open-policy-agent/conftest
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "conftest --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install conftest"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "conftest --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "conftest --version"
+  latest: { github: open-policy-agent/conftest }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade conftest"
+
+scope: user

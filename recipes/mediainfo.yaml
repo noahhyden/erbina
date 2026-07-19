@@ -1,0 +1,34 @@
+# erbina recipe — mediainfo, a cli-tool. Inspect media file metadata.
+id: mediainfo
+kind: cli-tool
+title: "mediainfo — display technical and tag data for video and audio files"
+description: >
+  MediaInfo displays technical information and tags for video and audio
+  files, reporting codecs, bitrates, durations and stream details from the
+  command line. https://mediaarea.net/en/MediaInfo
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "mediainfo --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install mediainfo"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "mediainfo --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade mediainfo"
+
+scope: user

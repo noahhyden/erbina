@@ -51,6 +51,15 @@ VERSION_SAMPLES = [
     ("httpie", "3.2.4", '  "tag_name": "3.2.4",', "3.2.4", "3.2.4"),
 ]
 
+# Bulk-generated cli-tool recipes carry standardized red-team samples emitted by
+# scripts/gen_recipes.py (kept in sync with recipes/ by
+# test_every_versioned_recipe_is_covered_by_a_sample). Hand-curated recipes above
+# take precedence; the generated block only covers the generated recipes.
+from _generated_version_samples import GENERATED_SAMPLES  # noqa: E402
+
+_hand_covered = {s[0] for s in VERSION_SAMPLES}
+VERSION_SAMPLES += [s for s in GENERATED_SAMPLES if s[0] not in _hand_covered]
+
 
 @pytest.mark.parametrize("rid,cur_out,lat_out,exp_cur,exp_lat", VERSION_SAMPLES)
 def test_recipe_version_output_extracts_a_token(rid, cur_out, lat_out, exp_cur, exp_lat):

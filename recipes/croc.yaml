@@ -1,0 +1,39 @@
+# erbina recipe — croc, a cli-tool. Encrypted peer-to-peer file transfer.
+id: croc
+kind: cli-tool
+title: "croc — securely send files and folders from one computer to another"
+description: >
+  croc lets any two computers securely and easily transfer files and
+  folders using end-to-end encryption and a short human-readable code
+  phrase. https://github.com/schollz/croc
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "croc --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install croc"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "croc --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "croc --version"
+  latest: { github: schollz/croc }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade croc"
+
+scope: user

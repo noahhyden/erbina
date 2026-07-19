@@ -1,0 +1,39 @@
+# erbina recipe — nerdctl, a cli-tool. Docker-compatible CLI for containerd.
+id: nerdctl
+kind: cli-tool
+title: "nerdctl — contaiNERD CTL, a Docker-compatible CLI for containerd"
+description: >
+  nerdctl is a Docker-compatible command-line interface for containerd,
+  supporting compose, rootless mode and modern features like lazy-pulling
+  and encryption. https://github.com/containerd/nerdctl
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "nerdctl --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install nerdctl"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "nerdctl --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "nerdctl --version"
+  latest: { github: containerd/nerdctl }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade nerdctl"
+
+scope: user

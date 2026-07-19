@@ -1,0 +1,45 @@
+# erbina recipe — dua, a cli-tool. Fast interactive disk usage analyzer.
+id: dua
+kind: cli-tool
+title: "dua-cli — a tool to conveniently learn about disk usage"
+description: >
+  dua (Disk Usage Analyzer) is a fast tool to learn about the disk usage
+  of directories, with an interactive mode to explore and delete.
+  https://github.com/Byron/dua-cli
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "dua --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install dua-cli"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install dua-cli"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "dua --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "dua --version"
+  latest: { github: Byron/dua-cli }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade dua-cli"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install dua-cli"
+
+scope: user

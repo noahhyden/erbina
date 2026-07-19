@@ -1,0 +1,39 @@
+# erbina recipe — nuclei, a cli-tool. Template-driven vulnerability scanner.
+id: nuclei
+kind: cli-tool
+title: "nuclei — fast and customizable vulnerability scanner based on simple YAML templates"
+description: >
+  Nuclei is a fast, customizable vulnerability scanner that uses a large
+  community-driven library of YAML templates to detect issues across hosts
+  and web apps. https://github.com/projectdiscovery/nuclei
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "nuclei -version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install nuclei"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "nuclei -version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "nuclei -version"
+  latest: { github: projectdiscovery/nuclei }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade nuclei"
+
+scope: user

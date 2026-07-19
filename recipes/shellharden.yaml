@@ -1,0 +1,45 @@
+# erbina recipe — shellharden, a cli-tool. Harden and quote bash scripts.
+id: shellharden
+kind: cli-tool
+title: "shellharden — a bash syntax highlighter that encourages good coding practices"
+description: >
+  shellharden is a tool for hardening bash scripts, automatically adding
+  proper quoting to prevent word splitting and globbing bugs,
+  complementing shellcheck. https://github.com/anordal/shellharden
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "shellharden --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install shellharden"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install shellharden"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "shellharden --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "shellharden --version"
+  latest: { github: anordal/shellharden }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade shellharden"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install shellharden"
+
+scope: user

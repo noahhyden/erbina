@@ -1,0 +1,39 @@
+# erbina recipe — aria2, a cli-tool. Multi-source download utility (`aria2c`).
+id: aria2
+kind: cli-tool
+title: "aria2 — a lightweight multi-protocol and multi-source download utility (`aria2c`)"
+description: >
+  aria2 is a lightweight multi-protocol and multi-source command-line
+  download utility supporting HTTP/HTTPS, FTP, SFTP, BitTorrent and
+  Metalink. https://github.com/aria2/aria2
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "aria2c --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install aria2"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "aria2c --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "aria2c --version"
+  latest: { github: aria2/aria2 }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade aria2"
+
+scope: user

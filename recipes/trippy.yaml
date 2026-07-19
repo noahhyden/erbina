@@ -1,0 +1,45 @@
+# erbina recipe — trippy, a cli-tool. Combined traceroute + ping TUI.
+id: trippy
+kind: cli-tool
+title: "trippy — a network diagnostic tool (`trip`)"
+description: >
+  Trippy combines traceroute and ping into a single network-diagnostic
+  TUI, showing per-hop latency, packet loss and a live chart for
+  troubleshooting routes. https://github.com/fujiapple852/trippy
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "trip --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install trippy"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install trippy"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "trip --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "trip --version"
+  latest: { github: fujiapple852/trippy }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade trippy"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install trippy"
+
+scope: user

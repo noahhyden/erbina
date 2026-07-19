@@ -1,0 +1,39 @@
+# erbina recipe — tig, a cli-tool. ncurses interface for git.
+id: tig
+kind: cli-tool
+title: "tig — text-mode interface for git"
+description: >
+  tig is an ncurses-based text-mode interface for git that acts as a
+  repository browser and can act as a pager for output from various git
+  commands. https://github.com/jonas/tig
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "tig --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install tig"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "tig --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "tig --version"
+  latest: { github: jonas/tig }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade tig"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — jbang, a cli-tool. Run Java as scripts, no setup.
+id: jbang
+kind: cli-tool
+title: "jbang — unleash the power of Java for scripting"
+description: >
+  JBang lets you run Java (and other JVM languages) as scripts with no
+  build setup, resolving dependencies inline and running single-file
+  programs instantly. https://github.com/jbangdev/jbang
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "jbang --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install jbang"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "jbang --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "jbang --version"
+  latest: { github: jbangdev/jbang }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade jbang"
+
+scope: user

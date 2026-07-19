@@ -1,0 +1,39 @@
+# erbina recipe — rich-cli, a cli-tool. Pretty terminal rendering (`rich`).
+id: rich-cli
+kind: cli-tool
+title: "rich-cli — a command-line toolbox for fancy output (`rich`)"
+description: >
+  rich-cli is a command-line toolbox built on the Rich library for
+  rendering syntax-highlighted code, markdown, tables, JSON and more with
+  beautiful output. https://github.com/Textualize/rich-cli
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "rich --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install rich-cli"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "rich --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "rich --version"
+  latest: { github: Textualize/rich-cli }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade rich-cli"
+
+scope: user

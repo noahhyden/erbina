@@ -1,0 +1,45 @@
+# erbina recipe — grpcurl, a cli-tool. Interact with gRPC servers from the CLI.
+id: grpcurl
+kind: cli-tool
+title: "grpcurl — like cURL, but for gRPC"
+description: >
+  grpcurl is a command-line tool that lets you interact with gRPC servers,
+  much like curl does for HTTP, including reflection-based service
+  discovery. https://github.com/fullstorydev/grpcurl
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "grpcurl -version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install grpcurl"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "grpcurl -version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "grpcurl -version"
+  latest: { github: fullstorydev/grpcurl }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade grpcurl"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest"
+
+scope: user

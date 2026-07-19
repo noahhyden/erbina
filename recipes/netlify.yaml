@@ -1,0 +1,34 @@
+# erbina recipe — netlify, a cli-tool. Deploy to Netlify from the CLI.
+id: netlify
+kind: cli-tool
+title: "netlify-cli — the command-line interface for Netlify"
+description: >
+  The Netlify CLI (netlify) lets you configure continuous deployment, run
+  a local dev server, and deploy sites and functions to Netlify from the
+  terminal. https://github.com/netlify/cli
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "netlify --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g netlify-cli"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "netlify --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g netlify-cli"
+
+scope: user

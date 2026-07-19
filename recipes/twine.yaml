@@ -1,0 +1,39 @@
+# erbina recipe — twine, a cli-tool. Publish Python packages to PyPI.
+id: twine
+kind: cli-tool
+title: "twine — a utility for publishing Python packages on PyPI"
+description: >
+  Twine is a utility for securely publishing Python packages to PyPI,
+  uploading built distributions over HTTPS with verified metadata.
+  https://github.com/pypa/twine
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "twine --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install twine"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "twine --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "twine --version"
+  latest: { github: pypa/twine }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade twine"
+
+scope: user

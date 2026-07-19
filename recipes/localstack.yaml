@@ -1,0 +1,39 @@
+# erbina recipe — localstack, a cli-tool. Emulate AWS locally.
+id: localstack
+kind: cli-tool
+title: "localstack — a fully functional local cloud stack emulating AWS"
+description: >
+  LocalStack is a cloud service emulator that runs in a single container,
+  providing a fully functional local AWS cloud stack for development and
+  testing. https://github.com/localstack/localstack
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "localstack --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install localstack"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "localstack --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "localstack --version"
+  latest: { github: localstack/localstack }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade localstack"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — rbenv, a cli-tool. Manage multiple Ruby versions.
+id: rbenv
+kind: cli-tool
+title: "rbenv — manage your app's Ruby environment"
+description: >
+  rbenv lets you pick a Ruby version per application and keeps it
+  consistent, using a lightweight shim approach without overriding shell
+  commands. https://github.com/rbenv/rbenv
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "rbenv --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install rbenv"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "rbenv --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "rbenv --version"
+  latest: { github: rbenv/rbenv }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade rbenv"
+
+scope: user

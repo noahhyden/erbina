@@ -1,0 +1,39 @@
+# erbina recipe — atmos, a cli-tool. Workflow orchestration for IaC.
+id: atmos
+kind: cli-tool
+title: "atmos — universal tool for DevOps and cloud automation"
+description: >
+  Atmos is a workflow-orchestration tool for DevOps and cloud automation
+  that layers configuration and stacks over Terraform, Helmfile and custom
+  commands. https://github.com/cloudposse/atmos
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "atmos version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install atmos"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "atmos version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "atmos version"
+  latest: { github: cloudposse/atmos }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade atmos"
+
+scope: user

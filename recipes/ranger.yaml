@@ -1,0 +1,39 @@
+# erbina recipe — ranger, a cli-tool. Vim-inspired console file manager.
+id: ranger
+kind: cli-tool
+title: "ranger — a VIM-inspired file manager for the console"
+description: >
+  ranger is a VIM-inspired file manager for the console with a minimalist
+  curses interface, directory preview and quick keyboard navigation.
+  https://github.com/ranger/ranger
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "ranger --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install ranger-fm"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "ranger --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "ranger --version"
+  latest: { github: ranger/ranger }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade ranger-fm"
+
+scope: user

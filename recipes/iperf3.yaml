@@ -1,0 +1,34 @@
+# erbina recipe — iperf3, a cli-tool. Measure network bandwidth.
+id: iperf3
+kind: cli-tool
+title: "iperf3 — a TCP, UDP and SCTP network bandwidth measurement tool"
+description: >
+  iperf3 is a tool for active measurements of the maximum achievable
+  bandwidth on IP networks, supporting tuning of timing, protocols and
+  buffers. https://github.com/esnet/iperf
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "iperf3 --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install iperf3"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "iperf3 --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade iperf3"
+
+scope: user

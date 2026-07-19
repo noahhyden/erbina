@@ -1,0 +1,39 @@
+# erbina recipe — codespell, a cli-tool. Fix common misspellings in code.
+id: codespell
+kind: cli-tool
+title: "codespell — fix common misspellings in text files and source code"
+description: >
+  codespell checks text files and source code for common misspellings,
+  focusing on a curated dictionary to keep false positives low in
+  codebases. https://github.com/codespell-project/codespell
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "codespell --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install codespell"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "codespell --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "codespell --version"
+  latest: { github: codespell-project/codespell }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade codespell"
+
+scope: user

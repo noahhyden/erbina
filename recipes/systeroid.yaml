@@ -1,0 +1,45 @@
+# erbina recipe — systeroid, a cli-tool. Powerful sysctl alternative + TUI.
+id: systeroid
+kind: cli-tool
+title: "systeroid — a more powerful alternative to sysctl"
+description: >
+  systeroid is a more powerful alternative to sysctl for managing Linux
+  kernel parameters, with documentation, search and an optional
+  interactive TUI. https://github.com/orhun/systeroid
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "systeroid --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install systeroid"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install systeroid"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "systeroid --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "systeroid --version"
+  latest: { github: orhun/systeroid }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade systeroid"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install systeroid"
+
+scope: user

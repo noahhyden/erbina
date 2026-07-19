@@ -1,0 +1,45 @@
+# erbina recipe — mdbook, a cli-tool. Build books/docs from markdown.
+id: mdbook
+kind: cli-tool
+title: "mdbook — create book-like documentation from markdown files"
+description: >
+  mdBook is a command-line tool to create modern online books and
+  documentation from markdown files, used by the Rust project for much of
+  its documentation. https://github.com/rust-lang/mdBook
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "mdbook --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install mdbook"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install mdbook"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "mdbook --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "mdbook --version"
+  latest: { github: rust-lang/mdBook }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade mdbook"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install mdbook"
+
+scope: user

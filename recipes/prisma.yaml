@@ -1,0 +1,39 @@
+# erbina recipe — prisma, a cli-tool. Type-safe database ORM/toolkit.
+id: prisma
+kind: cli-tool
+title: "prisma — next-generation Node.js and TypeScript ORM"
+description: >
+  Prisma is a next-generation ORM for Node.js and TypeScript that provides
+  a type-safe query builder, migrations and a schema-first workflow.
+  https://github.com/prisma/prisma
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "prisma --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g prisma"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "prisma --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "prisma --version"
+  latest: { github: prisma/prisma }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g prisma"
+
+scope: user

@@ -1,0 +1,45 @@
+# erbina recipe — jnv, a cli-tool. Interactive jq filter TUI.
+id: jnv
+kind: cli-tool
+title: "jnv — an interactive JSON filter using jq"
+description: >
+  jnv is an interactive JSON filter built on jq that provides a live
+  preview of jq expressions against your data, making complex filters easy
+  to build. https://github.com/ynqa/jnv
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "jnv --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install jnv"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install jnv"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "jnv --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "jnv --version"
+  latest: { github: ynqa/jnv }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade jnv"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install jnv"
+
+scope: user

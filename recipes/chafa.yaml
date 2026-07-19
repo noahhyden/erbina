@@ -1,0 +1,39 @@
+# erbina recipe — chafa, a cli-tool. Render images as terminal art.
+id: chafa
+kind: cli-tool
+title: "chafa — image-to-text converter for terminal graphics"
+description: >
+  Chafa is a command-line utility that converts image data, including
+  animated GIFs, into ANSI/Unicode character output that can be displayed
+  in a terminal. https://github.com/hpjansson/chafa
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "chafa --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install chafa"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "chafa --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "chafa --version"
+  latest: { github: hpjansson/chafa }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade chafa"
+
+scope: user

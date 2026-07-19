@@ -1,0 +1,39 @@
+# erbina recipe — shellspec, a cli-tool. BDD testing for shell scripts.
+id: shellspec
+kind: cli-tool
+title: "shellspec — a full-featured BDD unit testing framework for POSIX shells"
+description: >
+  ShellSpec is a full-featured BDD unit testing framework for dash, bash,
+  ksh, zsh and other POSIX shells, with mocking and coverage support.
+  https://github.com/shellspec/shellspec
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "shellspec --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install shellspec"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "shellspec --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "shellspec --version"
+  latest: { github: shellspec/shellspec }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade shellspec"
+
+scope: user

@@ -1,0 +1,45 @@
+# erbina recipe — pgcli, a cli-tool. Better Postgres CLI client.
+id: pgcli
+kind: cli-tool
+title: "pgcli — a command line interface for Postgres with auto-completion and syntax highlighting"
+description: >
+  pgcli is a command-line interface for PostgreSQL with smart
+  auto-completion and syntax highlighting, a friendlier replacement for
+  psql. https://github.com/dbcli/pgcli
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "pgcli --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install pgcli"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install pgcli"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "pgcli --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "pgcli --version"
+  latest: { github: dbcli/pgcli }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade pgcli"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade pgcli"
+
+scope: user

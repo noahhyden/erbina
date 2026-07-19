@@ -1,0 +1,45 @@
+# erbina recipe — hurl, a cli-tool. Plain-text HTTP request runner/tester.
+id: hurl
+kind: cli-tool
+title: "hurl — run and test HTTP requests with plain text"
+description: >
+  Hurl runs and tests HTTP requests defined in a simple plain-text format,
+  chaining requests, capturing values and asserting on responses, ideal
+  for API testing in CI. https://github.com/Orange-OpenSource/hurl
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "hurl --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install hurl"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install hurl"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "hurl --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "hurl --version"
+  latest: { github: Orange-OpenSource/hurl }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade hurl"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install hurl"
+
+scope: user

@@ -1,0 +1,45 @@
+# erbina recipe — rustic, a cli-tool. restic-compatible backups in Rust.
+id: rustic
+kind: cli-tool
+title: "rustic — fast, encrypted and deduplicated backups powered by Rust"
+description: >
+  rustic is a fast, encrypted and deduplicated backup tool written in Rust
+  that is compatible with the restic repository format and its many
+  storage backends. https://github.com/rustic-rs/rustic
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "rustic --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install rustic"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install rustic-rs"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "rustic --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "rustic --version"
+  latest: { github: rustic-rs/rustic }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade rustic"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install rustic-rs"
+
+scope: user

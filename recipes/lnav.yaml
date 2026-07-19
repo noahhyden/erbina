@@ -1,0 +1,34 @@
+# erbina recipe — lnav, a cli-tool. Advanced log-file viewer/pager.
+id: lnav
+kind: cli-tool
+title: "lnav — the logfile navigator"
+description: >
+  lnav (the Log File Navigator) is an advanced log-file viewer that
+  merges, tails, syntax-highlights and lets you SQL-query logs from a
+  single terminal UI. https://github.com/tstack/lnav
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "lnav -V"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install lnav"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "lnav -V"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade lnav"
+
+scope: user

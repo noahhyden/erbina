@@ -1,0 +1,39 @@
+# erbina recipe — fq, a cli-tool. jq-style queries over binary formats.
+id: fq
+kind: cli-tool
+title: "fq — jq for binary formats"
+description: >
+  fq is a tool, language and decoders for working with binary data; think
+  jq, hexdump and Wireshark combined, letting you query many binary
+  formats. https://github.com/wader/fq
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "fq --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install fq"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "fq --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "fq --version"
+  latest: { github: wader/fq }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade fq"
+
+scope: user

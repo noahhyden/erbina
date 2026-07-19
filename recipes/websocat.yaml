@@ -1,0 +1,45 @@
+# erbina recipe — websocat, a cli-tool. WebSocket client/relay for the CLI.
+id: websocat
+kind: cli-tool
+title: "websocat — netcat, curl and socat for WebSockets"
+description: >
+  websocat is a command-line client and server for WebSockets, filling the
+  same niche as netcat, curl and socat but for the ws/wss protocol.
+  https://github.com/vi/websocat
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "websocat --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install websocat"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install websocat"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "websocat --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "websocat --version"
+  latest: { github: vi/websocat }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade websocat"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install websocat"
+
+scope: user

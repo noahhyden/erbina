@@ -1,0 +1,39 @@
+# erbina recipe — tox, a cli-tool. Automate Python testing in matrices.
+id: tox
+kind: cli-tool
+title: "tox — a generic virtualenv management and test command line tool"
+description: >
+  tox automates testing Python packages across multiple interpreter
+  versions and environments, standardizing the build, install and test
+  workflow. https://github.com/tox-dev/tox
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "tox --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install tox"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "tox --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "tox --version"
+  latest: { github: tox-dev/tox }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade tox"
+
+scope: user

@@ -1,0 +1,45 @@
+# erbina recipe — miniserve, a cli-tool. Serve a directory over HTTP.
+id: miniserve
+kind: cli-tool
+title: "miniserve — a small, self-contained static file server"
+description: >
+  miniserve is a small, self-contained cross-platform CLI tool that lets
+  you serve files and directories over HTTP with a single command.
+  https://github.com/svenstaro/miniserve
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "miniserve --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install miniserve"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install miniserve"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "miniserve --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "miniserve --version"
+  latest: { github: svenstaro/miniserve }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade miniserve"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install miniserve"
+
+scope: user

@@ -1,0 +1,45 @@
+# erbina recipe — asciidoctor, a cli-tool. Convert AsciiDoc to HTML/PDF.
+id: asciidoctor
+kind: cli-tool
+title: "asciidoctor — a fast, open-source text processor for converting AsciiDoc content"
+description: >
+  Asciidoctor is a fast text processor and publishing toolchain for
+  converting AsciiDoc content to HTML5, DocBook, PDF and other formats.
+  https://github.com/asciidoctor/asciidoctor
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "asciidoctor --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install asciidoctor"
+    - id: gem
+      when: "command -v gem"
+      run: "gem install asciidoctor"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "asciidoctor --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "asciidoctor --version"
+  latest: { github: asciidoctor/asciidoctor }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade asciidoctor"
+    - id: gem
+      when: "command -v gem"
+      run: "gem update asciidoctor"
+
+scope: user

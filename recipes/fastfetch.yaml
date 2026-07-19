@@ -1,0 +1,39 @@
+# erbina recipe — fastfetch, a cli-tool. Fast system info + ASCII logo.
+id: fastfetch
+kind: cli-tool
+title: "fastfetch — a fast, feature-rich system information tool"
+description: >
+  fastfetch is a neofetch-like tool for fetching system information and
+  displaying it prettily, written mostly in C for speed and
+  maintainability. https://github.com/fastfetch-cli/fastfetch
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "fastfetch --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install fastfetch"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "fastfetch --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "fastfetch --version"
+  latest: { github: fastfetch-cli/fastfetch }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade fastfetch"
+
+scope: user

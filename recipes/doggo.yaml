@@ -1,0 +1,39 @@
+# erbina recipe — doggo, a cli-tool. Modern DNS client (dig-like).
+id: doggo
+kind: cli-tool
+title: "doggo — a modern command-line DNS client (like dig) written in Go"
+description: >
+  doggo is a modern command-line DNS client (like dig) written in Go, with
+  colorful output, JSON support and DNS-over-HTTPS/TLS/QUIC transports.
+  https://github.com/mr-karan/doggo
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "doggo --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install doggo"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "doggo --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "doggo --version"
+  latest: { github: mr-karan/doggo }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade doggo"
+
+scope: user

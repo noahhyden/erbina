@@ -1,0 +1,39 @@
+# erbina recipe — ktlint, a cli-tool. Linter and formatter for Kotlin.
+id: ktlint
+kind: cli-tool
+title: "ktlint — an anti-bikeshedding Kotlin linter with built-in formatter"
+description: >
+  ktlint is an anti-bikeshedding Kotlin linter with a built-in formatter
+  that enforces the official Kotlin coding conventions with no
+  configuration required. https://github.com/pinterest/ktlint
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "ktlint --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install ktlint"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "ktlint --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "ktlint --version"
+  latest: { github: pinterest/ktlint }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade ktlint"
+
+scope: user

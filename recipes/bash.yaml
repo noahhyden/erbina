@@ -1,0 +1,34 @@
+# erbina recipe — bash, a cli-tool. GNU Bourne-Again SHell.
+id: bash
+kind: cli-tool
+title: "bash — the GNU Bourne-Again SHell"
+description: >
+  Bash is the GNU Project's Bourne-Again SHell, the default shell on many
+  systems, with command-line editing, job control and shell scripting
+  features. https://www.gnu.org/software/bash/
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "bash --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install bash"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "bash --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade bash"
+
+scope: user

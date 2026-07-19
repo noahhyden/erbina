@@ -1,0 +1,39 @@
+# erbina recipe — wasmtime, a cli-tool. Standalone WebAssembly runtime.
+id: wasmtime
+kind: cli-tool
+title: "wasmtime — a fast and secure runtime for WebAssembly"
+description: >
+  Wasmtime is a fast and secure standalone runtime for WebAssembly and
+  WASI from the Bytecode Alliance, embeddable and usable from the command
+  line. https://github.com/bytecodealliance/wasmtime
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "wasmtime --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install wasmtime"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "wasmtime --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "wasmtime --version"
+  latest: { github: bytecodealliance/wasmtime }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade wasmtime"
+
+scope: user

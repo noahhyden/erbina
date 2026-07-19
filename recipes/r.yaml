@@ -1,0 +1,34 @@
+# erbina recipe — r, a cli-tool. Statistical computing language (`R`).
+id: r
+kind: cli-tool
+title: "r — a free software environment for statistical computing and graphics (`R`)"
+description: >
+  R is a free software environment for statistical computing and graphics,
+  providing a wide variety of statistical and graphical techniques from
+  the command line. https://www.r-project.org/
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "R --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install r"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "R --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade r"
+
+scope: user

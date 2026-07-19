@@ -1,0 +1,39 @@
+# erbina recipe — swiftformat, a cli-tool. Formatter for Swift.
+id: swiftformat
+kind: cli-tool
+title: "swiftformat — a command-line tool and Xcode extension for formatting Swift code"
+description: >
+  SwiftFormat is a code library and command-line tool for reformatting
+  Swift code, applying consistent formatting rules across a whole project.
+  https://github.com/nicklockwood/SwiftFormat
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "swiftformat --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install swiftformat"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "swiftformat --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "swiftformat --version"
+  latest: { github: nicklockwood/SwiftFormat }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade swiftformat"
+
+scope: user

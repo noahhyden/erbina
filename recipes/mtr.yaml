@@ -1,0 +1,34 @@
+# erbina recipe — mtr, a cli-tool. Combined ping + traceroute.
+id: mtr
+kind: cli-tool
+title: "mtr — a network diagnostic tool combining ping and traceroute"
+description: >
+  mtr combines the functionality of the traceroute and ping programs in a
+  single network-diagnostic tool, continuously probing each hop on the
+  route. https://github.com/traviscross/mtr
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "mtr --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install mtr"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "mtr --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade mtr"
+
+scope: user

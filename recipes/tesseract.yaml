@@ -1,0 +1,39 @@
+# erbina recipe — tesseract, a cli-tool. Optical character recognition engine.
+id: tesseract
+kind: cli-tool
+title: "tesseract — an optical character recognition (OCR) engine"
+description: >
+  Tesseract is an open-source OCR engine that recognizes text in images
+  across many languages, callable from the command line to extract text.
+  https://github.com/tesseract-ocr/tesseract
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "tesseract --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install tesseract"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "tesseract --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "tesseract --version"
+  latest: { github: tesseract-ocr/tesseract }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade tesseract"
+
+scope: user

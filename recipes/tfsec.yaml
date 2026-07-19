@@ -1,0 +1,39 @@
+# erbina recipe — tfsec, a cli-tool. Security scanner for Terraform.
+id: tfsec
+kind: cli-tool
+title: "tfsec — security scanner for your Terraform code"
+description: >
+  tfsec is a static analysis security scanner for Terraform code that
+  spots potential misconfigurations and cloud-security issues, now part of
+  Trivy. https://github.com/aquasecurity/tfsec
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "tfsec --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install tfsec"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "tfsec --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "tfsec --version"
+  latest: { github: aquasecurity/tfsec }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade tfsec"
+
+scope: user

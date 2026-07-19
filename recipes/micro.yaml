@@ -1,0 +1,39 @@
+# erbina recipe — micro, a cli-tool. Modern, intuitive terminal editor.
+id: micro
+kind: cli-tool
+title: "micro — a modern and intuitive terminal-based text editor"
+description: >
+  micro is a modern and intuitive terminal-based text editor that aims to
+  be easy to use with mouse support, sensible keybindings and a plugin
+  system. https://github.com/zyedidia/micro
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "micro -version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install micro"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "micro -version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "micro -version"
+  latest: { github: zyedidia/micro }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade micro"
+
+scope: user

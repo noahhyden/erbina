@@ -1,0 +1,39 @@
+# erbina recipe — textlint, a cli-tool. Pluggable prose/markdown linter.
+id: textlint
+kind: cli-tool
+title: "textlint — the pluggable natural language linter for text and markdown"
+description: >
+  textlint is a pluggable natural-language linter for text and markdown,
+  checking writing style and grammar through a large ecosystem of rules.
+  https://github.com/textlint/textlint
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "textlint --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g textlint"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "textlint --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "textlint --version"
+  latest: { github: textlint/textlint }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g textlint"
+
+scope: user

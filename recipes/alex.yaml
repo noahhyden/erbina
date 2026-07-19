@@ -1,0 +1,39 @@
+# erbina recipe — alex, a cli-tool. Lint prose for insensitive wording.
+id: alex
+kind: cli-tool
+title: "alex — catch insensitive, inconsiderate writing"
+description: >
+  alex helps you catch insensitive, inconsiderate writing in markdown and
+  text, suggesting more inclusive alternatives as a prose linter.
+  https://github.com/get-alex/alex
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "alex --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g alex"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "alex --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "alex --version"
+  latest: { github: get-alex/alex }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g alex"
+
+scope: user

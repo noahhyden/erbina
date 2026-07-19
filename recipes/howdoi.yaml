@@ -1,0 +1,39 @@
+# erbina recipe — howdoi, a cli-tool. Coding answers from the CLI.
+id: howdoi
+kind: cli-tool
+title: "howdoi — instant coding answers via the command line"
+description: >
+  howdoi is a command-line tool that fetches instant coding answers from
+  Stack Overflow and other sources, so you can look up snippets without
+  leaving the terminal. https://github.com/gleitz/howdoi
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "howdoi --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install howdoi"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "howdoi --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "howdoi --version"
+  latest: { github: gleitz/howdoi }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade howdoi"
+
+scope: user

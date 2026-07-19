@@ -1,0 +1,45 @@
+# erbina recipe — rnr, a cli-tool. Batch-rename files with regex.
+id: rnr
+kind: cli-tool
+title: "rnr — a command-line tool to batch-rename files and directories"
+description: >
+  rnr is a command-line tool to batch-rename files and directories using
+  regular expressions, with a dry-run mode and undo support for safe
+  renaming. https://github.com/ismaelgv/rnr
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "rnr --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install rnr"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install rnr"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "rnr --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "rnr --version"
+  latest: { github: ismaelgv/rnr }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade rnr"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install rnr"
+
+scope: user

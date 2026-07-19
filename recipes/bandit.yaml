@@ -1,0 +1,39 @@
+# erbina recipe — bandit, a cli-tool. Security linter for Python.
+id: bandit
+kind: cli-tool
+title: "bandit — a tool designed to find common security issues in Python code"
+description: >
+  Bandit is a tool designed to find common security issues in Python code
+  by building an AST and running security-focused plugins against it.
+  https://github.com/PyCQA/bandit
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "bandit --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install bandit"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "bandit --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "bandit --version"
+  latest: { github: PyCQA/bandit }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade bandit"
+
+scope: user

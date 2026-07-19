@@ -1,0 +1,39 @@
+# erbina recipe — spectral, a cli-tool. Lint OpenAPI / JSON / YAML.
+id: spectral
+kind: cli-tool
+title: "spectral — a flexible JSON/YAML linter for OpenAPI, AsyncAPI and more"
+description: >
+  Spectral is a flexible JSON/YAML linter with out-of-the-box support for
+  OpenAPI and AsyncAPI, letting you enforce API design standards in CI.
+  https://github.com/stoplightio/spectral
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "spectral --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g @stoplight/spectral-cli"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "spectral --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "spectral --version"
+  latest: { github: stoplightio/spectral }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g @stoplight/spectral-cli"
+
+scope: user

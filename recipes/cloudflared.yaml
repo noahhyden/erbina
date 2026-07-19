@@ -1,0 +1,40 @@
+# erbina recipe — cloudflared, a cli-tool. Cloudflare Tunnel client.
+id: cloudflared
+kind: cli-tool
+title: "cloudflared — Cloudflare Tunnel client"
+description: >
+  cloudflared is the Cloudflare Tunnel client that creates secure
+  outbound-only connections between your origins and Cloudflare's edge,
+  exposing services without opening ports.
+  https://github.com/cloudflare/cloudflared
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "cloudflared --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install cloudflared"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "cloudflared --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "cloudflared --version"
+  latest: { github: cloudflare/cloudflared }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade cloudflared"
+
+scope: user

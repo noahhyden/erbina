@@ -1,0 +1,39 @@
+# erbina recipe — lighthouse, a cli-tool. Audit web page quality/performance.
+id: lighthouse
+kind: cli-tool
+title: "lighthouse — automated auditing, performance metrics and best practices for the web"
+description: >
+  Lighthouse is an automated tool for improving the quality of web pages,
+  auditing performance, accessibility, SEO and best practices from the
+  command line. https://github.com/GoogleChrome/lighthouse
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "lighthouse --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g lighthouse"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "lighthouse --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "lighthouse --version"
+  latest: { github: GoogleChrome/lighthouse }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g lighthouse"
+
+scope: user

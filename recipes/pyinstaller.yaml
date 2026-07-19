@@ -1,0 +1,39 @@
+# erbina recipe — pyinstaller, a cli-tool. Bundle Python apps into executables.
+id: pyinstaller
+kind: cli-tool
+title: "pyinstaller — bundles a Python application and all its dependencies into a single package"
+description: >
+  PyInstaller bundles a Python application and all its dependencies into a
+  single package so users can run the app without installing a Python
+  interpreter. https://github.com/pyinstaller/pyinstaller
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "pyinstaller --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install pyinstaller"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "pyinstaller --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "pyinstaller --version"
+  latest: { github: pyinstaller/pyinstaller }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade pyinstaller"
+
+scope: user

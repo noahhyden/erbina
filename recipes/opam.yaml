@@ -1,0 +1,39 @@
+# erbina recipe — opam, a cli-tool. Package manager for OCaml.
+id: opam
+kind: cli-tool
+title: "opam — the OCaml package manager"
+description: >
+  opam is a source-based package manager for OCaml that supports multiple
+  simultaneous compiler installations, sandboxed builds and flexible
+  switches. https://github.com/ocaml/opam
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "opam --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install opam"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "opam --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "opam --version"
+  latest: { github: ocaml/opam }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade opam"
+
+scope: user

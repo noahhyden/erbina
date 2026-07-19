@@ -1,0 +1,45 @@
+# erbina recipe — ouch, a cli-tool. One command for every archive format.
+id: ouch
+kind: cli-tool
+title: "ouch — painless compression and decompression on the command line"
+description: >
+  ouch (Obvious Unified Compression Helper) compresses and decompresses
+  many archive formats through one simple interface, guessing the format
+  from the extension. https://github.com/ouch-org/ouch
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "ouch --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install ouch"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install ouch"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "ouch --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "ouch --version"
+  latest: { github: ouch-org/ouch }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade ouch"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install ouch"
+
+scope: user

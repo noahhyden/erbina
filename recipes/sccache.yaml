@@ -1,0 +1,45 @@
+# erbina recipe — sccache, a cli-tool. Compiler cache for faster rebuilds.
+id: sccache
+kind: cli-tool
+title: "sccache — shared compilation cache"
+description: >
+  sccache is a ccache-like compiler caching tool that supports C/C++, Rust
+  and other compilers, with optional cloud storage backends.
+  https://github.com/mozilla/sccache
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "sccache --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install sccache"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install sccache"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "sccache --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "sccache --version"
+  latest: { github: mozilla/sccache }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade sccache"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install sccache"
+
+scope: user

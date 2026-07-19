@@ -1,0 +1,39 @@
+# erbina recipe — typescript, a cli-tool. TypeScript compiler (`tsc`).
+id: typescript
+kind: cli-tool
+title: "typescript — JavaScript with syntax for types"
+description: >
+  TypeScript is a strongly typed programming language that builds on
+  JavaScript; installing it globally provides the tsc compiler on the
+  command line. https://github.com/microsoft/TypeScript
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "tsc --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g typescript"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "tsc --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "tsc --version"
+  latest: { github: microsoft/TypeScript }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g typescript"
+
+scope: user

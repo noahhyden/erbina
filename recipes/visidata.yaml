@@ -1,0 +1,45 @@
+# erbina recipe — visidata, a cli-tool. Terminal spreadsheet for data (`vd`).
+id: visidata
+kind: cli-tool
+title: "visidata — a terminal interface for exploring and arranging tabular data (`vd`)"
+description: >
+  VisiData is an interactive terminal multitool for tabular data, opening
+  CSV, JSON, SQLite, XLSX and more in a fast, keyboard-driven
+  spreadsheet-like interface. https://github.com/saulpw/visidata
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "vd --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install visidata"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install visidata"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "vd --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "vd --version"
+  latest: { github: saulpw/visidata }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade visidata"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade visidata"
+
+scope: user

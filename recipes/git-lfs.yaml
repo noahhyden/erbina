@@ -1,0 +1,39 @@
+# erbina recipe — git-lfs, a cli-tool. Version large files with git.
+id: git-lfs
+kind: cli-tool
+title: "git-lfs — git extension for versioning large files"
+description: >
+  Git Large File Storage (LFS) replaces large files such as audio, video,
+  datasets and graphics with text pointers inside git, storing the
+  contents on a remote server. https://github.com/git-lfs/git-lfs
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "git-lfs version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install git-lfs"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "git-lfs version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "git-lfs version"
+  latest: { github: git-lfs/git-lfs }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade git-lfs"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — doxygen, a cli-tool. Generate docs from source comments.
+id: doxygen
+kind: cli-tool
+title: "doxygen — the de facto standard tool for generating documentation from annotated C++ sources"
+description: >
+  Doxygen is the de facto standard tool for generating documentation from
+  annotated C++, C, and other language sources, producing HTML and PDF
+  references. https://github.com/doxygen/doxygen
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "doxygen --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install doxygen"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "doxygen --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "doxygen --version"
+  latest: { github: doxygen/doxygen }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade doxygen"
+
+scope: user

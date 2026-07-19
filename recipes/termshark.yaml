@@ -1,0 +1,39 @@
+# erbina recipe — termshark, a cli-tool. Wireshark-like TUI for packet capture.
+id: termshark
+kind: cli-tool
+title: "termshark — a terminal UI for tshark, inspired by Wireshark"
+description: >
+  termshark is a terminal user interface for tshark, inspired by
+  Wireshark, letting you inspect packet captures and live traffic without
+  a GUI. https://github.com/gcla/termshark
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "termshark --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install termshark"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "termshark --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "termshark --version"
+  latest: { github: gcla/termshark }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade termshark"
+
+scope: user

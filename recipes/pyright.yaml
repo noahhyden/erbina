@@ -1,0 +1,39 @@
+# erbina recipe — pyright, a cli-tool. Fast Python type checker.
+id: pyright
+kind: cli-tool
+title: "pyright — a fast static type checker for Python"
+description: >
+  Pyright is a fast static type checker for Python from Microsoft,
+  powering Pylance, with strong inference and a command-line mode for CI.
+  https://github.com/microsoft/pyright
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "pyright --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g pyright"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "pyright --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "pyright --version"
+  latest: { github: microsoft/pyright }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g pyright"
+
+scope: user

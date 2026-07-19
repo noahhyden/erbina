@@ -1,0 +1,39 @@
+# erbina recipe — locust, a cli-tool. Python-defined load testing.
+id: locust
+kind: cli-tool
+title: "locust — a modern load testing framework, define user behaviour with Python code"
+description: >
+  Locust is an easy-to-use, scriptable and scalable load testing framework
+  where you define user behavior with Python code and swarm your system
+  with users. https://github.com/locustio/locust
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "locust --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install locust"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "locust --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "locust --version"
+  latest: { github: locustio/locust }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade locust"
+
+scope: user

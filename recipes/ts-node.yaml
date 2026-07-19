@@ -1,0 +1,39 @@
+# erbina recipe — ts-node, a cli-tool. Run TypeScript directly in Node.
+id: ts-node
+kind: cli-tool
+title: "ts-node — TypeScript execution and REPL for Node.js"
+description: >
+  ts-node is a TypeScript execution engine and REPL for Node.js that
+  transpiles and runs .ts files on the fly without a separate build step.
+  https://github.com/TypeStrong/ts-node
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "ts-node --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g ts-node"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "ts-node --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "ts-node --version"
+  latest: { github: TypeStrong/ts-node }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g ts-node"
+
+scope: user

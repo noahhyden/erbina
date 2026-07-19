@@ -1,0 +1,45 @@
+# erbina recipe — mise, a cli-tool. Polyglot runtime & task manager.
+id: mise
+kind: cli-tool
+title: "mise — the front-end to your dev env"
+description: >
+  mise (formerly rtx) manages developer tool versions (node, python, go,
+  and more), environment variables, and project tasks from a single
+  config, asdf-compatible. https://github.com/jdx/mise
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "mise --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install mise"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install mise"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "mise --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "mise --version"
+  latest: { github: jdx/mise }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade mise"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install mise"
+
+scope: user

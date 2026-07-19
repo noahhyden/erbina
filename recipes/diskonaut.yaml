@@ -1,0 +1,45 @@
+# erbina recipe — diskonaut, a cli-tool. Visual terminal disk-space navigator.
+id: diskonaut
+kind: cli-tool
+title: "diskonaut — terminal disk space navigator"
+description: >
+  diskonaut is a terminal disk-space navigator that maps a folder as a
+  treemap you can walk through to find and delete what is taking up space.
+  https://github.com/imsnif/diskonaut
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "diskonaut --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install diskonaut"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install diskonaut"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "diskonaut --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "diskonaut --version"
+  latest: { github: imsnif/diskonaut }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade diskonaut"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install diskonaut"
+
+scope: user

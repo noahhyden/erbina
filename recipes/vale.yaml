@@ -1,0 +1,39 @@
+# erbina recipe — vale, a cli-tool. Prose/style linter.
+id: vale
+kind: cli-tool
+title: "vale — a syntax-aware linter for prose"
+description: >
+  Vale is a command-line tool that brings code-like linting to prose,
+  enforcing style guides across Markdown, AsciiDoc, reStructuredText and
+  more. https://github.com/errata-ai/vale
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "vale --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install vale"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "vale --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "vale --version"
+  latest: { github: errata-ai/vale }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade vale"
+
+scope: user

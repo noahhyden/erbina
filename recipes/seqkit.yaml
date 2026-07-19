@@ -1,0 +1,39 @@
+# erbina recipe — seqkit, a cli-tool. Toolkit for FASTA/FASTQ files.
+id: seqkit
+kind: cli-tool
+title: "seqkit — a cross-platform and ultrafast toolkit for FASTA/Q file manipulation"
+description: >
+  SeqKit is a cross-platform, ultrafast and practical toolkit for
+  manipulating FASTA/FASTQ sequence files, widely used in bioinformatics
+  pipelines. https://github.com/shenwei356/seqkit
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "seqkit version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install seqkit"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "seqkit version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "seqkit version"
+  latest: { github: shenwei356/seqkit }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade seqkit"
+
+scope: user

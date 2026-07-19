@@ -1,0 +1,39 @@
+# erbina recipe — ormolu, a cli-tool. Opinionated Haskell formatter.
+id: ormolu
+kind: cli-tool
+title: "ormolu — a formatter for Haskell source code"
+description: >
+  Ormolu is a formatter for Haskell source code that enforces one
+  consistent style, with the goal of minimizing diffs and eliminating
+  formatting debates. https://github.com/tweag/ormolu
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "ormolu --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install ormolu"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "ormolu --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "ormolu --version"
+  latest: { github: tweag/ormolu }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade ormolu"
+
+scope: user

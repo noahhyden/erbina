@@ -1,0 +1,34 @@
+# erbina recipe — graphviz, a cli-tool. Render graphs from DOT (`dot`).
+id: graphviz
+kind: cli-tool
+title: "graphviz — graph visualization software (`dot`)"
+description: >
+  Graphviz is open-source graph visualization software; the dot command
+  lays out and renders directed graphs described in the DOT language.
+  https://graphviz.org/
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "dot -V"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install graphviz"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "dot -V"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade graphviz"
+
+scope: user
