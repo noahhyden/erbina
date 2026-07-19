@@ -79,8 +79,8 @@ jobs:
           async def main():
               async with Client(server.mcp) as c:
                   names = sorted(t.name for t in await c.list_tools())
-              assert len(names) == 9, names
-              print("ok: 9 tools register under", __import__("sys").version.split()[0])
+              assert len(names) == 10, names
+              print("ok: 10 tools register under", __import__("sys").version.split()[0])
           asyncio.run(main())
           PY
 

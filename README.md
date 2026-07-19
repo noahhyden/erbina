@@ -15,7 +15,7 @@ threshold a tool crosses to become part of your environment. Sibling to
 [ataegina](https://github.com/noahhyden/ataegina-cli) (goddess of rebirth), which
 is also erbina's proof-of-concept recipe #1.
 
-> **The recipe contract is the core idea.** One server, nine tools, and a curated
+> **The recipe contract is the core idea.** One server, ten tools, and a curated
 > set of recipes spanning `cli-tool`s and scope-wiring `mcp-server`s (see the
 > [Recipe gallery](#recipe-gallery)). Each is one YAML file held to a conformance
 > bar (schema + linter policy + tests), and adding one is the point.
@@ -74,6 +74,7 @@ Requirements: `uv` and Claude Code. `git` and a package manager (`brew`, or
 | `audit_scopes` | Read-only report of which MCP servers are configured in `local` / `project` / `user` scope, where each lives, and any name shadowed across scopes. |
 | `find_dead_mcps` | Health-check every configured MCP server and flag the ones that fail to connect — stale/dead servers, annotated with the scope to remove them from. Read-only. |
 | `remove_mcp` | Remove an MCP server by name (e.g. a dead one), auto-resolving its scope. `dry_run=true` shows the `claude mcp remove` command without running it. |
+| `doctor` | Health-check the CLI tools erbina has installed (its state manifest): re-run each one's `detect` + `verify` and report healthy / missing / broken. Read-only; the CLI-tool counterpart to `find_dead_mcps`. |
 
 The server's instructions tell the agent to **always inspect (or dry-run) and
 show you the commands before executing** — erbina shells out to package managers

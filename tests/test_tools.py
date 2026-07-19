@@ -18,6 +18,7 @@ EXPECTED_TOOLS = {
     "audit_scopes",
     "find_dead_mcps",
     "remove_mcp",
+    "doctor",
 }
 
 
