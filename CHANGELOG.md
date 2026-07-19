@@ -10,12 +10,18 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 ### Added
 
 - **Real-bootstrap smoke (`scripts/smoke_bootstrap.py` + a weekly/dispatch CI
-  workflow).** A second, non-offline validation tier: it bootstraps a curated
-  subset of recipes *for real* (detect → install → verify) on runners that
-  actually have brew / go / cargo / pipx, catching recipe rot — a renamed formula,
-  a dead URL, a wrong `go install` path — that the deterministic offline suite
-  can't. Not wired to PRs (real installs are slow/flaky); runs weekly and on
-  manual dispatch, and fails loudly. The driver's wiring is itself covered offline.
+  workflow).** A second, non-offline validation tier that bootstraps recipes *for
+  real* (detect → install → verify) on runners that actually have the package
+  managers, catching recipe rot — a renamed formula, a dead URL, a wrong `go
+  install` path, a bad MCP-server package name — that the deterministic offline
+  suite can't. Four jobs: **every cli-tool** via brew (macOS, validates all
+  formula names); the go/cargo/pipx **fallbacks** (Ubuntu); **gh's webi** fallback
+  (forced by removing the preinstalled gh); and **mcp-servers** (wired against a
+  stub `claude`, with every server package resolved for real against PyPI/npm).
+  Not wired to PRs (real installs are slow/flaky); runs weekly and on manual
+  dispatch, and fails loudly. The driver's wiring and every real mcp-server
+  recipe's `claude mcp add` command are additionally covered offline
+  (`tests/test_smoke_bootstrap.py`, `tests/test_real_mcp_recipes.py`).
 
 - **Update digest — release-notes link.** For a recipe whose `version.latest` is a
   `{github: owner/repo}` source, `check_updates` now includes a `release_notes`
