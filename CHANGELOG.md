@@ -7,6 +7,16 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased]
 
+### Fixed
+
+- **Version extraction prefers a labeled version.** When `--version` output labels
+  its version (contains the word "version"), `_extract_version` now takes the
+  token *after* the label, so a dotted build date printed before it
+  (`Built 2024.01.15, tool version 2.3.4`) is no longer mistaken for the version.
+  Verified to not regress the whole version corpus (incl. the real outputs proven
+  by the real-bootstrap run). Unlabeled output (a bare `v1.2.3`/`10.0` after a
+  date) stays first-token — genuinely ambiguous vs. a calver, and no recipe hits it.
+
 ### Added
 
 - **Real-bootstrap smoke (`scripts/smoke_bootstrap.py` + a weekly/dispatch CI
