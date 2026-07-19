@@ -83,6 +83,21 @@ uv run --with pytest --with fastmcp --with pyyaml --with packaging pytest tests/
 uv run --script lint_recipes.py
 ```
 
+**Two tiers of validation.** The offline suite above proves the *orchestration* is
+correct but never runs a real package manager, so it can't catch a renamed brew
+formula or a dead install URL. The
+[`real-bootstrap`](.github/workflows/real-bootstrap.yml) workflow closes that gap:
+it bootstraps a curated subset of recipes *for real* (`scripts/smoke_bootstrap.py`)
+on runners that actually have brew / go / cargo / pipx. It runs weekly and on
+manual dispatch (never on a PR — real installs are slow and occasionally flaky),
+and fails loudly when a recipe rots. To smoke a recipe yourself on a machine with
+the right manager:
+
+```sh
+scripts/smoke_bootstrap.py <id> [<id> ...]        # bootstrap for real
+scripts/smoke_bootstrap.py --uninstall <id>       # then reverse it (clean machine)
+```
+
 No test harness is installed — `uv --with` materializes the deps per run, so
 nothing is added to the tree. To exercise erbina by hand the way an agent does,
 an in-memory FastMCP client smoke test (no Claude Code or servers required) looks

@@ -1,0 +1,72 @@
+name: Real bootstrap smoke
+
+# The pytest suite is deterministic and OFFLINE — it proves the orchestration is
+# correct but never runs a real package manager, so a renamed brew formula, a dead
+# install URL, or a wrong `go install` path would pass CI yet break a real
+# bootstrap. This workflow closes that gap: it bootstraps a curated subset of
+# recipes FOR REAL through erbina (detect -> install -> verify) on runners that
+# actually have the package managers.
+#
+# It is deliberately NOT wired to push/pull_request — real installs are slow and
+# occasionally flaky (upstream/network), so this must never gate a PR. It runs on
+# a weekly schedule and on manual dispatch, and fails loudly when a recipe rots.
+
+on:
+  workflow_dispatch:
+    inputs:
+      recipes:
+        description: "Space-separated recipe ids to bootstrap (blank = the per-OS default subset)"
+        required: false
+        default: ""
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  # macOS runners ship brew preinstalled, so the `homebrew` install method fires
+  # first for every cli-tool recipe — this validates the brew FORMULA NAMES.
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Bootstrap recipes for real (brew)
+        run: |
+          set -euo pipefail
+          RECIPES="${{ github.event.inputs.recipes }}"
+          if [ -z "$RECIPES" ]; then
+            RECIPES="ripgrep fd bat jq gh yq difftastic httpie lazygit zoxide"
+          fi
+          echo "bootstrapping: $RECIPES"
+          uv run --with fastmcp --with pyyaml --with packaging scripts/smoke_bootstrap.py $RECIPES
+
+  # Ubuntu runners have Go and Rust (cargo) preinstalled but no brew, so the
+  # NON-brew fallback methods fire — this validates the `go install` / `cargo
+  # install` / `pipx` paths. Kept to a fast subset (cargo builds from source).
+  ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Ensure pipx and put tool bindirs on PATH
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user --quiet pipx || true
+          {
+            echo "$HOME/.local/bin"     # pipx shims
+            echo "$HOME/go/bin"         # go install default GOBIN
+            echo "$HOME/.cargo/bin"     # cargo install
+          } >> "$GITHUB_PATH"
+      - name: Bootstrap recipes for real (go / cargo / pipx)
+        run: |
+          set -euo pipefail
+          RECIPES="${{ github.event.inputs.recipes }}"
+          if [ -z "$RECIPES" ]; then
+            RECIPES="lazygit yq httpie difftastic"
+          fi
+          echo "bootstrapping: $RECIPES"
+          uv run --with fastmcp --with pyyaml --with packaging scripts/smoke_bootstrap.py $RECIPES

@@ -9,6 +9,14 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ### Added
 
+- **Real-bootstrap smoke (`scripts/smoke_bootstrap.py` + a weekly/dispatch CI
+  workflow).** A second, non-offline validation tier: it bootstraps a curated
+  subset of recipes *for real* (detect → install → verify) on runners that
+  actually have brew / go / cargo / pipx, catching recipe rot — a renamed formula,
+  a dead URL, a wrong `go install` path — that the deterministic offline suite
+  can't. Not wired to PRs (real installs are slow/flaky); runs weekly and on
+  manual dispatch, and fails loudly. The driver's wiring is itself covered offline.
+
 - **Update digest — release-notes link.** For a recipe whose `version.latest` is a
   `{github: owner/repo}` source, `check_updates` now includes a `release_notes`
   URL (`https://github.com/owner/repo/releases`) in the checked entry, so the
