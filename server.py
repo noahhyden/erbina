@@ -213,6 +213,17 @@ def _release_core(token: str) -> str | None:
     return m.group(0) if m else None
 
 
+def _version_text(res: dict[str, Any]) -> str:
+    """The stream of a version-command result that carries a version token.
+
+    Prefers stdout (the well-behaved convention) but falls back to stderr, since
+    many real tools print `--version`/`-V` there (graphviz's `dot -V`, anything
+    JVM-based, some GNU tools). Without this fallback their version: block would
+    silently yield update_available=null and check_updates becomes dead weight.
+    """
+    return res["stdout"] if _extract_version(res["stdout"]) else res["stderr"]
+
+
 def _version_status(current_out: str | None, latest_out: str | None) -> dict[str, Any]:
     """Compare two raw command outputs and report whether an update is available.
 
@@ -1016,7 +1027,7 @@ def check_updates(recipe_id: str | None = None, project_dir: str | None = None) 
         v_cwd = project_dir if ver.get("needs_project_dir") else None
         cur = _run(_subst(ver["current"], scope, project_dir), cwd=v_cwd, timeout=30)
         lat = _run(_subst(_latest_command(ver["latest"]), scope, project_dir), cwd=v_cwd, timeout=60)
-        entry.update(_version_status(cur["stdout"], lat["stdout"]))
+        entry.update(_version_status(_version_text(cur), lat["stdout"]))
         # for a github-sourced recipe, point the user at the release notes so the
         # decision to apply an update is informed (the changelog is one click away).
         notes = _release_notes_url(ver["latest"])
@@ -1050,7 +1061,8 @@ def _current_version(recipe: dict[str, Any], scope: str, project_dir: str | None
     if not cmd:
         return None
     cwd = project_dir if ver.get("needs_project_dir") else None
-    return _extract_version(_run(_subst(cmd, scope, project_dir), cwd=cwd, timeout=30)["stdout"])
+    res = _run(_subst(cmd, scope, project_dir), cwd=cwd, timeout=30)
+    return _extract_version(_version_text(res))
 
 
 def _run_verify(recipe: dict[str, Any], scope: str, project_dir: str | None) -> tuple[list[dict[str, Any]], bool]:
