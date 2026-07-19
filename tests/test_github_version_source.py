@@ -80,6 +80,39 @@ def test_current_still_required_as_a_string():
 # --------------------------------------------------------------------------- #
 # check_updates end-to-end through the github source (network mocked)
 # --------------------------------------------------------------------------- #
+def test_release_notes_url_for_github_source():
+    assert server._release_notes_url({"github": "BurntSushi/ripgrep"}) == \
+        "https://github.com/BurntSushi/ripgrep/releases"
+
+
+@pytest.mark.parametrize("latest", ["rg --version", {"github": "noslash"}, {"other": "x"}, {}, 5, None])
+def test_release_notes_url_is_none_for_non_github_latest(latest):
+    assert server._release_notes_url(latest) is None
+
+
+def test_check_updates_surfaces_release_notes_for_github_source(monkeypatch):
+    def fake_run(cmd, *a, **k):
+        out = '  "tag_name": "2.0.0",' if "api.github.com" in cmd else "1.0.0"
+        return {"cmd": cmd, "exit": 0, "stdout": out, "stderr": ""}
+
+    monkeypatch.setattr(server, "_run", fake_run)
+    r = cli_recipe("t", detect={"command": TRUE},
+                   version={"current": "t --version", "latest": {"github": "o/r"}})
+    with registry(r):
+        entry = call_tool("check_updates", {"recipe_id": "t"})["checked"][0]
+    assert entry["update_available"] is True
+    assert entry["release_notes"] == "https://github.com/o/r/releases"
+
+
+def test_check_updates_omits_release_notes_for_a_string_latest(monkeypatch):
+    monkeypatch.setattr(server, "_run", lambda cmd, *a, **k: {"cmd": cmd, "exit": 0, "stdout": "1.0.0", "stderr": ""})
+    r = cli_recipe("t", detect={"command": TRUE},
+                   version={"current": "t --version", "latest": "echo 2.0.0"})
+    with registry(r):
+        entry = call_tool("check_updates", {"recipe_id": "t"})["checked"][0]
+    assert "release_notes" not in entry  # a plain command has no known notes URL
+
+
 def test_check_updates_resolves_github_source(monkeypatch):
     # intercept the resolved curl command and return a canned releases-API line
     def fake_run(cmd, *a, **k):

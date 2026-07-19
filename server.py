@@ -168,6 +168,15 @@ def _latest_command(latest: Any) -> str:
     return ""
 
 
+def _release_notes_url(latest: Any) -> str | None:
+    """The GitHub releases page for a `{github: "owner/repo"}` version source, so
+    check_updates can point the user at the changelog before they apply an update.
+    None for a plain-string `latest` (erbina can't know where its notes live)."""
+    if isinstance(latest, dict) and isinstance(latest.get("github"), str) and _GITHUB_REPO_RE.match(latest["github"]):
+        return f"https://github.com/{latest['github']}/releases"
+    return None
+
+
 def _extract_version(text: str | None) -> str | None:
     """Pull the first version-looking token out of arbitrary command output.
 
@@ -994,6 +1003,11 @@ def check_updates(recipe_id: str | None = None, project_dir: str | None = None) 
         cur = _run(_subst(ver["current"], scope, project_dir), cwd=v_cwd, timeout=30)
         lat = _run(_subst(_latest_command(ver["latest"]), scope, project_dir), cwd=v_cwd, timeout=60)
         entry.update(_version_status(cur["stdout"], lat["stdout"]))
+        # for a github-sourced recipe, point the user at the release notes so the
+        # decision to apply an update is informed (the changelog is one click away).
+        notes = _release_notes_url(ver["latest"])
+        if notes:
+            entry["release_notes"] = notes
         checked.append(entry)
 
     # a pinned tool is never offered for (automatic) update, even if newer exists

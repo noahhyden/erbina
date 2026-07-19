@@ -9,6 +9,13 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ### Added
 
+- **Update digest — release-notes link.** For a recipe whose `version.latest` is a
+  `{github: owner/repo}` source, `check_updates` now includes a `release_notes`
+  URL (`https://github.com/owner/repo/releases`) in the checked entry, so the
+  consent decision to apply an update can be made with the changelog one click
+  away. Omitted for plain-command `latest` sources (erbina can't know where their
+  notes live).
+
 - **Profiles (`kind: profile`).** A meta-recipe that installs nothing itself and
   just `requires:` a curated set of other recipes, so bootstrapping one sets up a
   whole bundle in a single prompt (reusing the `requires` machinery: idempotent,
