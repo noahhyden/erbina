@@ -1,0 +1,21 @@
+# erbina recipe — node-dev, a profile (meta-recipe).
+# Installs nothing itself; `requires` a curated Node/JS-development toolchain,
+# which bootstrap resolves in order.
+id: node-dev
+kind: profile
+title: "node-dev — a curated Node.js / JavaScript development toolchain"
+description: >
+  A starter set for Node/JS work: fnm (fast Node version manager), pnpm (fast
+  package manager), bun (all-in-one runtime & toolkit), esbuild (bundler), biome
+  (linter + formatter), and tsx (run TypeScript directly). Bootstrapping this
+  profile sets up each one.
+
+requires:
+  - fnm
+  - pnpm
+  - bun
+  - esbuild
+  - biome
+  - tsx
+
+scope: user

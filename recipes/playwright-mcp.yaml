@@ -1,0 +1,38 @@
+# erbina recipe — the Playwright MCP server (kind: mcp-server).
+# Microsoft's official Playwright MCP: a Node/npx server (like memory); the work
+# is the scope-aware wiring. ${scope} is substituted from `bootstrap`. (The id is
+# `playwright-mcp` because `playwright` is the cli-tool recipe.)
+id: playwright-mcp
+kind: mcp-server
+title: "playwright-mcp — MCP server for browser automation (Microsoft Playwright)"
+description: >
+  Microsoft's Playwright MCP server: lets an agent drive a real browser —
+  navigate, click, type, read the accessibility tree, and screenshot — via
+  structured tools. Runs via npx, so wiring it into a scope is the work.
+
+# 1. DETECT — already registered? `claude mcp get` resolves project scope by cwd.
+detect:
+  command: "claude mcp get playwright-mcp"
+  expect_exit: 0
+  needs_project_dir: true
+
+# 2. INSTALL — nothing to download; confirm the runtime that launches it (npx).
+install:
+  methods:
+    - id: npx
+      when: "command -v npx"
+      run: "command -v npx"
+
+# 3. CONFIGURE — scope-aware wiring at ${scope}, via npx.
+configure:
+  steps:
+    - run: "claude mcp add playwright-mcp --scope ${scope} -- npx -y @playwright/mcp"
+      needs_project_dir: true
+
+# 4. VERIFY — Claude Code can see the server at the chosen scope.
+verify:
+  - command: "claude mcp get playwright-mcp"
+    expect_exit: 0
+    needs_project_dir: true
+
+scope: project

@@ -1,0 +1,23 @@
+# erbina recipe — kubernetes, a profile (meta-recipe).
+# Installs nothing itself; `requires` a curated set of Kubernetes CLIs, which
+# bootstrap resolves in order.
+id: kubernetes
+kind: profile
+title: "kubernetes — a curated Kubernetes command-line toolkit"
+description: >
+  A bundle of the CLIs you reach for working with Kubernetes clusters: kubectl
+  (the core CLI), helm (package manager), k9s (cluster TUI), kustomize
+  (overlays), stern (multi-pod logs), kubectx (context/namespace switching), and
+  kind + minikube (local clusters). Bootstrapping this profile sets up each one.
+
+requires:
+  - kubectl
+  - helm
+  - k9s
+  - kustomize
+  - stern
+  - kubectx
+  - kind
+  - minikube
+
+scope: user

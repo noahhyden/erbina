@@ -1,0 +1,22 @@
+# erbina recipe — python-dev, a profile (meta-recipe).
+# Installs nothing itself; `requires` a curated Python-development toolchain,
+# which bootstrap resolves in order.
+id: python-dev
+kind: profile
+title: "python-dev — a curated Python development toolchain"
+description: >
+  A starter set for Python work: uv (fast package/project manager), ruff (linter
+  + formatter), black (formatter), mypy (type checker), poetry (dependency
+  management), pre-commit (git hooks), and ipython (a better REPL). Bootstrapping
+  this profile sets up each one.
+
+requires:
+  - uv
+  - ruff
+  - black
+  - mypy
+  - poetry
+  - pre-commit
+  - ipython
+
+scope: user

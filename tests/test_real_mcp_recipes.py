@@ -20,10 +20,13 @@ from helpers import call_tool
 
 # (recipe id -> the exact server launch command its configure step must register)
 REAL_MCP_RECIPES = {
+    "context7": "npx -y @upstash/context7-mcp",
     "everything": "npx -y @modelcontextprotocol/server-everything",
     "fetch": "uvx mcp-server-fetch",
+    "filesystem": "npx -y @modelcontextprotocol/server-filesystem ${project_dir}",
     "git": "uvx mcp-server-git",
     "memory": "npx -y @modelcontextprotocol/server-memory",
+    "playwright-mcp": "npx -y @playwright/mcp",
     "sequentialthinking": "npx -y @modelcontextprotocol/server-sequential-thinking",
     "time": "uvx mcp-server-time",
 }
@@ -70,7 +73,9 @@ def test_real_mcp_recipe_wires_and_verifies(rid, launch, stub_env, tmp_path, mon
     # the stub received the exact wiring command, with ${scope} substituted and the
     # recipe's real launch command intact
     recorded = (stub_env / rid).read_text().strip()
-    assert recorded == f"mcp add {rid} --scope project -- {launch}"
+    # a launch may reference ${project_dir} (e.g. filesystem's allowed dir); it is
+    # substituted with the resolved project dir, exactly as the real wiring would be.
+    assert recorded == f"mcp add {rid} --scope project -- {launch.replace('${project_dir}', proj)}"
 
 
 def test_all_registry_mcp_servers_are_covered():

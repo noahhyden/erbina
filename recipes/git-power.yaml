@@ -1,0 +1,22 @@
+# erbina recipe — git-power, a profile (meta-recipe).
+# Installs nothing itself; `requires` a curated set of git power-tools, which
+# bootstrap resolves in order.
+id: git-power
+kind: profile
+title: "git-power — a curated set of git power-tools"
+description: >
+  Level up the git command line: gh (GitHub CLI), lazygit (terminal UI), delta
+  (syntax-highlighting diffs), difftastic (structural diffs), git-lfs (large
+  files), tig (repo browser), and git-cliff (changelog generator). Bootstrapping
+  this profile sets up each one.
+
+requires:
+  - gh
+  - lazygit
+  - delta
+  - difftastic
+  - git-lfs
+  - tig
+  - git-cliff
+
+scope: user

@@ -181,7 +181,7 @@ jobs:
           set -euo pipefail
           export CLAUDE_STUB_STORE="$HOME/claude-stub-store"
           proj="$(mktemp -d)"
-          for rid in everything fetch git memory sequentialthinking time; do
+          for rid in everything fetch git memory sequentialthinking time filesystem playwright-mcp context7; do
             uv run --with fastmcp --with pyyaml --with packaging \
               scripts/smoke_bootstrap.py "$rid" --scope project --project-dir "$proj"
           done
@@ -193,6 +193,6 @@ jobs:
             curl -fsSL -o /dev/null "https://pypi.org/pypi/$pkg/json" && echo "ok  $pkg" || { echo "MISSING $pkg on PyPI"; exit 1; }
           done
           echo "--- npx / npm packages ---"
-          for pkg in @modelcontextprotocol/server-everything @modelcontextprotocol/server-memory @modelcontextprotocol/server-sequential-thinking; do
+          for pkg in @modelcontextprotocol/server-everything @modelcontextprotocol/server-memory @modelcontextprotocol/server-sequential-thinking @modelcontextprotocol/server-filesystem @playwright/mcp @upstash/context7-mcp; do
             npm view "$pkg" version >/dev/null 2>&1 && echo "ok  $pkg" || { echo "MISSING $pkg on npm"; exit 1; }
           done

@@ -1,0 +1,38 @@
+# erbina recipe — the Context7 MCP server (kind: mcp-server).
+# Upstash's Context7: a Node/npx server (like memory); the work is the scope-aware
+# wiring. ${scope} is substituted from `bootstrap`.
+id: context7
+kind: mcp-server
+title: "context7 — MCP server for up-to-date library docs & code examples"
+description: >
+  Upstash's Context7 MCP server: pulls version-accurate documentation and code
+  examples for a library straight into the model's context, so answers track the
+  library's current API instead of stale training data. Runs via npx, so wiring
+  it into a scope is the work.
+
+# 1. DETECT — already registered? `claude mcp get` resolves project scope by cwd.
+detect:
+  command: "claude mcp get context7"
+  expect_exit: 0
+  needs_project_dir: true
+
+# 2. INSTALL — nothing to download; confirm the runtime that launches it (npx).
+install:
+  methods:
+    - id: npx
+      when: "command -v npx"
+      run: "command -v npx"
+
+# 3. CONFIGURE — scope-aware wiring at ${scope}, via npx.
+configure:
+  steps:
+    - run: "claude mcp add context7 --scope ${scope} -- npx -y @upstash/context7-mcp"
+      needs_project_dir: true
+
+# 4. VERIFY — Claude Code can see the server at the chosen scope.
+verify:
+  - command: "claude mcp get context7"
+    expect_exit: 0
+    needs_project_dir: true
+
+scope: project
