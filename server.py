@@ -143,6 +143,27 @@ def _check_placeholders(text: Any, where: str, errors: list[str]) -> None:
         errors.append(f"{where}: unterminated placeholder — a '${{' has no closing '}}'")
 
 
+_GITHUB_REPO_RE = re.compile(r"^[\w.-]+/[\w.-]+$")
+
+
+def _latest_command(latest: Any) -> str:
+    """Resolve a `version.latest` spec to a shell command that prints the latest
+    version.
+
+    A plain string is returned unchanged. The structured form
+    `{github: "owner/repo"}` expands to the releases-API `curl` piped through a
+    `grep` that isolates the `"tag_name"` line — the grep matters, so version
+    extraction reads the release tag and not some other number in the JSON (an id,
+    a date). Returns "" for anything malformed (validation rejects those upstream).
+    """
+    if isinstance(latest, str):
+        return latest
+    if isinstance(latest, dict) and isinstance(latest.get("github"), str) and _GITHUB_REPO_RE.match(latest["github"]):
+        repo = latest["github"]
+        return f"curl -fsSL https://api.github.com/repos/{repo}/releases/latest | grep '\"tag_name\"'"
+    return ""
+
+
 def _extract_version(text: str | None) -> str | None:
     """Pull the first version-looking token out of arbitrary command output.
 
@@ -382,11 +403,26 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
         if not isinstance(version, dict):
             errors.append("'version' must be a mapping with 'current' and 'latest' commands")
         else:
-            for key in ("current", "latest"):
-                val = version.get(key)
-                if not (isinstance(val, str) and val.strip()):
-                    errors.append(f"'version.{key}' is required and must be a non-empty string")
-                _check_placeholders(val, f"version.{key}", errors)
+            # current is always a shell command string
+            cur = version.get("current")
+            if not (isinstance(cur, str) and cur.strip()):
+                errors.append("'version.current' is required and must be a non-empty string")
+            _check_placeholders(cur, "version.current", errors)
+            # latest is either a shell command string OR the structured
+            # {github: "owner/repo"} form (erbina resolves it to a releases-API call)
+            lat = version.get("latest")
+            if isinstance(lat, dict):
+                repo = lat.get("github")
+                if set(lat) != {"github"}:
+                    errors.append("'version.latest' mapping supports only the 'github' key")
+                elif not (isinstance(repo, str) and _GITHUB_REPO_RE.match(repo)):
+                    errors.append("'version.latest.github' must be an \"owner/repo\" string")
+            elif isinstance(lat, str):
+                if not lat.strip():
+                    errors.append("'version.latest' is required and must be a non-empty string")
+                _check_placeholders(lat, "version.latest", errors)
+            else:
+                errors.append("'version.latest' must be a non-empty string or a {github: \"owner/repo\"} mapping")
 
     # update — optional. Same guarded-method shape as install; what the `update`
     # tool runs to upgrade an already-installed tool.
@@ -912,7 +948,7 @@ def check_updates(recipe_id: str | None = None, project_dir: str | None = None) 
 
         v_cwd = project_dir if ver.get("needs_project_dir") else None
         cur = _run(_subst(ver["current"], scope, project_dir), cwd=v_cwd, timeout=30)
-        lat = _run(_subst(ver["latest"], scope, project_dir), cwd=v_cwd, timeout=60)
+        lat = _run(_subst(_latest_command(ver["latest"]), scope, project_dir), cwd=v_cwd, timeout=60)
         entry.update(_version_status(cur["stdout"], lat["stdout"]))
         checked.append(entry)
 

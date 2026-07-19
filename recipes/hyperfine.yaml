@@ -30,7 +30,7 @@ verify:
 # 4. VERSION — `hyperfine --version` prints "hyperfine 1.18.0"; tags "v1.18.0".
 version:
   current: "hyperfine --version"
-  latest: 'curl -fsSL https://api.github.com/repos/sharkdp/hyperfine/releases/latest | grep ''"tag_name"'''
+  latest: { github: sharkdp/hyperfine }
 
 # 5. UPDATE — brew upgrade, else re-run cargo install (upgrades in place).
 update:

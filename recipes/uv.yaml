@@ -32,7 +32,7 @@ verify:
 # 4. VERSION — `uv --version` prints "uv 0.5.11 (<hash> <date>)"; tags are "0.5.11".
 version:
   current: "uv --version"
-  latest: 'curl -fsSL https://api.github.com/repos/astral-sh/uv/releases/latest | grep ''"tag_name"'''
+  latest: { github: astral-sh/uv }
 
 # 5. UPDATE — brew upgrade if brew-managed; otherwise uv can update itself
 # (only works for standalone-installer installs, which is why brew is tried first).

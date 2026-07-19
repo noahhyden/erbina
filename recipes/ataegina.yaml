@@ -50,7 +50,7 @@ verify:
 # `"tag_name": "v0.2.0"` is fine — the 0.2.0 is pulled out and compared).
 version:
   current: "ataegina --version"
-  latest: 'curl -fsSL https://api.github.com/repos/noahhyden/ataegina-cli/releases/latest | grep ''"tag_name"'''
+  latest: { github: noahhyden/ataegina-cli }
 
 # UPDATE — what `update` runs to upgrade an already-installed ataegina. Same
 # guarded/ordered shape as install: prefer brew's upgrade, else re-run the

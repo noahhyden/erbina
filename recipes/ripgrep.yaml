@@ -31,7 +31,7 @@ verify:
 # from each and compares.
 version:
   current: "rg --version"
-  latest: 'curl -fsSL https://api.github.com/repos/BurntSushi/ripgrep/releases/latest | grep ''"tag_name"'''
+  latest: { github: BurntSushi/ripgrep }
 
 # 5. UPDATE — how `update` upgrades an installed rg (brew, else re-run cargo).
 update:

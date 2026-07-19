@@ -29,7 +29,7 @@ verify:
 # 4. VERSION — `sd --version` prints "sd 1.0.0"; chmln/sd tags look like "v1.0.0".
 version:
   current: "sd --version"
-  latest: 'curl -fsSL https://api.github.com/repos/chmln/sd/releases/latest | grep ''"tag_name"'''
+  latest: { github: chmln/sd }
 
 # 5. UPDATE — brew upgrade, else re-run cargo install (upgrades in place).
 update:
