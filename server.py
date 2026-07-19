@@ -47,7 +47,7 @@ VALID_KINDS = ("cli-tool", "mcp-server")
 # The closed set of top-level keys SCHEMA.md defines. `_path` is injected by the
 # loader AFTER validation, so it is not part of the recipe's authored contract.
 TOP_LEVEL_KEYS = frozenset(
-    {"id", "kind", "title", "description", "detect", "install", "configure", "verify", "scope", "version", "update", "rollback"}
+    {"id", "kind", "title", "description", "detect", "install", "configure", "verify", "scope", "version", "update", "rollback", "requires"}
 )
 # Matches the first version-looking token in arbitrary command output, e.g.
 # "ataegina 0.1.0" -> "0.1.0", "v1.2.3 (build 4)" -> "1.2.3". A leading `v` is
@@ -397,6 +397,21 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
     # $ERBINA_ROLLBACK_VERSION (the recorded previous version erbina injects).
     _validate_methods(recipe.get("rollback"), "rollback", required=False, errors=errors)
 
+    # requires — optional list of other recipe ids to bootstrap first. Existence
+    # of the referenced recipes (and freedom from cycles across the registry) is a
+    # registry-wide concern checked by the conformance suite, not here; this only
+    # validates the field's shape and forbids a self-reference (a trivial cycle).
+    requires = recipe.get("requires")
+    if requires is not None:
+        if not isinstance(requires, list) or not requires:
+            errors.append("'requires' must be a non-empty list of recipe ids")
+        else:
+            for i, dep in enumerate(requires):
+                if not (isinstance(dep, str) and dep.strip()):
+                    errors.append(f"requires[{i}]: must be a non-empty recipe id string")
+                elif dep == rid:
+                    errors.append("'requires' must not list the recipe itself")
+
     # scope — optional, but if present must be a valid scope
     scope = recipe.get("scope")
     if scope is not None and scope not in VALID_SCOPES:
@@ -519,6 +534,7 @@ def _plan(recipe: dict[str, Any], scope: str, project_dir: str | None) -> dict[s
     """The consent surface: exactly what bootstrap would do, running nothing destructive."""
     method = _pick_install_method(recipe)
     return {
+        "requires": list(recipe.get("requires") or []),
         "detect": _subst(recipe.get("detect", {}).get("command"), scope, project_dir) or None,
         "install": {
             "chosen_method": method.get("id") if method else None,
@@ -683,17 +699,43 @@ def bootstrap(
     """
     Install + configure + verify a recipe, idempotently.
 
-    Phases: detect (skip install if already present) -> install (first method whose
+    If the recipe declares `requires: [<id>, …]`, each prerequisite is bootstrapped
+    first (idempotently, depth-first; a shared prereq runs once; a cyclic one is
+    skipped) and a failed prerequisite aborts before this recipe installs. Then
+    phases: detect (skip install if already present) -> install (first method whose
     `when:` guard passes) -> configure (tool-specific wiring; skipped if already
     present unless force_configure) -> verify (commands that must exit 0).
 
-    Set dry_run=true to get the full plan without executing. `scope` (local|project|
-    user) targets where an mcp-server recipe is wired. `project_dir` is the working
-    dir for configure steps (e.g. where `ataegina init` runs).
+    Set dry_run=true to get the full plan (including `requires`) without executing.
+    `scope` (local|project|user) targets where an mcp-server recipe is wired.
+    `project_dir` is the working dir for configure steps (e.g. where
+    `ataegina init` runs).
+    """
+    return _bootstrap_recipe(recipe_id, scope, dry_run, project_dir, force_configure, set(), ())
+
+
+def _bootstrap_recipe(
+    recipe_id: str,
+    scope: str,
+    dry_run: bool,
+    project_dir: str | None,
+    force_configure: bool,
+    seen: set[str],
+    path: tuple[str, ...],
+) -> dict[str, Any]:
+    """Core of `bootstrap`, recursive over `requires`.
+
+    `path` is the ancestor chain of the current recipe (a back-edge into it is a
+    cyclic prerequisite); `seen` is every recipe already handled in this top-level
+    call (a cross-edge to one is a diamond — bootstrap it only once).
     """
     if scope not in VALID_SCOPES:
         return {"error": f"scope must be one of {VALID_SCOPES}"}
-    recipe = _load_recipe(recipe_id)
+    try:
+        recipe = _load_recipe(recipe_id)
+    except Exception as e:  # noqa: BLE001 - a missing/malformed prereq is a clean failure, not a crash
+        return {"recipe": recipe_id, "ok": False, "error": str(e)}
+
     report: dict[str, Any] = {
         "recipe": recipe_id,
         "kind": recipe.get("kind"),
@@ -706,6 +748,29 @@ def bootstrap(
     if dry_run:
         report["note"] = "Dry run — nothing executed. Review `plan`, then re-run with dry_run=false."
         return report
+
+    seen.add(recipe_id)
+    here = path + (recipe_id,)
+
+    # 0. requires — bootstrap each prerequisite (idempotently) before this recipe.
+    requires = recipe.get("requires") or []
+    if requires:
+        req_reports: list[dict[str, Any]] = []
+        for dep in requires:
+            if dep in here:  # back-edge to an ancestor → cycle; stop, don't recurse
+                req_reports.append({"recipe": dep, "status": "cycle", "reason": "cyclic prerequisite — skipped"})
+                continue
+            if dep in seen:  # already handled elsewhere in this run (diamond) → don't repeat
+                req_reports.append({"recipe": dep, "status": "already-handled", "reason": "bootstrapped earlier in this run"})
+                continue
+            sub = _bootstrap_recipe(dep, scope, dry_run, project_dir, force_configure, seen, here)
+            req_reports.append(sub)
+            if not sub.get("ok", True):
+                report["requires"] = req_reports
+                report["ok"] = False
+                report["error"] = f"prerequisite '{dep}' failed to bootstrap"
+                return report
+        report["requires"] = req_reports
 
     # 1. detect (idempotency gate)
     det_spec = recipe.get("detect", {})

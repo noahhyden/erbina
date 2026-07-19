@@ -21,6 +21,14 @@ kind: cli-tool             # cli-tool | mcp-server
 title: <human title>
 description: <one paragraph; what it is and why>
 
+# REQUIRES — optional. Other recipe ids to bootstrap FIRST (idempotently), before
+# this recipe's own detect/install. Prerequisites are resolved depth-first; a
+# prereq shared by several recipes is bootstrapped once per `bootstrap` call, a
+# cyclic prereq is skipped, and a prerequisite that fails aborts this recipe
+# before it installs. Must not list the recipe itself; every id must name a recipe
+# that ships in the registry (the conformance suite enforces both).
+requires: [<recipe id>, ...]
+
 # 1. DETECT — the idempotency gate. Runs FIRST, every time.
 #    If `command` exits with `expect_exit`, the tool is already present and the
 #    install phase is skipped entirely.

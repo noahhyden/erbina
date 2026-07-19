@@ -7,6 +7,19 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased]
 
+### Added
+
+- **Recipe prerequisites (`requires:`).** A recipe may declare `requires: [<id>,
+  …]` — other recipes that `bootstrap` installs first, idempotently and
+  depth-first, before the recipe's own detect/install. A prerequisite shared by
+  several recipes is bootstrapped once per call, a cyclic prerequisite is skipped
+  (no infinite recursion), and a failed prerequisite aborts the dependent before
+  it installs. `dry_run` lists prerequisites in the plan. Enforced end to end:
+  schema validation (shape + no self-reference), a registry-wide conformance
+  check (every `requires` names a real recipe; the graph is acyclic), and
+  behavioral tests for ordering / idempotency / transitive + diamond deps / cycle
+  safety / failure short-circuiting.
+
 ## [0.1.0] - 2026-07-18
 
 First tagged release. erbina ships as source (a single `server.py` run by
