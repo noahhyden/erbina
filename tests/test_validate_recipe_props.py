@@ -81,6 +81,27 @@ def test_single_defect_is_reported(label, mutate, needle):
     )
 
 
+# --------------------------------------------------------------------------- #
+# WHITESPACE-only fields must be rejected exactly like empty ones — the `.strip()`
+# in each "non-empty string" check is what makes "   " count as empty. (These pin
+# that: mutation testing showed dropping any of those .strip() calls survived,
+# because only empty-string, not whitespace-only, was covered.)
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize("mutate,needle", [
+    (lambda r: r.__setitem__("install", {"methods": [{"id": "  ", "run": "true"}]}), "id"),
+    (lambda r: r.__setitem__("install", {"methods": [{"id": "m", "run": "   "}]}), "run"),
+    (lambda r: r.__setitem__("configure", {"steps": [{"run": "\t"}]}), "run"),
+    (lambda r: r.__setitem__("verify", [{"command": "  "}]), "command"),
+    (lambda r: r.__setitem__("detect", {"command": "\n "}), "command"),
+])
+def test_whitespace_only_field_is_rejected_like_empty(mutate, needle):
+    r = cli_recipe("t")
+    mutate(r)
+    errs = _errs(r)
+    assert errs, "whitespace-only value should be rejected"
+    assert needle in " ".join(errs)
+
+
 def test_id_must_equal_filename_stem():
     r = cli_recipe("realid")
     errs = _errs(r, stem="different_stem")
@@ -165,3 +186,84 @@ def test_corruptions_are_independent():
     # sanity: the pristine copy each test mutates really was valid to begin with
     base = cli_recipe("t")
     assert _errs(copy.deepcopy(base)) == []
+
+
+# --------------------------------------------------------------------------- #
+# never-raise contract: validate_recipe is documented to RETURN a list of error
+# strings for ANY input (it's the shared validator behind _load_recipe AND
+# lint_recipes.py). A hostile type in any field must produce errors, never an
+# exception. This is a fuzz over field VALUES (keys stay strings — non-string
+# KEYS are a separate, pinned bug: see finding #6 below).
+# --------------------------------------------------------------------------- #
+_HOSTILE_VALUES = [
+    None, 0, 1, -1, True, False, 1.5, "", "  ", "x", [], {}, [1, 2], {"a": 1},
+    {"nested": {"deep": [None]}}, ["a", "b"], (1, 2), b"bytes", [[[]]], {"": ""},
+    float("inf"),
+]
+
+
+@pytest.mark.parametrize("field", [
+    "id", "kind", "title", "description", "detect", "install", "configure",
+    "verify", "version", "update", "rollback", "scope",
+])
+def test_validate_never_raises_on_a_hostile_field_value(field):
+    base = cli_recipe("t")
+    for val in _HOSTILE_VALUES:
+        r = copy.deepcopy(base)
+        r[field] = val
+        out = server.validate_recipe(r, stem="t")
+        assert isinstance(out, list), f"{field}={val!r}: expected list, got {type(out)}"
+
+
+@pytest.mark.parametrize("bad", [None, 0, 1.5, True, "str", [], [1, 2], (1,), b"x"])
+def test_validate_never_raises_on_a_non_mapping_recipe(bad):
+    out = server.validate_recipe(bad, stem="t")
+    assert isinstance(out, list) and out  # a non-mapping is reported, not crashed
+
+
+@pytest.mark.parametrize("hostile_step", _HOSTILE_VALUES)
+def test_validate_never_raises_on_a_hostile_nested_member(hostile_step):
+    # a hostile element inside install.methods / verify / configure.steps
+    for setter in (
+        lambda r: r["install"].__setitem__("methods", [hostile_step]),
+        lambda r: r.__setitem__("verify", [hostile_step]),
+        lambda r: r.__setitem__("configure", {"steps": [hostile_step]}),
+    ):
+        r = cli_recipe("t")
+        setter(r)
+        out = server.validate_recipe(r, stem="t")
+        assert isinstance(out, list)
+
+
+# --------------------------------------------------------------------------- #
+# FINDING #6 (FIXED): a non-string TOP-LEVEL key — valid YAML, e.g. a file
+# starting `2024: hi` → {2024: "hi"} — used to crash validate_recipe at the
+# `", ".join(sorted(unknown))` over the unknown-key set (TypeError). Keys are now
+# coerced through str() before sorting/join, so the key is reported as an unknown
+# top-level key instead of crashing _load_recipe / the linter / the tool surface.
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize("bad_recipe", [
+    {2024: "hi", "id": "t", "kind": "cli-tool"},
+    {1: 2},
+    {("tuple",): "k"},
+    {1: 1, "also_bad": 2, 3.5: "x"},   # several non-string + a string unknown key
+])
+def test_non_string_top_level_key_is_reported_not_crashed(bad_recipe):
+    out = server.validate_recipe(bad_recipe, stem="t")
+    assert isinstance(out, list)
+    # the offending key is surfaced as an unknown top-level key, not a crash
+    assert any("unknown top-level key" in e for e in out)
+
+
+def test_non_string_key_name_appears_in_the_error():
+    out = server.validate_recipe({2024: "hi", "id": "t", "kind": "cli-tool"}, stem="t")
+    joined = " ".join(out)
+    assert "unknown top-level key" in joined and "2024" in joined
+
+
+@pytest.mark.parametrize("key", [2024, 1, -1, 3.5, True, None, ("a", "b")])
+def test_validate_never_raises_on_a_hostile_top_level_key(key):
+    base = cli_recipe("t")
+    base[key] = "whatever"
+    out = server.validate_recipe(base, stem="t")
+    assert isinstance(out, list)

@@ -156,12 +156,31 @@ def _extract_version(text: str | None) -> str | None:
     return m.group(1) if m else None
 
 
+def _release_core(token: str) -> str | None:
+    """The leading numeric release segment of a version token (`1.2.3-git…` ->
+    `1.2.3`), or None if the token doesn't start with a number. Used to salvage a
+    comparable version from a token that packaging rejects because of a dev/vcs
+    suffix (`-SNAPSHOT`, `-git20240101`, `-alpha.beta`)."""
+    m = re.match(r"\d+(?:\.\d+)*", token)
+    return m.group(0) if m else None
+
+
 def _version_status(current_out: str | None, latest_out: str | None) -> dict[str, Any]:
     """Compare two raw command outputs and report whether an update is available.
 
-    Extracts a version token from each, parses with `packaging`, and compares.
-    `update_available` is True/False when both parse, or None when either cannot
-    be parsed — so erbina NEVER claims an update it can't actually justify.
+    Extracts a version token from each and compares with `packaging`. The two
+    sides are treated ASYMMETRICALLY on purpose:
+
+    - `latest` must parse cleanly. A dev/vcs-suffixed `latest` (e.g.
+      `1.2.4-SNAPSHOT`) is NOT a release we can justify updating to, so it yields
+      `update_available: None` — erbina never claims an update it can't justify.
+    - `current` may carry such a suffix (real `--version` output often does), so
+      when it fails to parse we fall back to its numeric release core. That lets
+      `1.2.3-git20240101` compare as `1.2.3` against a clean `latest` instead of
+      silently hiding a real update.
+
+    `update_available` is None whenever a side can't be resolved to a comparable
+    version.
     """
     cur, lat = _extract_version(current_out), _extract_version(latest_out)
     if cur is None or lat is None:
@@ -172,9 +191,16 @@ def _version_status(current_out: str | None, latest_out: str | None) -> dict[str
             "reason": "could not parse a version from the command output",
         }
     try:
-        cv, lv = Version(cur), Version(lat)
+        lv = Version(lat)
     except InvalidVersion as e:
-        return {"current": cur, "latest": lat, "update_available": None, "reason": f"unparseable version: {e}"}
+        return {"current": cur, "latest": lat, "update_available": None, "reason": f"unparseable latest version: {e}"}
+    try:
+        cv = Version(cur)
+    except InvalidVersion:
+        core = _release_core(cur)
+        if core is None:  # defensive: an extracted token always has a numeric core
+            return {"current": cur, "latest": lat, "update_available": None, "reason": f"unparseable current version: {cur!r}"}
+        cv = Version(core)
     return {"current": cur, "latest": lat, "update_available": lv > cv}
 
 
@@ -278,10 +304,14 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
     if not isinstance(recipe, dict):
         return [f"recipe must be a YAML mapping, got {type(recipe).__name__}"]
 
-    # ignore the loader-injected internal key when checking the closed key set
+    # ignore the loader-injected internal key when checking the closed key set.
+    # Keys are coerced through str() before sorting/join: YAML permits non-string
+    # mapping keys (a file starting `2024: hi` parses to {2024: "hi"}), and a bare
+    # sorted()/join over mixed or non-string keys would raise — but this function
+    # must always RETURN errors, never crash its callers (_load_recipe, the linter).
     unknown = set(recipe) - TOP_LEVEL_KEYS - {"_path"}
     if unknown:
-        errors.append(f"unknown top-level key(s): {', '.join(sorted(unknown))}")
+        errors.append(f"unknown top-level key(s): {', '.join(sorted(str(k) for k in unknown))}")
 
     # id — present and equal to the filename stem
     rid = recipe.get("id")
@@ -521,10 +551,41 @@ def _claude_json() -> dict[str, Any]:
 _ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
 
+def _resolve_project_root(project_dir: str | None) -> Path | None:
+    """Resolve `project_dir` to an absolute path, or None if it's unusable.
+
+    A pathological value — an embedded NUL byte (`ValueError` from `resolve()`) or
+    an over-long path component (`OSError`/ENAMETOOLONG) — must NOT crash the
+    read-only scope tools; they degrade to "no project scope" (None) instead.
+    """
+    try:
+        return Path(project_dir).resolve() if project_dir else Path.cwd()
+    except (OSError, ValueError):
+        return None
+
+
+def _project_mcp_names(proj_root: Path | None) -> list[str]:
+    """Sorted MCP server names from `<proj_root>/.mcp.json`.
+
+    Tolerates every failure mode — no project root, a missing / unreadable /
+    oversized file (`.exists()` itself can raise ENAMETOOLONG), or malformed /
+    non-object JSON — by returning []. Reading config must never be fatal.
+    """
+    if proj_root is None:
+        return []
+    mcp_json = proj_root / ".mcp.json"
+    try:
+        if not mcp_json.exists():
+            return []
+        return sorted((json.loads(mcp_json.read_text()).get("mcpServers") or {}).keys())
+    except Exception:  # noqa: BLE001 - any read/parse error degrades to no project entries
+        return []
+
+
 def _scope_map(project_dir: str | None = None) -> dict[str, list[str]]:
     """name -> the list of scopes that configure an MCP server with that name."""
     cj = _claude_json()
-    proj_root = Path(project_dir).resolve() if project_dir else Path.cwd()
+    proj_root = _resolve_project_root(project_dir)
     out: dict[str, list[str]] = {}
 
     def add(names: Any, scope: str) -> None:
@@ -532,14 +593,10 @@ def _scope_map(project_dir: str | None = None) -> dict[str, list[str]]:
             out.setdefault(n, []).append(scope)
 
     add((cj.get("mcpServers") or {}).keys(), "user")
-    local_entry = (cj.get("projects") or {}).get(str(proj_root), {})
-    add((local_entry.get("mcpServers") or {}).keys(), "local")
-    mcp_json = proj_root / ".mcp.json"
-    if mcp_json.exists():
-        try:
-            add((json.loads(mcp_json.read_text()).get("mcpServers") or {}).keys(), "project")
-        except Exception:  # noqa: BLE001
-            pass
+    if proj_root is not None:
+        local_entry = (cj.get("projects") or {}).get(str(proj_root), {})
+        add((local_entry.get("mcpServers") or {}).keys(), "local")
+    add(_project_mcp_names(proj_root), "project")
     return out
 
 
@@ -1025,20 +1082,16 @@ def audit_scopes(project_dir: str | None = None) -> dict[str, Any]:
     project_dir or CWD). Read-only.
     """
     cj = _claude_json()
-    proj_root = Path(project_dir).resolve() if project_dir else Path.cwd()
+    proj_root = _resolve_project_root(project_dir)
+    root_str = str(proj_root) if proj_root is not None else f"{project_dir!r} (could not be resolved)"
 
     user = sorted((cj.get("mcpServers") or {}).keys())
 
-    local_entry = (cj.get("projects") or {}).get(str(proj_root), {})
+    local_entry = (cj.get("projects") or {}).get(str(proj_root), {}) if proj_root is not None else {}
     local = sorted((local_entry.get("mcpServers") or {}).keys())
 
-    project: list[str] = []
-    mcp_json = proj_root / ".mcp.json"
-    if mcp_json.exists():
-        try:
-            project = sorted((json.loads(mcp_json.read_text()).get("mcpServers") or {}).keys())
-        except Exception:  # noqa: BLE001
-            project = []
+    project = _project_mcp_names(proj_root)
+    mcp_json_where = str(proj_root / ".mcp.json") if proj_root is not None else "(no resolvable project dir)"
 
     # surface the classic confusion: same server name living in more than one scope
     by_name: dict[str, list[str]] = {}
@@ -1048,12 +1101,12 @@ def audit_scopes(project_dir: str | None = None) -> dict[str, Any]:
     shadowed = {n: s for n, s in by_name.items() if len(s) > 1}
 
     return {
-        "project_root": str(proj_root),
+        "project_root": root_str,
         "precedence": "local > project > user (highest wins; fields are not merged)",
         "scopes": {
             "user": {"where": str(Path.home() / ".claude.json") + " (top-level mcpServers)", "servers": user},
-            "project": {"where": str(mcp_json) + " (shared via git)", "servers": project},
-            "local": {"where": str(Path.home() / ".claude.json") + f" (projects['{proj_root}'].mcpServers)", "servers": local},
+            "project": {"where": mcp_json_where + " (shared via git)", "servers": project},
+            "local": {"where": str(Path.home() / ".claude.json") + f" (projects['{root_str}'].mcpServers)", "servers": local},
         },
         "shadowed": shadowed or "none — no server name is defined in more than one scope",
         "total_distinct": len(by_name),

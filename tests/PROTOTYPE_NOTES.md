@@ -198,11 +198,343 @@ changes, bugs, and development possibilities.
   Red-team: guard-always-eligible (3 caught), non-mapping-swallowed (5 caught);
   stable x2.
 
-## Status: steady state
+### Iteration 11 (2026-07-18) — resumed loop; version-parse robustness
+- **Log/reality gap:** this log stalled at iteration 10 (168 tests) but the suite
+  had since grown to **417 passed / 16 skipped** via later PRs (more recipes, the
+  linter policy, conformance + integration + readme-gallery + version tests).
+  Re-baselined here; resuming disciplined logging.
+- Objective gap-finding via `--cov=server`: 95% (27 stmts uncovered, mostly
+  defensive arms). Targeted the one uncovered branch that is a real *behavioral*
+  path, not just a guard: `_version_status`'s `except InvalidVersion` arm
+  (server.py:176-177).
+- **CANDIDATE FINDING #4 (documented, NOT fixed — validate next iteration):**
+  `_extract_version`'s regex (`v?(\d+\.\d+(?:\.\d+)?(?:[-.]…)?)`) is strictly
+  more permissive than `packaging.Version`. It extracts tokens like
+  `1.2.3-git20240101`, `2.0-SNAPSHOT`, `1.2.3-alpha.beta`, `10.20.30-rc.1.2.3`
+  that `Version()` then rejects, so `check_updates` reports `update_available:
+  None` with reason `"unparseable version: …"`. Safe (never a false update) but
+  **lossy**: current `1.2.3-git20240101` vs latest `1.2.4` is silently NOT
+  flagged, though the release core `1.2.3` is clearly older. Confirmed live
+  through the tool surface (not just the helper).
+- Added to `test_check_updates.py` (+5 tests, 417 → 422): a parametrized safety
+  test over four packaging-illegal-but-extractable strings (covers the
+  InvalidVersion arm + pins the DISTINCT `"unparseable version:"` reason vs the
+  no-token `"could not parse a version"` reason), a `test_CURRENT_*`
+  characterization pinning the missed-update, and a reason assertion on the
+  existing no-token test.
+- Red-team: **M1** InvalidVersion arm → `update_available: True` (false update):
+  5 RED. **M2** collapse the two reasons into one: 4 RED (proves the distinct-
+  reason assertion isn't a false pass). Revert → 14/14 green. Suite stable at
+  422 across 2 repeats + new-file-first ordering; ruff + recipe-lint clean.
+  → **Next iteration:** re-confirm #4, then likely fix by having `_version_status`
+    fall back to the numeric release core (`re.match(r"\d+(\.\d+)*", tok)`) when
+    the full token fails `Version()`, so suffixed versions still compare. Flip
+    `test_CURRENT_suffixed_current_misses_a_real_update` to expect the update.
+
+### Iteration 12 (2026-07-18) — red-teamed my OWN fix; uncovered-branch sweep
+- **Pushed back on iteration 11's proposed fix and rejected it (for now).**
+  Iter 11 proposed "fall back to the numeric release core on BOTH sides." Bench
+  test showed that's unsafe: if `latest` is an unparseable dev build (e.g.
+  `1.2.4-SNAPSHOT`), reducing it to core `1.2.4` would flag an update to a
+  non-release — against erbina's "never claim an update it can't justify" ethos.
+  (Also learned `1.2.4-alpha.1` already parses via packaging today, so the
+  prerelease worry is narrower than feared.) → Sharpened the fix plan: fall back
+  to the core for **`current` only**, and **require a clean `latest`**. Pinned
+  the invariant with `test_CURRENT_unparseable_latest_is_not_claimed_as_an_update`
+  so the eventual fix can't regress it. Finding #4 stays UNFIXED — now validated
+  twice, ready to fix next iteration with the corrected asymmetric approach.
+- **Uncovered-branch sweep** (95% → **97%**, missing 27 → 19 lines), targeting
+  real behavioral paths not just guards:
+  - `remove_mcp` LIVE (non-dry) exit mapping (server.py:1112-1118): +2 tests via
+    a monkeypatched `_run` — success → `removed`/`ok`, nonzero exit → `removed:
+    None`/`failed`. Previously only dry-run/error paths ran.
+  - `check_updates` load-error split (server.py:762-765): +2 tests — an explicit
+    unloadable `recipe_id` surfaces the `_load_recipe` refusal; a bulk scan skips
+    it and still reports the good recipes.
+- Suite 422 → **427**. Red-team: **M1** remove_mcp always-`ok` → failure test
+  RED; **M2** explicit-load-error swallowed → explicit test RED; both revert
+  green. Stable at 427 across 2 repeats + new-files-first ordering; ruff +
+  recipe-lint clean.
+- Remaining uncovered (19 lines) are near-pure defensive guards (`_run`'s BLE
+  catch 104-105, validate non-mapping method arms, `_plan` unbalanced-quote
+  fallback, `_recipe_ids` no-dir, `audit_scopes` broken-json 1040-1041,
+  `mcp.run()` 1122). Low value; will pick off only if a behavioral angle appears.
+
+### Iteration 13 (2026-07-18) — APPLIED FIX for finding #4 (asymmetric)
+- **Fixed #4** (validated twice, iters 11–12): `_version_status` now handles the
+  two sides asymmetrically. `latest` must parse cleanly (an unparseable dev build
+  is never offered as an update → `None` with `"unparseable latest version:"`);
+  `current` falls back to its numeric **release core** via the new `_release_core`
+  helper when packaging rejects it, so `1.2.3-git20240101` compares as `1.2.3`.
+  The asymmetry is the whole point — it recovers real updates without ever
+  over-claiming (erbina's ethos). Confirmed live: `1.2.3-git20240101` vs `1.2.4`
+  → update **True** (was silently `None`); `1.2.3` vs `1.2.4-SNAPSHOT` → `None`.
+- Flipped the iter-11/12 characterization tests to assert the fixed behavior:
+  parametrized `test_suffixed_current_compares_on_release_core` (5 cases incl.
+  equal-core → up-to-date and higher-core → no-downgrade), a strict
+  `test_unparseable_latest_is_not_claimed_as_an_update`, and a monkeypatched
+  `test_uncoercible_current_degrades_gracefully` covering the defensive
+  core-is-None arm (unreachable for real tokens, but reports rather than crashes).
+- Updated SCHEMA.md's "Version checks" section to document the asymmetric rule.
+- Suite 427 → **428**, still 97% server.py coverage (new fn region fully covered).
+  Red-team (3 mutations): latest-not-strict → unparseable-latest test RED;
+  drop-current-fallback → 6 RED; `>`→`>=` → equal-core + bulk tests RED; all
+  revert green. Stable at 428 across 2 repeats + order variation; ruff +
+  recipe-lint + byte-compile clean.
+
+### Iteration 14 (2026-07-18) — red-teamed the #4 fix; locked its edges
+- **Adversarially probed the new asymmetric version fix** against edges it might
+  mishandle: local `+build` segments, epoch (`1!2.0`), `v`-prefix on both sides,
+  whitespace, PEP440-parseable prereleases, and both-sides-same-dev-build. The
+  fix held on every common case — **no new bug** (a validating result: red-team
+  found no false pass in my own fix). Notable characterizations pinned:
+  - a suffixed CURRENT compares on its release core (`1.2.3-git…` → `1.2.3`);
+  - `latest` stays strict (unparseable → None), including when BOTH sides are the
+    same dev build — safe by design; guidance is "make `latest` print a clean
+    release" (not "up to date", but never a false update);
+  - a `+build` local segment is stripped by extraction, so build-metadata-only
+    differences are correctly not flagged.
+- Added 15 regression tests to `test_version.py` (pure-function level, the right
+  home — no duplication with the tool-level flips in `test_check_updates.py`):
+  `_release_core` unit table, release-core comparison table, strict-latest table,
+  both-dev-build characterization, local-segment. Suite 428 → **443**.
+- Confirmed `update`'s verify→rollback orchestration (867-1013, the branchiest
+  tool) is already fully covered by `test_update.py`/`test_rollback.py` — no gap.
+- Red-team: `_release_core`-truncated (6 RED) and latest-non-strict (4 RED)
+  mutations both caught; revert green. Stable at 443 across 2 repeats + order
+  variation; ruff + recipe-lint clean.
+- Backlog note (NOT worth a test): epoch (`1!x`) and non-common local segments are
+  dropped by `_extract_version`; astronomically rare in real `--version` output.
+
+### Iteration 15 (2026-07-18) — extend to REAL tools: version-output corpus
+- **New surface: `_extract_version` vs authentic `--version` output.** Built a
+  24-line corpus of real formats from the tools erbina installs (git, jq, ripgrep,
+  go's `go1.22.0`, uv's `0.5.11 (hash date)`, eza's blurb+`v0.20.5`, bottom's
+  `btm`, tealdeer's `tldr`, …) plus common runtimes. **All 24 extract correctly** —
+  the regex is robust on the happy path. Captured as `test_real_version_output.py`
+  (regression guard that would catch a regex change silently breaking
+  `check_updates` for a whole class of tools). Suite 443 → **471**.
+- **CANDIDATE FINDING #5 (characterized, NOT fixed):** "first version-looking
+  token wins", so a dotted date/number appearing BEFORE the real version is
+  misextracted — `Built 2024.01.15, version 2.3.4` → `2024.01.15`;
+  `release 10.0 build 2.3.4` → `10.0`. Pinned with `test_CURRENT_leading_dotted_
+  number_shadows_the_real_version`. **None of the 16 versioned recipes trigger it**
+  (their outputs are single clean lines), so it's a latent limitation, not an
+  active bug → validate 1-2 iters before deciding. A fix (prefer the token after
+  "version"/"v", or skip a leading 4-digit year) is a real design call.
+- Red-team of the CORPUS itself (guard against a false pass): `search`→`match`
+  mutation → 27 RED (proves non-anchored extraction is exercised); a naive
+  drop-patch-segment mutation PASSED but is semantically equivalent (the suffix
+  group re-absorbs `.0`) — so I used a real truncation (major.minor only) → 26 RED,
+  proving patch-level sensitivity. Stable at 471 across 2 repeats + ordering; ruff
+  + recipe-lint clean.
+
+### Iteration 16 (2026-07-18) — fuzzed validate_recipe; found a real crash (#6)
+- **Fuzzed `validate_recipe` with a hostile-type matrix** (per-field value
+  corruption + non-mapping + nested members): 576 inputs. It's the shared
+  never-raise validator behind `_load_recipe` AND `lint_recipes.py`, documented to
+  RETURN an error list for any input.
+- **CONFIRMED FINDING #6 (pinned, fix next iteration):** a non-string TOP-LEVEL
+  key — valid YAML, e.g. a recipe file starting `2024: hi` → `{2024: "hi"}` —
+  crashes `validate_recipe` at `", ".join(sorted(unknown))` over the unknown-key
+  set (`TypeError: sequence item 0: expected str`). Reproduced END-TO-END through
+  the tool surface: `inspect_recipe`/`bootstrap`/`check_updates` (explicit load)
+  surface a cryptic `ToolError` instead of a clean "unknown top-level key" refusal,
+  and `lint_recipes.py` would crash in CI. `list_recipes` (bulk) survives (per-
+  recipe catch). Pinned with a **strict xfail** (3 cases: int/tuple keys); the fix
+  (`sorted(str(k) for k in unknown)`) will XPASS→fail and prompt marker removal.
+- Added never-raise regression guards (green today): hostile field values (12
+  fields), non-mapping recipe (9 types), hostile nested members (21 types) — 42
+  passing assertions locking the contract for everything EXCEPT the #6 key path.
+- Suite 471 → **513 passed, 3 xfailed**. Red-team: dropping a verify non-dict
+  guard → 18 never-raise cases RED (proves the fuzz is sensitive, not a false
+  pass); revert green. Stable across 2 repeats + ordering; ruff + recipe-lint clean.
+- **Finding #5 decision (deferred as documented limitation, like #3(1)):** the
+  leading-dotted-number misextraction is validated (1 iter) and NOT worth fixing —
+  a heuristic (prefer token after "version"/skip a leading year) risks regressing
+  the clean 24-format real corpus, and no recipe triggers it. Kept as a pinned
+  `test_CURRENT_*` characterization.
+
+### Iteration 17 (2026-07-18) — APPLIED FIX for finding #6
+- **Fixed #6** (validated iter 16): `validate_recipe` coerces top-level keys
+  through `str()` before `sorted(...)`/`join` (`sorted(str(k) for k in unknown)`),
+  so a non-string YAML key (`2024: hi` → `{2024: "hi"}`) is reported as an
+  "unknown top-level key(s): 2024" error instead of crashing with a `TypeError`.
+  Note the bare form could crash TWO ways (join on non-str, and `sorted` on
+  mixed-type keys) — the `str()` map fixes both.
+- Verified END-TO-END: a `2024: hi` recipe file now flows through
+  `inspect_recipe`/`_load_recipe` as a clean `ValueError` ("malformed and was
+  refused", listing the unknown key) — the intended refusal — not a cryptic
+  internal `TypeError`. The linter (`lint_recipes.py`) is likewise safe now.
+- Flipped the 3 strict-xfail cases to a passing regression test (+ a mixed
+  key case, + a name-appears-in-error assertion), and added a 7-case hostile
+  top-level KEY fuzz guard (int/float/bool/None/tuple). Suite 513 → **525**,
+  0 xfailed.
+- Red-team: reverting the fix → 12 RED (the non-string/hostile-key tests);
+  restore → green. Stable at 525 across 2 repeats + ordering; ruff + recipe-lint
+  + byte-compile clean.
+
+### Iteration 18 (2026-07-18) — fuzzed the TOOL entry points; found #7
+- **Fuzzed every MCP tool's args** (recipe_id / scope / project_dir / name +
+  pin's `pinned`) with adversarial strings — the tools should return an error
+  dict, never let an exception escape to the client.
+- **Two observations:**
+  - `inspect_recipe`/`bootstrap`/`update` propagate a `_load_recipe` error as a
+    ToolError on a bad `recipe_id` (whereas `check_updates` catches it and returns
+    `{"error": …}`). Judged intentional, not a bug: fastmcp surfaces the clean,
+    helpful `ValueError` message ("no recipe 'x'. Available: …") to the client.
+    Documented, not flagged.
+  - **CONFIRMED FINDING #7 (pinned, fix next iteration):** a pathological
+    `project_dir` crashes the scope surface with a RAW exception instead of
+    degrading to the user-scope map — despite that code going out of its way to
+    tolerate a missing/malformed `.mcp.json`. Two vectors: an over-long path
+    component → `OSError` (ENAMETOOLONG) at `mcp_json.exists()` (the `.exists()`
+    sits OUTSIDE the guarding try), and an embedded NUL byte → `ValueError` at
+    `Path(project_dir).resolve()`. The gap is DUPLICATED in **both** `_scope_map`
+    AND `audit_scopes` (they hand-roll the same config read), so it hits
+    audit_scopes/bootstrap/check_updates/remove_mcp. (A project_dir routed
+    through a regular file → ENOTDIR already degrades fine; pinned as a passing
+    test.)
+- Pinned with strict xfails (long-path + NUL for `_scope_map`; long-path for
+  `audit_scopes`). Validated by applying the candidate fix (guard `resolve()` and
+  `exists()`/read with `(OSError, ValueError)`): the two `_scope_map` xfails XPASS,
+  while `audit_scopes` stays red — proving the fix must touch BOTH sites, not just
+  the helper. Reverted. (Note: a stale `.pyc` briefly masked the XPASS — cleared.)
+- Suite 525 → **526 passed, 3 xfailed**. Stable across 2 repeats + ordering; ruff
+  + recipe-lint clean.
+
+### Iteration 19 (2026-07-18) — APPLIED FIX for finding #7 (+ de-duplication)
+- **Fixed #7** (validated iter 18): funneled the project-config read through two
+  new shared helpers — `_resolve_project_root` (catches `(OSError, ValueError)`
+  from `resolve()` → None) and `_project_mcp_names` (guards `.exists()`/read/parse,
+  including a non-object `.mcp.json` → []). Both `_scope_map` and `audit_scopes`
+  now call them, so the crash is fixed in BOTH sites AND the duplicated hand-rolled
+  read is gone. A pathological `project_dir` now degrades to the user-scope map
+  instead of raising. Verified end-to-end through `audit_scopes`.
+- **Red-team caught my OWN wrong mental model** (exactly the point of red-teaming):
+  I assumed the over-long path fails at `resolve()`, but `resolve()` doesn't touch
+  the fs — it only trips later at `.exists()`. So the NUL vector → unresolved root
+  (None), while the long-path vector → resolves fine but project scope degrades to
+  []. Two of my first-draft assertions were wrong and failed; corrected to reflect
+  the two distinct failure points (and split into precise tests).
+- Fix mutations: unguarding `resolve()` → NUL tests RED; unguarding `.exists()` →
+  long-path + non-object-json tests RED; revert green.
+- Suite 526 → **534**, 0 xfailed. **server.py coverage 97% → 99%** (only `_run`'s
+  BLE catch, `_recipe_ids` no-dir, and `mcp.run()` remain). Stable across 2 repeats
+  + ordering; ruff + recipe-lint + byte-compile clean.
+
+### Iteration 20 (2026-07-18) — last testable branches → effective 100%
+- Covered the final reachable branches: `_run`'s generic `except` (a nonexistent
+  `cwd` makes `subprocess.run` itself raise — distinct from a shell nonzero exit —
+  and `_run` must report exit 1, not raise); `lint_recipe_policy`'s verify-honesty
+  unbalanced-quote `shlex.split` fallback (+ empty/non-dict verify entries); and
+  `_recipe_ids` over a missing `RECIPES_DIR`. Suite 534 → **544**; server.py now
+  **99% with only `mcp.run()` (the unreachable stdio entry point) uncovered** —
+  effectively 100% of testable code.
+- Red-team of the new tests: `_run` narrow-except → RED; lint quote-fallback
+  removed → RED; **but `_recipe_ids`-guard removed → still GREEN.** That exposed a
+  false discriminator in my OWN test: `Path.glob` already returns empty on a
+  missing dir, so the `if not RECIPES_DIR.exists()` guard is belt-and-suspenders
+  and my first comment ("rather than raising on the glob") was inaccurate.
+  Corrected the comment to pin the CONTRACT, not that redundant guard. (Left the
+  guard: it states intent clearly and is harmless; not worth product churn.)
+- Stable at 544 across 2 repeats + ordering; ruff + recipe-lint clean.
+
+### Iteration 21 (2026-07-18) — mutation sweep: kill surviving mutants
+- Coverage is done (effective 100%), so pivoted to a **whole-file mutation sweep**
+  (comparison/boolean/constant operators, one at a time, full suite each) to find
+  SURVIVING mutants — behaviors no assertion catches. Most "survivors" were
+  docstring/comment prose (mutating a string literal is a no-op) or
+  equivalent-mutant dead initializers (`detected=False`/`installed=False` are
+  always overwritten because `detect.command` is required). Filtered to the real
+  ones and confirmed each survives individually:
+  - **L993** `update` success never asserted `recorded is True` (test_state's
+    `recorded` assertion covers a different path) → added the assertion.
+  - **L856** `check_updates` `pinned_with_update` used `... and ...`; the only pin
+    test used a pinned tool WITH an update, so `and`/`or` were indistinguishable →
+    added `test_pinned_but_current_tool_is_not_reported_as_skipped` (a pinned but
+    CURRENT tool must not show the "Pinned (skipped…)" hint).
+  - **L994** the no-op note (`before and after and before==after`) was only tested
+    for the equal case, never asserted ABSENT when versions differ → added that
+    assertion to the before/after test.
+- All three mutants now KILLED (re-applied individually → each goes red); revert
+  green. Suite 544 → **545**.
+- **Red-team caught a self-inflicted error:** the collected-test count didn't rise
+  by the expected +1, which exposed that my edit had accidentally swallowed
+  `test_noop_update_reports_already_current`'s `def` line (its body merged into the
+  prior test). Restored it. (The count cross-check is why it surfaced — a reminder
+  to verify test *counts*, not just green.) Stable at 545 across repeats + order;
+  ruff + recipe-lint clean.
+
+### Iteration 22 (2026-07-18) — second mutation pass (slicing/method/const ops)
+- Ran a second sweep with new operators (slicing, indexing, `sorted→list`,
+  `rpartition→partition`, `.strip()` removal, `not in→in`, timeout constants):
+  25 survivors / 63 mutations. Triaged:
+  - **Benign / equivalent:** `sorted→list` (error-message + returned-list ordering,
+    never asserted), `is None` inside a docstring string, `not in→in` in
+    `_parse_mcp_list` connected-detection (masked by the downstream
+    `connected and not failed`), and — importantly — **all `timeout=30/60→1`
+    survivors are NOT behaviorally testable** without slow/flaky tests (builtin
+    prototype commands finish instantly), so they're accepted, not chased.
+  - **Real gap:** the `.strip()` in each "non-empty string" validation check
+    (install method `id`/`run`, configure `run`, verify `command`, and the lint
+    policy `when` guard) survived — only EMPTY string, never WHITESPACE-only, was
+    covered, yet `.strip()` is exactly what makes `"   "` count as empty.
+- Added `test_whitespace_only_field_is_rejected_like_empty` (5 fields) and
+  `test_blank_or_missing_when_guard_flagged` (4 cases). All 5 `.strip()` mutants
+  now KILLED (re-applied individually → red); revert green. Suite 545 → **554**
+  (collected-count cross-check confirmed +9, per last iteration's lesson).
+- Stable at 554 across 2 repeats + ordering; ruff + recipe-lint clean.
+
+### Iteration 23 (2026-07-18) — third mutation pass: clean → loop concludes
+- Scoped mutation pass over the less-mutated logic (`_subst`, `_pick_method`,
+  `_pick_install_method`, `_plan`, `inspect_recipe`, `find_dead_mcps`): 37
+  survivors / 140 mutations, but **triage found NO genuine test gap.** Every
+  survivor is one of:
+  - docstring/comment/string-literal prose (a `->`, `and`/`or`, or `in` matched
+    inside text — mutating a string is a no-op);
+  - an equivalent mutant: `.pop`↔`.get` on a dict re-read every call (same value,
+    the source mutation never observed), or `return [], None` where the `None`
+    source short-circuits before the list is used;
+  - a `_parse_mcp_list` classification sub-clause masked by the intentional
+    downstream guards (`connected and not failed`; `if not (connected or failed):
+    continue`). **Concretely verified**: the L623 `or`/`not` mutations change the
+    result ONLY for a bare `"Connected"` status with no ✔/✘ marker — a format
+    `claude mcp list` never emits. For every realistic status the classification
+    is identical, so pinning it would lock an internal heuristic, not a contract.
+- No code/test change this iteration (finding a real gap is the bar; there wasn't
+  one). Three mutation passes total killed 8 real weak-assertion mutants
+  (iters 21–22); this pass returning only noise/equivalents is the signal that
+  the eval is thoroughly hardened.
+
+## Status: LOOP CONCLUDED — comprehensive, mutation-hardened, CI-green
+The behavioral/red-team harness is complete for the current codebase:
+- **554 tests, 99% (effective 100%) server.py coverage** — only the unreachable
+  `mcp.run()` stdio entry point is uncovered.
+- All 6 MCP tools + every helper + load/validate/run/scope edges covered.
+- **6 robustness findings fixed**, each validated ≥1 iteration before the fix and
+  mutation-tested: #1 parse misclassification, #2 unterminated `${`, #3(2)
+  non-optional configure gate, #4 permissive version regex, #6 non-string
+  top-level key crash, #7 pathological project_dir crash.
+- **2 limitations documented/deferred**: #3(1) configure-skip asymmetry, #5
+  leading-dotted-number shadows the version.
+- **3 mutation passes**; 8 surviving weak-assertion mutants killed; the final pass
+  found only equivalent mutants.
+- CI green (lint / Linux+macOS tests / py3.10 floor / release-verify); PR #28.
+
+The loop is winding down: further iterations would manufacture low-value tests
+rather than find real defects. Restart with `/loop` whenever new recipes, tools,
+or features add behavior worth red-teaming.
+
+<!-- historical status snapshot (superseded by "LOOP CONCLUDED" above) -->
 Comprehensive coverage reached — all 6 tools + all helpers + load/validate/run
-edges, 168 tests, 3 bugs fixed (all validated before fixing), 1 design quirk
-documented. Remaining ideas are low-value; the loop can wind down or continue
-opportunistically.
+edges, **554 tests, 99% (effective 100%) server.py coverage**, **6 bugs/robustness findings fixed**
+(all validated ≥1 iteration before fixing: #1 parse misclassification, #2
+unterminated `${`, #3(2) non-optional configure gate, #4 permissive version
+regex, #6 non-string top-level key crashes validate_recipe, #7 pathological
+project_dir crashes the scope surface), and 2 limitations documented/deferred
+(#3(1) configure-skip asymmetry, #5 leading-dotted-number shadows the version).
+The loop continues opportunistically, one validated finding at a time.
 
 ## Backlog (low value)
 - A tiny CI smoke that imports the harness modules (guards against renames).

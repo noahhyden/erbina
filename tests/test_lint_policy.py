@@ -46,6 +46,17 @@ def test_unguarded_install_method_flagged():
     assert any("guard" in p for p in problems)
 
 
+@pytest.mark.parametrize("when", ["", "   ", "\t", None])
+def test_blank_or_missing_when_guard_flagged(when):
+    # a whitespace-only `when` is as good as no guard (mutation guard: the check
+    # strips the guard string before testing it for emptiness).
+    method = {"id": "m", "run": "true"}
+    if when is not None:
+        method["when"] = when
+    r = cli_recipe("t", install={"methods": [method]})
+    assert any("guard" in p for p in server.lint_recipe_policy(r))
+
+
 def test_policy_ignores_non_mapping():
     assert server.lint_recipe_policy("not a dict") == []
 
@@ -86,6 +97,33 @@ def test_verify_honesty_flags_the_right_index():
     problems = [p for p in server.lint_recipe_policy(r) if "filesystem" in p]
     assert len(problems) == 1
     assert "verify[1]" in problems[0]
+
+
+def test_verify_honesty_survives_unbalanced_quotes_and_still_flags():
+    # a verify command with an unbalanced quote makes shlex.split raise; the check
+    # must NOT crash — it falls back to a rough split and still catches the
+    # file-inspecting first word (`find`).
+    r = _valid_policy_recipe()
+    r["verify"] = [{"command": 'find "unterminated /usr/bin/foo'}]
+    problems = server.lint_recipe_policy(r)
+    assert any("verify" in p and "filesystem" in p for p in problems), problems
+
+
+def test_verify_honesty_survives_unbalanced_quotes_on_an_honest_cmd():
+    # same broken-quote path, but the first word runs the tool -> not flagged
+    r = _valid_policy_recipe()
+    r["verify"] = [{"command": 'foo --json "unterminated'}]
+    assert not any("filesystem" in p for p in server.lint_recipe_policy(r))
+
+
+@pytest.mark.parametrize("bad_entry", [{"command": "   "}, {"command": ""}, {}, "notadict", None])
+def test_verify_honesty_skips_empty_or_non_dict_entries(bad_entry):
+    # an empty/blank command or a non-mapping verify entry contributes no
+    # filesystem-honesty problem (and never raises) — that's a schema concern,
+    # handled elsewhere.
+    r = _valid_policy_recipe()
+    r["verify"] = [bad_entry]
+    assert not any("filesystem" in p for p in server.lint_recipe_policy(r))
 
 
 # --------------------------------------------------------------------------- #

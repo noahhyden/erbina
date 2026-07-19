@@ -48,3 +48,21 @@ def test_validate_recipe_rejects_non_mapping(bad):
 def test_validate_recipe_non_mapping_short_circuits_to_single_error():
     # a non-dict can't have fields checked, so exactly one (clear) error is best
     assert len(server.validate_recipe(None, stem="x")) == 1
+
+
+# --------------------------------------------------------------------------- #
+# _recipe_ids over a nonexistent RECIPES_DIR
+# --------------------------------------------------------------------------- #
+def test_recipe_ids_is_empty_when_recipes_dir_is_missing(tmp_path, monkeypatch):
+    # contract: a missing RECIPES_DIR yields [] (drives list_recipes/check_updates
+    # bulk scans off an empty set). NB: the explicit `if not exists` guard in
+    # _recipe_ids is belt-and-suspenders — Path.glob already returns empty on a
+    # missing dir — so this test pins the CONTRACT, not that specific guard.
+    monkeypatch.setattr(server, "RECIPES_DIR", tmp_path / "no_such_dir")
+    assert server._recipe_ids() == []
+
+
+def test_list_recipes_is_empty_when_recipes_dir_is_missing(tmp_path, monkeypatch):
+    monkeypatch.setattr(server, "RECIPES_DIR", tmp_path / "gone")
+    from helpers import call_tool
+    assert call_tool("list_recipes", {}) == []

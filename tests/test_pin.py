@@ -75,6 +75,21 @@ def test_check_updates_includes_unpinned_update():
     assert out["updates_available"] == ["t"]
 
 
+def test_pinned_but_current_tool_is_not_reported_as_skipped():
+    # a pinned tool with NO newer version must NOT show up in the
+    # "Pinned (skipped despite an update)" hint — that hint is only for a pin
+    # that actually hides an available update. (mutation guard: pinned_with_update
+    # is update_available AND pinned, not OR.)
+    with registry(_versioned("t", current="1.0.0", latest="1.0.0")):
+        call_tool("pin", {"recipe_id": "t"})
+        out = call_tool("check_updates", {"recipe_id": "t"})
+    entry = out["checked"][0]
+    assert entry["pinned"] is True
+    assert entry["update_available"] is False       # already current
+    assert out["updates_available"] == []
+    assert "Pinned (skipped" not in out["hint"]     # nothing was skipped
+
+
 # --------------------------------------------------------------------------- #
 # update honors pins
 # --------------------------------------------------------------------------- #

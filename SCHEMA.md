@@ -108,8 +108,20 @@ For each such recipe erbina:
 3. compares them with [`packaging`](https://packaging.pypa.io) semantics (numeric,
    not lexical; a release outranks its pre-releases).
 
-If either output has no parseable version, `update_available` is `null` — erbina
-never claims an update it can't justify.
+The two sides are treated **asymmetrically** so that real-world `--version` output
+still yields a useful answer without ever over-claiming:
+
+- **`current`** may carry a dev/vcs suffix that `packaging` can't parse
+  (`1.2.3-git20240101`, `2.0-SNAPSHOT`, `1.2.3-alpha.beta`). When it does, erbina
+  falls back to the numeric **release core** (`1.2.3`, `2.0`, …) for the
+  comparison, so a suffixed installed version still surfaces a genuinely newer
+  release instead of hiding it.
+- **`latest`** must parse cleanly. A dev/vcs-suffixed `latest` is not a release
+  erbina will offer as an update, so it yields `update_available: null`.
+
+If either side has no version token at all — or `latest` won't parse —
+`update_available` is `null`, with a `reason`. erbina never claims an update it
+can't justify.
 
 ## Applying updates (`update`)
 

@@ -4,6 +4,8 @@ so the whole check is deterministic and side-effect free.
 """
 from __future__ import annotations
 
+import pytest
+
 from helpers import call_tool
 from prototype import FALSE, TRUE, cli_recipe, registry
 
@@ -93,10 +95,84 @@ def test_bulk_scan_over_multiple_versioned_recipes():
 
 
 # --------------------------------------------------------------------------- #
+# load failures: an EXPLICIT recipe_id surfaces the error; a bulk scan skips the
+# unloadable recipe and still reports the good ones (server.py:762-765).
+# --------------------------------------------------------------------------- #
+def test_explicit_unloadable_recipe_surfaces_error():
+    with registry(_versioned("good")) as tmp:
+        (tmp / "broken.yaml").write_text("id: broken\nkind: not-a-kind\n")  # fails validate
+        out = call_tool("check_updates", {"recipe_id": "broken"})
+    assert "error" in out
+    assert "malformed" in out["error"]  # the _load_recipe refusal is surfaced verbatim
+
+
+def test_bulk_scan_skips_an_unloadable_recipe():
+    with registry(_versioned("good", current="1.0.0", latest="2.0.0")) as tmp:
+        (tmp / "broken.yaml").write_text("id: broken\nkind: not-a-kind\n")
+        out = call_tool("check_updates", {})  # no recipe_id -> scan all
+    # broken is silently skipped; the good versioned recipe is still checked
+    assert {e["id"] for e in out["checked"]} == {"good"}
+    assert out["updates_available"] == ["good"]
+
+
+# --------------------------------------------------------------------------- #
 # unparseable version output never claims an update
 # --------------------------------------------------------------------------- #
 def test_unparseable_version_output_is_safe():
     out = _check(_versioned("t", current="whoknows", latest="2.0.0"))
     entry = out["checked"][0]
     assert entry["update_available"] is None
+    assert out["updates_available"] == []
+    # no version token at all -> the "could not parse" branch (server.py:167-172)
+    assert entry["reason"] == "could not parse a version from the command output"
+
+
+# --------------------------------------------------------------------------- #
+# FINDING #4 (fixed): the extraction regex is more permissive than packaging, so
+# a `current` version with a dev/vcs suffix (`1.2.3-git20240101`, `2.0-SNAPSHOT`,
+# `1.2.3-alpha.beta`) fails packaging.Version(). `_version_status` now falls back
+# to the numeric release CORE for `current` (server.py `_release_core`), so a
+# suffixed current still compares against a clean `latest` instead of hiding a
+# real update. `latest` stays strict (see the unparseable-latest test below).
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize(
+    "current,latest,expected",
+    [
+        ("1.2.3-git20240101", "1.2.4", True),   # core 1.2.3 < 1.2.4 -> update
+        ("2.0-SNAPSHOT", "2.1.0", True),        # core 2.0   < 2.1.0 -> update
+        ("1.2.3-alpha.beta", "1.3.0", True),    # core 1.2.3 < 1.3.0 -> update
+        ("1.2.3-git20240101", "1.2.3", False),  # core 1.2.3 == 1.2.3 -> up to date
+        ("2.0.0-rc1build", "1.9.0", False),     # core 2.0.0 > 1.9.0  -> no downgrade
+    ],
+)
+def test_suffixed_current_compares_on_release_core(current, latest, expected):
+    out = _check(_versioned("t", current=current, latest=latest))
+    entry = out["checked"][0]
+    assert entry["current"] == current  # the raw token is still reported to the user
+    assert entry["update_available"] is expected
+    assert out["updates_available"] == (["t"] if expected else [])
+
+
+def test_uncoercible_current_degrades_gracefully(monkeypatch):
+    """Defensive branch: if even the release-core fallback yields nothing (an
+    extracted token always has a numeric core, so this can't happen for real
+    input), `_version_status` must report None with a clear reason rather than
+    crash — erbina reports, never raises."""
+    import server
+
+    monkeypatch.setattr(server, "_release_core", lambda tok: None)
+    out = server._version_status("1.2.3-git20240101", "1.2.4")
+    assert out["update_available"] is None
+    assert out["reason"].startswith("unparseable current version:")
+
+
+def test_unparseable_latest_is_not_claimed_as_an_update():
+    """`latest` stays strict: an unparseable dev build (e.g. `1.2.4-SNAPSHOT`) is
+    NOT a release erbina will claim as an update, even though its core is 1.2.4 —
+    that would violate 'never claim an update it can't justify'. This is the
+    asymmetry that makes the release-core fallback safe."""
+    out = _check(_versioned("t", current="1.2.3", latest="1.2.4-SNAPSHOT"))
+    entry = out["checked"][0]
+    assert entry["update_available"] is None
+    assert entry["reason"].startswith("unparseable latest version:")
     assert out["updates_available"] == []
