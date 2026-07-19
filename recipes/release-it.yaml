@@ -1,0 +1,39 @@
+# erbina recipe — release-it, a cli-tool. Automate version bumps & releases.
+id: release-it
+kind: cli-tool
+title: "release-it — automate versioning and package publishing"
+description: >
+  release-it automates versioning, changelog generation, git tagging and
+  package publishing so you can cut releases with a single command.
+  https://github.com/release-it/release-it
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "release-it --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g release-it"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "release-it --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "release-it --version"
+  latest: { github: release-it/release-it }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g release-it"
+
+scope: user

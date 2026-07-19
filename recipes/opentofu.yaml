@@ -1,0 +1,39 @@
+# erbina recipe — opentofu, a cli-tool. Open-source IaC (`tofu`).
+id: opentofu
+kind: cli-tool
+title: "opentofu — an open-source Terraform-compatible infrastructure as code tool"
+description: >
+  OpenTofu is an open-source, community-driven fork of Terraform for
+  building infrastructure as code, compatible with existing Terraform
+  configurations and providers. https://github.com/opentofu/opentofu
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "tofu version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install opentofu"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "tofu version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "tofu version"
+  latest: { github: opentofu/opentofu }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade opentofu"
+
+scope: user

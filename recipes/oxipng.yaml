@@ -1,0 +1,45 @@
+# erbina recipe — oxipng, a cli-tool. Lossless PNG optimizer.
+id: oxipng
+kind: cli-tool
+title: "oxipng — a multithreaded lossless PNG compression optimizer"
+description: >
+  oxipng is a multithreaded lossless PNG compression optimizer written in
+  Rust that reduces PNG file size without changing the image.
+  https://github.com/shssoichiro/oxipng
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "oxipng --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install oxipng"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install oxipng"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "oxipng --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "oxipng --version"
+  latest: { github: shssoichiro/oxipng }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade oxipng"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install oxipng"
+
+scope: user

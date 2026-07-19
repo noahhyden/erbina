@@ -1,0 +1,39 @@
+# erbina recipe — code2prompt, a cli-tool. Turn a codebase into one LLM prompt.
+id: code2prompt
+kind: cli-tool
+title: "code2prompt — a CLI tool to convert your codebase into a single LLM prompt"
+description: >
+  code2prompt is a command-line tool that converts your codebase into a
+  single well-structured LLM prompt with a source tree, respecting
+  .gitignore and token counts. https://github.com/mufeedvh/code2prompt
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "code2prompt --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install code2prompt"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "code2prompt --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "code2prompt --version"
+  latest: { github: mufeedvh/code2prompt }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install code2prompt"
+
+scope: user

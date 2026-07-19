@@ -1,0 +1,39 @@
+# erbina recipe — qsv, a cli-tool. Fast CSV data-wrangling toolkit.
+id: qsv
+kind: cli-tool
+title: "qsv — a blazing-fast CSV data-wrangling toolkit"
+description: >
+  qsv is a high-performance CSV data-wrangling toolkit (a supercharged
+  fork of xsv) with dozens of commands for cleaning, transforming,
+  validating and analyzing tabular data. https://github.com/dathere/qsv
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "qsv --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install qsv"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "qsv --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "qsv --version"
+  latest: { github: dathere/qsv }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade qsv"
+
+scope: user

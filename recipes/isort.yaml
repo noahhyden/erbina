@@ -1,0 +1,39 @@
+# erbina recipe — isort, a cli-tool. Sort Python imports.
+id: isort
+kind: cli-tool
+title: "isort — a Python utility to sort imports alphabetically and automatically"
+description: >
+  isort is a Python utility that sorts imports alphabetically and
+  automatically separates them into sections and by type, keeping import
+  blocks tidy. https://github.com/PyCQA/isort
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "isort --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install isort"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "isort --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "isort --version"
+  latest: { github: PyCQA/isort }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade isort"
+
+scope: user

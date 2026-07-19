@@ -1,0 +1,45 @@
+# erbina recipe — rustscan, a cli-tool. Fast port scanner that feeds nmap.
+id: rustscan
+kind: cli-tool
+title: "rustscan — the modern port scanner"
+description: >
+  RustScan is a modern, extremely fast port scanner that finds open ports
+  in seconds and can hand them to nmap for deeper service detection.
+  https://github.com/RustScan/RustScan
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "rustscan --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install rustscan"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install rustscan"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "rustscan --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "rustscan --version"
+  latest: { github: RustScan/RustScan }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade rustscan"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install rustscan"
+
+scope: user

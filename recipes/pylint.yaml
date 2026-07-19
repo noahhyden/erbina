@@ -1,0 +1,39 @@
+# erbina recipe — pylint, a cli-tool. Thorough Python static analyzer.
+id: pylint
+kind: cli-tool
+title: "pylint — a static code analyser for Python"
+description: >
+  Pylint is a static code analyser for Python that checks for errors,
+  enforces a coding standard, looks for code smells, and offers
+  refactoring suggestions. https://github.com/pylint-dev/pylint
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "pylint --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install pylint"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "pylint --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "pylint --version"
+  latest: { github: pylint-dev/pylint }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade pylint"
+
+scope: user

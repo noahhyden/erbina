@@ -1,0 +1,45 @@
+# erbina recipe — mitmproxy, a cli-tool. Intercept and inspect HTTPS traffic.
+id: mitmproxy
+kind: cli-tool
+title: "mitmproxy — an interactive HTTPS proxy for intercepting, inspecting and modifying traffic"
+description: >
+  mitmproxy is an interactive, SSL/TLS-capable intercepting proxy for
+  HTTP/HTTPS with a console interface, letting you inspect and modify
+  traffic on the fly. https://github.com/mitmproxy/mitmproxy
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "mitmproxy --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install mitmproxy"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install mitmproxy"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "mitmproxy --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "mitmproxy --version"
+  latest: { github: mitmproxy/mitmproxy }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade mitmproxy"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade mitmproxy"
+
+scope: user

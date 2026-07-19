@@ -1,0 +1,39 @@
+# erbina recipe — miller, a cli-tool. awk/sed for CSV/TSV/JSON.
+id: miller
+kind: cli-tool
+title: "miller — like awk, sed, cut, join and sort for CSV, TSV and JSON (`mlr`)"
+description: >
+  Miller (mlr) is like awk, sed, cut, join and sort but for name-indexed
+  data such as CSV, TSV and JSON, making record-oriented data processing
+  ergonomic. https://github.com/johnkerl/miller
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "mlr --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install miller"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "mlr --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "mlr --version"
+  latest: { github: johnkerl/miller }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade miller"
+
+scope: user

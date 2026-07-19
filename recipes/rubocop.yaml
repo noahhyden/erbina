@@ -1,0 +1,45 @@
+# erbina recipe — rubocop, a cli-tool. Ruby linter and formatter.
+id: rubocop
+kind: cli-tool
+title: "rubocop — a Ruby static code analyzer and formatter, based on the community style guide"
+description: >
+  RuboCop is a Ruby static code analyzer (linter) and formatter based on
+  the community Ruby style guide, catching offenses and auto-correcting
+  many of them. https://github.com/rubocop/rubocop
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "rubocop --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install rubocop"
+    - id: gem
+      when: "command -v gem"
+      run: "gem install rubocop"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "rubocop --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "rubocop --version"
+  latest: { github: rubocop/rubocop }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade rubocop"
+    - id: gem
+      when: "command -v gem"
+      run: "gem update rubocop"
+
+scope: user

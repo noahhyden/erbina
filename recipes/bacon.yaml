@@ -1,0 +1,45 @@
+# erbina recipe — bacon, a cli-tool. Background compiler for Rust.
+id: bacon
+kind: cli-tool
+title: "bacon — a background rust code checker"
+description: >
+  bacon is a background rust code checker: it runs cargo check (or clippy,
+  test, doc) on save and keeps an always-current, compact list of errors
+  in the terminal. https://github.com/Canop/bacon
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "bacon --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install bacon"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install bacon"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "bacon --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "bacon --version"
+  latest: { github: Canop/bacon }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade bacon"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install bacon"
+
+scope: user

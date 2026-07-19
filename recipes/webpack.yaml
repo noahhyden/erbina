@@ -1,0 +1,39 @@
+# erbina recipe — webpack, a cli-tool. Module bundler for JavaScript.
+id: webpack
+kind: cli-tool
+title: "webpack — a static module bundler for modern JavaScript applications"
+description: >
+  webpack is a static module bundler for modern JavaScript applications,
+  building a dependency graph and emitting bundles from your modules and
+  assets. https://github.com/webpack/webpack
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "webpack --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g webpack"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "webpack --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "webpack --version"
+  latest: { github: webpack/webpack }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g webpack"
+
+scope: user

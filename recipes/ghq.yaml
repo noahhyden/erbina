@@ -1,0 +1,39 @@
+# erbina recipe — ghq, a cli-tool. Organize git clones in a tree.
+id: ghq
+kind: cli-tool
+title: "ghq — manage remote repository clones"
+description: >
+  ghq provides a way to organize remote repository clones under a
+  consistent directory tree, cloning by URL and integrating well with fzf
+  for navigation. https://github.com/x-motemen/ghq
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "ghq --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install ghq"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "ghq --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "ghq --version"
+  latest: { github: x-motemen/ghq }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade ghq"
+
+scope: user

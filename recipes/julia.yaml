@@ -1,0 +1,39 @@
+# erbina recipe — julia, a cli-tool. High-performance technical computing.
+id: julia
+kind: cli-tool
+title: "julia — a high-level, high-performance dynamic language for technical computing"
+description: >
+  Julia is a high-level, high-performance dynamic programming language for
+  technical computing, combining the ease of Python with the speed of C.
+  https://github.com/JuliaLang/julia
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "julia --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install julia"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "julia --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "julia --version"
+  latest: { github: JuliaLang/julia }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade julia"
+
+scope: user

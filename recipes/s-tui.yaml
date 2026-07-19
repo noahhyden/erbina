@@ -1,0 +1,39 @@
+# erbina recipe — s-tui, a cli-tool. Terminal CPU stress/monitor.
+id: s-tui
+kind: cli-tool
+title: "s-tui — a terminal UI for monitoring your computer's CPU temperature, frequency, power and utilization"
+description: >
+  s-tui (Stress Terminal UI) is a terminal UI for monitoring your CPU's
+  temperature, frequency, power and utilization, with an optional
+  stress-test mode. https://github.com/amanusk/s-tui
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "s-tui --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install s-tui"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "s-tui --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "s-tui --version"
+  latest: { github: amanusk/s-tui }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade s-tui"
+
+scope: user

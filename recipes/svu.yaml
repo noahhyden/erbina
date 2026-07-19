@@ -1,0 +1,39 @@
+# erbina recipe — svu, a cli-tool. Compute next semver from git tags.
+id: svu
+kind: cli-tool
+title: "svu — semantic version util"
+description: >
+  svu (semantic version util) reads your git tags and commit messages to
+  compute the next semantic version, handy for scripting releases.
+  https://github.com/caarlos0/svu
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "svu --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install svu"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "svu --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "svu --version"
+  latest: { github: caarlos0/svu }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade svu"
+
+scope: user

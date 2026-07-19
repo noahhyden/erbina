@@ -1,0 +1,39 @@
+# erbina recipe — asdf, a cli-tool. Multi-runtime version manager.
+id: asdf
+kind: cli-tool
+title: "asdf — manage multiple runtime versions with a single CLI tool"
+description: >
+  asdf is an extendable version manager that handles many language
+  runtimes (node, python, ruby, and more) through plugins, with a single
+  .tool-versions file. https://github.com/asdf-vm/asdf
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "asdf --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install asdf"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "asdf --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "asdf --version"
+  latest: { github: asdf-vm/asdf }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade asdf"
+
+scope: user

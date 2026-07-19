@@ -1,0 +1,34 @@
+# erbina recipe — sbcl, a cli-tool. Common Lisp compiler & runtime.
+id: sbcl
+kind: cli-tool
+title: "sbcl — Steel Bank Common Lisp, a high-performance Common Lisp compiler"
+description: >
+  SBCL (Steel Bank Common Lisp) is a high-performance Common Lisp compiler
+  and runtime that produces fast native code and includes an interactive
+  REPL. https://www.sbcl.org/
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "sbcl --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install sbcl"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "sbcl --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade sbcl"
+
+scope: user

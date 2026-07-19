@@ -1,0 +1,45 @@
+# erbina recipe — gifski, a cli-tool. High-quality GIF encoder.
+id: gifski
+kind: cli-tool
+title: "gifski — the highest-quality GIF encoder based on pngquant"
+description: >
+  gifski is a command-line tool and library that converts video frames to
+  high-quality animated GIFs using pngquant's per-frame palettes and
+  temporal dithering. https://github.com/ImageOptim/gifski
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "gifski --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install gifski"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install gifski"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "gifski --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "gifski --version"
+  latest: { github: ImageOptim/gifski }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade gifski"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install gifski"
+
+scope: user

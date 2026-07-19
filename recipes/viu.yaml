@@ -1,0 +1,39 @@
+# erbina recipe — viu, a cli-tool. Display images in the terminal.
+id: viu
+kind: cli-tool
+title: "viu — a terminal image viewer with native support for iTerm and Kitty"
+description: >
+  viu is a small command-line application to view images directly in the
+  terminal, using native protocols on iTerm/Kitty and half-block rendering
+  elsewhere. https://github.com/atanunq/viu
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "viu --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install viu"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "viu --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "viu --version"
+  latest: { github: atanunq/viu }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install viu"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — oras, a cli-tool. Push/pull arbitrary artifacts to OCI registries.
+id: oras
+kind: cli-tool
+title: "oras — OCI registry as storage"
+description: >
+  ORAS (OCI Registry As Storage) lets you push and pull arbitrary
+  artifacts, not just container images, to and from OCI-compliant
+  registries. https://github.com/oras-project/oras
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "oras version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install oras"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "oras version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "oras version"
+  latest: { github: oras-project/oras }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade oras"
+
+scope: user

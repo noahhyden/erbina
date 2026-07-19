@@ -1,0 +1,45 @@
+# erbina recipe — pre-commit, a cli-tool. Manage git pre-commit hooks.
+id: pre-commit
+kind: cli-tool
+title: "pre-commit — a framework for managing multi-language pre-commit hooks"
+description: >
+  pre-commit is a framework for managing and maintaining multi-language
+  pre-commit hooks, installing and running linters and formatters before
+  each commit. https://github.com/pre-commit/pre-commit
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "pre-commit --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install pre-commit"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install pre-commit"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "pre-commit --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "pre-commit --version"
+  latest: { github: pre-commit/pre-commit }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade pre-commit"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade pre-commit"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — virtualenv, a cli-tool. Create isolated Python environments.
+id: virtualenv
+kind: cli-tool
+title: "virtualenv — a tool to create isolated Python environments"
+description: >
+  virtualenv is a tool to create isolated Python environments, the widely
+  used predecessor and superset of the standard library venv module.
+  https://github.com/pypa/virtualenv
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "virtualenv --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install virtualenv"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "virtualenv --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "virtualenv --version"
+  latest: { github: pypa/virtualenv }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade virtualenv"
+
+scope: user

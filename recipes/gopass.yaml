@@ -1,0 +1,39 @@
+# erbina recipe — gopass, a cli-tool. Team-friendly pass-compatible manager.
+id: gopass
+kind: cli-tool
+title: "gopass — the slightly more awesome standard unix password manager for teams"
+description: >
+  gopass is a rewrite of the standard unix password manager pass with
+  team-friendly features like multiple stores, secret sharing and rich
+  integrations. https://github.com/gopasspw/gopass
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "gopass --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install gopass"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "gopass --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "gopass --version"
+  latest: { github: gopasspw/gopass }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade gopass"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — carthage, a cli-tool. Decentralized Cocoa dependency manager.
+id: carthage
+kind: cli-tool
+title: "carthage — a simple, decentralized dependency manager for Cocoa"
+description: >
+  Carthage is a simple, decentralized dependency manager for Cocoa that
+  builds your dependencies and provides you with binary frameworks without
+  touching your project files. https://github.com/Carthage/Carthage
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "carthage version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install carthage"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "carthage version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "carthage version"
+  latest: { github: Carthage/Carthage }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade carthage"
+
+scope: user

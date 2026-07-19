@@ -1,0 +1,39 @@
+# erbina recipe — age, a cli-tool. Modern file encryption.
+id: age
+kind: cli-tool
+title: "age — a simple, modern and secure encryption tool"
+description: >
+  age is a simple, modern and secure file encryption tool and format, with
+  small explicit keys, no config options, and UNIX-style composability.
+  https://github.com/FiloSottile/age
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "age --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install age"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "age --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "age --version"
+  latest: { github: FiloSottile/age }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade age"
+
+scope: user

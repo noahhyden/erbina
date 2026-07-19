@@ -1,0 +1,39 @@
+# erbina recipe — khal, a cli-tool. CLI calendar (CalDAV via vdirsyncer).
+id: khal
+kind: cli-tool
+title: "khal — a standards-based CLI and terminal calendar program"
+description: >
+  khal is a standards-based command-line and terminal calendar program
+  that reads and writes iCalendar files, pairing with vdirsyncer for
+  CalDAV sync. https://github.com/pimutils/khal
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "khal --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install khal"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "khal --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "khal --version"
+  latest: { github: pimutils/khal }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade khal"
+
+scope: user

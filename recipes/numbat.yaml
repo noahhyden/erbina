@@ -1,0 +1,45 @@
+# erbina recipe — numbat, a cli-tool. Scientific calculator with units.
+id: numbat
+kind: cli-tool
+title: "numbat — a statically typed programming language for scientific computations with units"
+description: >
+  Numbat is a statically typed programming language and interactive
+  calculator for scientific computations with first-class physical units
+  and dimensional analysis. https://github.com/sharkdp/numbat
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "numbat --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install numbat"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install numbat-cli"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "numbat --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "numbat --version"
+  latest: { github: sharkdp/numbat }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade numbat"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install numbat-cli"
+
+scope: user

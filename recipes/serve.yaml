@@ -1,0 +1,39 @@
+# erbina recipe — serve, a cli-tool. Serve static files over HTTP.
+id: serve
+kind: cli-tool
+title: "serve — static file serving and directory listing"
+description: >
+  serve is a simple command-line tool for static file serving and
+  directory listing, handy for previewing a build or a folder of files
+  locally. https://github.com/vercel/serve
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "serve --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g serve"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "serve --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "serve --version"
+  latest: { github: vercel/serve }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g serve"
+
+scope: user

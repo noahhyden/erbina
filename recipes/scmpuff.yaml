@@ -1,0 +1,39 @@
+# erbina recipe — scmpuff, a cli-tool. Numbered shortcuts for git files.
+id: scmpuff
+kind: cli-tool
+title: "scmpuff — numeric shortcuts for common git commands"
+description: >
+  scmpuff adds numeric shortcuts for git: it numbers the files in git
+  status so you can reference them by number in subsequent git commands.
+  https://github.com/mroth/scmpuff
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "scmpuff --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install scmpuff"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "scmpuff --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "scmpuff --version"
+  latest: { github: mroth/scmpuff }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade scmpuff"
+
+scope: user

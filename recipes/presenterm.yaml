@@ -1,0 +1,45 @@
+# erbina recipe — presenterm, a cli-tool. Present markdown slides in the terminal.
+id: presenterm
+kind: cli-tool
+title: "presenterm — markdown terminal slideshows"
+description: >
+  presenterm lets you create and present slideshows from markdown directly
+  in the terminal, with code highlighting, images and speaker notes.
+  https://github.com/mfontanini/presenterm
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "presenterm --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install presenterm"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install presenterm"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "presenterm --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "presenterm --version"
+  latest: { github: mfontanini/presenterm }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade presenterm"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install presenterm"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — ocrmypdf, a cli-tool. Add a searchable text layer to PDFs.
+id: ocrmypdf
+kind: cli-tool
+title: "ocrmypdf — adds an OCR text layer to scanned PDF files"
+description: >
+  OCRmyPDF adds an OCR text layer to scanned PDF files, making them
+  searchable and selectable while preserving the original page images.
+  https://github.com/ocrmypdf/OCRmyPDF
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "ocrmypdf --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install ocrmypdf"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "ocrmypdf --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "ocrmypdf --version"
+  latest: { github: ocrmypdf/OCRmyPDF }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade ocrmypdf"
+
+scope: user

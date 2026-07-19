@@ -1,0 +1,39 @@
+# erbina recipe — nodemon, a cli-tool. Auto-restart Node on file changes.
+id: nodemon
+kind: cli-tool
+title: "nodemon — monitor for changes and automatically restart your node app"
+description: >
+  nodemon is a tool that helps develop Node.js applications by
+  automatically restarting the process when file changes in the directory
+  are detected. https://github.com/remy/nodemon
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "nodemon --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g nodemon"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "nodemon --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "nodemon --version"
+  latest: { github: remy/nodemon }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g nodemon"
+
+scope: user

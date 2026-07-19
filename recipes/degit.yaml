@@ -1,0 +1,39 @@
+# erbina recipe — degit, a cli-tool. Clone repo templates without git history.
+id: degit
+kind: cli-tool
+title: "degit — straightforward project scaffolding"
+description: >
+  degit makes copies of git repositories without the history, a fast way
+  to scaffold a new project from a template repository or subdirectory.
+  https://github.com/Rich-Harris/degit
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "degit --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g degit"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "degit --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "degit --version"
+  latest: { github: Rich-Harris/degit }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g degit"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — stylelint, a cli-tool. Modern CSS/SCSS linter.
+id: stylelint
+kind: cli-tool
+title: "stylelint — a mighty CSS linter that helps you avoid errors and enforce conventions"
+description: >
+  stylelint is a mighty, modern CSS linter that helps you avoid errors and
+  enforce conventions in your styles, supporting SCSS, Less and CSS-in-JS.
+  https://github.com/stylelint/stylelint
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "stylelint --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g stylelint"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "stylelint --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "stylelint --version"
+  latest: { github: stylelint/stylelint }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g stylelint"
+
+scope: user

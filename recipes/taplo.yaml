@@ -1,0 +1,45 @@
+# erbina recipe — taplo, a cli-tool. TOML formatter, linter and LSP.
+id: taplo
+kind: cli-tool
+title: "taplo — a versatile, feature-rich TOML toolkit"
+description: >
+  Taplo is a versatile, feature-rich TOML toolkit providing a formatter,
+  linter and language server for validating and prettifying TOML files.
+  https://github.com/tamasfe/taplo
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "taplo --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install taplo"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install taplo-cli"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "taplo --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "taplo --version"
+  latest: { github: tamasfe/taplo }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade taplo"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install taplo-cli"
+
+scope: user

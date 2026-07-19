@@ -1,0 +1,39 @@
+# erbina recipe — mc, a cli-tool. S3/object-storage client (`mc`).
+id: mc
+kind: cli-tool
+title: "minio-client — a modern replacement for ls, cp, mirror and more for object storage (`mc`)"
+description: >
+  The MinIO Client (mc) provides a modern alternative to UNIX commands
+  like ls, cat, cp, mirror and diff for filesystems and S3-compatible
+  object storage. https://github.com/minio/mc
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "mc --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install minio-mc"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "mc --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "mc --version"
+  latest: { github: minio/mc }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade minio-mc"
+
+scope: user

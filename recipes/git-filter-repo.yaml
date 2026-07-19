@@ -1,0 +1,39 @@
+# erbina recipe — git-filter-repo, a cli-tool. Fast git history rewriting.
+id: git-filter-repo
+kind: cli-tool
+title: "git-filter-repo — quickly rewrite git repository history"
+description: >
+  git-filter-repo is a versatile tool for quickly and safely rewriting git
+  repository history, the recommended replacement for git filter-branch
+  and BFG. https://github.com/newren/git-filter-repo
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "git-filter-repo --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install git-filter-repo"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "git-filter-repo --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "git-filter-repo --version"
+  latest: { github: newren/git-filter-repo }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade git-filter-repo"
+
+scope: user

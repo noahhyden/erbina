@@ -1,0 +1,34 @@
+# erbina recipe — ffmpeg, a cli-tool. Audio/video transcoder.
+id: ffmpeg
+kind: cli-tool
+title: "ffmpeg — a complete solution to record, convert and stream audio and video"
+description: >
+  FFmpeg is a complete, cross-platform solution to record, convert and
+  stream audio and video, the de facto standard for media processing on
+  the CLI. https://ffmpeg.org/
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "ffmpeg -version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install ffmpeg"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "ffmpeg -version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade ffmpeg"
+
+scope: user

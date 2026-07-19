@@ -1,0 +1,39 @@
+# erbina recipe — delve, a cli-tool. Debugger for Go (`dlv`).
+id: delve
+kind: cli-tool
+title: "delve — a debugger for the Go programming language (`dlv`)"
+description: >
+  Delve (dlv) is a debugger for the Go programming language, providing a
+  simple, full-featured debugging experience with breakpoints, stepping
+  and inspection. https://github.com/go-delve/delve
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "dlv version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install delve"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "dlv version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "dlv version"
+  latest: { github: go-delve/delve }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade delve"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — pandoc, a cli-tool. Convert between document formats.
+id: pandoc
+kind: cli-tool
+title: "pandoc — a universal document converter"
+description: >
+  Pandoc is a universal document converter that can transform files among
+  Markdown, HTML, LaTeX, DOCX, PDF and dozens of other markup formats.
+  https://github.com/jgm/pandoc
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "pandoc --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install pandoc"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "pandoc --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "pandoc --version"
+  latest: { github: jgm/pandoc }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade pandoc"
+
+scope: user

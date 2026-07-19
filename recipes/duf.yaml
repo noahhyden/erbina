@@ -1,0 +1,45 @@
+# erbina recipe — duf, a cli-tool. Friendlier `df` with tables.
+id: duf
+kind: cli-tool
+title: "duf — disk usage/free utility, a better df alternative"
+description: >
+  duf is a disk usage/free utility, a better df alternative that renders
+  device and filesystem usage in colorful, sortable tables.
+  https://github.com/muesli/duf
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "duf --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install duf"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/muesli/duf@latest"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "duf --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "duf --version"
+  latest: { github: muesli/duf }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade duf"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/muesli/duf@latest"
+
+scope: user

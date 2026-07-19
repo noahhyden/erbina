@@ -1,0 +1,34 @@
+# erbina recipe — rsync, a cli-tool. Fast incremental file sync.
+id: rsync
+kind: cli-tool
+title: "rsync — a fast, versatile, remote (and local) file-copying tool"
+description: >
+  rsync is a fast and versatile file-copying tool that syncs files locally
+  or over SSH, transferring only the differences for efficient incremental
+  backups. https://github.com/RsyncProject/rsync
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "rsync --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install rsync"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "rsync --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade rsync"
+
+scope: user

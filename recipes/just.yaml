@@ -1,0 +1,45 @@
+# erbina recipe — just, a cli-tool. Save and run project-specific commands.
+id: just
+kind: cli-tool
+title: "just — a handy command runner"
+description: >
+  just is a command runner that saves and runs project-specific commands
+  (recipes) from a justfile, a modern, ergonomic take on make for task
+  running. https://github.com/casey/just
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "just --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install just"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install just"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "just --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "just --version"
+  latest: { github: casey/just }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade just"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install just"
+
+scope: user

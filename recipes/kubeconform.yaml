@@ -1,0 +1,39 @@
+# erbina recipe — kubeconform, a cli-tool. Validate Kubernetes manifests.
+id: kubeconform
+kind: cli-tool
+title: "kubeconform — a fast Kubernetes manifest validation tool"
+description: >
+  kubeconform is a fast Kubernetes manifest validator that checks
+  resources against schemas, supporting CRDs and offline use in CI
+  pipelines. https://github.com/yannh/kubeconform
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "kubeconform --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install kubeconform"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "kubeconform --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "kubeconform --version"
+  latest: { github: yannh/kubeconform }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade kubeconform"
+
+scope: user

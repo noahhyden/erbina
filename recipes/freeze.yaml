@@ -1,0 +1,45 @@
+# erbina recipe — freeze, a cli-tool. Screenshot code and terminal output.
+id: freeze
+kind: cli-tool
+title: "freeze — generate images of code and terminal output"
+description: >
+  Freeze generates images of code and terminal output, producing crisp
+  PNG/SVG screenshots from files or piped input for docs and social posts.
+  https://github.com/charmbracelet/freeze
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "freeze --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install freeze"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/charmbracelet/freeze@latest"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "freeze --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "freeze --version"
+  latest: { github: charmbracelet/freeze }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade freeze"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/charmbracelet/freeze@latest"
+
+scope: user

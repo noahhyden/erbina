@@ -1,0 +1,39 @@
+# erbina recipe — protobuf, a cli-tool. Protocol Buffers compiler (`protoc`).
+id: protobuf
+kind: cli-tool
+title: "protobuf — Protocol Buffers, Google's data interchange format (`protoc`)"
+description: >
+  Protocol Buffers is Google's language-neutral, extensible mechanism for
+  serializing structured data; protoc compiles .proto files into code.
+  https://github.com/protocolbuffers/protobuf
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "protoc --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install protobuf"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "protoc --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "protoc --version"
+  latest: { github: protocolbuffers/protobuf }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade protobuf"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — datasette, a cli-tool. Explore and publish data as an API.
+id: datasette
+kind: cli-tool
+title: "datasette — an open source multi-tool for exploring and publishing data"
+description: >
+  Datasette is an open-source multi-tool for exploring and publishing
+  data: point it at SQLite databases and it serves a browsable web UI and
+  JSON API. https://github.com/simonw/datasette
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "datasette --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install datasette"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "datasette --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "datasette --version"
+  latest: { github: simonw/datasette }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade datasette"
+
+scope: user

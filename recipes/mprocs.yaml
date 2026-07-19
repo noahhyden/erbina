@@ -1,0 +1,45 @@
+# erbina recipe — mprocs, a cli-tool. Run parallel processes in a TUI.
+id: mprocs
+kind: cli-tool
+title: "mprocs — run multiple commands in parallel with a TUI"
+description: >
+  mprocs runs multiple commands in parallel and shows each process in its
+  own pane in a TUI, a friendlier way to run a dev server, watcher and
+  worker together. https://github.com/pvolok/mprocs
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "mprocs --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install mprocs"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install mprocs"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "mprocs --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "mprocs --version"
+  latest: { github: pvolok/mprocs }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade mprocs"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install mprocs"
+
+scope: user

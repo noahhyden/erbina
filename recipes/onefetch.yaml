@@ -1,0 +1,45 @@
+# erbina recipe — onefetch, a cli-tool. Git repo info + language stats.
+id: onefetch
+kind: cli-tool
+title: "onefetch — a git repository summary in your terminal"
+description: >
+  onefetch is a command-line git information tool that displays project
+  stats, contributors, and language breakdown alongside an ASCII logo for
+  the repo. https://github.com/o2sh/onefetch
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "onefetch --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install onefetch"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install onefetch"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "onefetch --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "onefetch --version"
+  latest: { github: o2sh/onefetch }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade onefetch"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install onefetch"
+
+scope: user

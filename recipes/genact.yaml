@@ -1,0 +1,45 @@
+# erbina recipe — genact, a cli-tool. Fake terminal activity generator.
+id: genact
+kind: cli-tool
+title: "genact — a nonsense activity generator"
+description: >
+  genact is a nonsense activity generator that pretends to do serious work
+  in the terminal, useful for looking busy or as a fun screensaver.
+  https://github.com/svenstaro/genact
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "genact --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install genact"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install genact"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "genact --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "genact --version"
+  latest: { github: svenstaro/genact }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade genact"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install genact"
+
+scope: user

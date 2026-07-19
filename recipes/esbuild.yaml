@@ -1,0 +1,45 @@
+# erbina recipe — esbuild, a cli-tool. Extremely fast JS bundler.
+id: esbuild
+kind: cli-tool
+title: "esbuild — an extremely fast JavaScript bundler and minifier"
+description: >
+  esbuild is an extremely fast JavaScript and TypeScript bundler and
+  minifier written in Go, orders of magnitude faster than most JS-based
+  bundlers. https://github.com/evanw/esbuild
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "esbuild --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install esbuild"
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g esbuild"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "esbuild --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "esbuild --version"
+  latest: { github: evanw/esbuild }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade esbuild"
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g esbuild"
+
+scope: user

@@ -1,0 +1,45 @@
+# erbina recipe — stylua, a cli-tool. Opinionated Lua formatter.
+id: stylua
+kind: cli-tool
+title: "stylua — an opinionated Lua code formatter"
+description: >
+  StyLua is an opinionated code formatter for Lua, supporting Lua 5.1
+  through 5.4 and Luau, producing consistent formatting for Neovim configs
+  and games. https://github.com/JohnnyMorganz/StyLua
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "stylua --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install stylua"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install stylua"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "stylua --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "stylua --version"
+  latest: { github: JohnnyMorganz/StyLua }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade stylua"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install stylua"
+
+scope: user

@@ -1,0 +1,34 @@
+# erbina recipe — json-server, a cli-tool. Instant fake REST API from JSON.
+id: json-server
+kind: cli-tool
+title: "json-server — get a full fake REST API with zero coding in less than 30 seconds"
+description: >
+  json-server gives you a full fake REST API with zero coding in seconds,
+  backed by a simple JSON file, perfect for prototyping and front-end
+  development. https://github.com/typicode/json-server
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "json-server --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g json-server"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "json-server --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g json-server"
+
+scope: user

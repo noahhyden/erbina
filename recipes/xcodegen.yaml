@@ -1,0 +1,39 @@
+# erbina recipe — xcodegen, a cli-tool. Generate Xcode projects from a spec.
+id: xcodegen
+kind: cli-tool
+title: "xcodegen — a command-line tool that generates your Xcode project from a spec and your folder structure"
+description: >
+  XcodeGen generates your Xcode project from a YAML/JSON spec and your
+  folder structure, eliminating merge conflicts in the .xcodeproj file.
+  https://github.com/yonaskolb/XcodeGen
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "xcodegen --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install xcodegen"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "xcodegen --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "xcodegen --version"
+  latest: { github: yonaskolb/XcodeGen }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade xcodegen"
+
+scope: user

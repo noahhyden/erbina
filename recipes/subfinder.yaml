@@ -1,0 +1,39 @@
+# erbina recipe — subfinder, a cli-tool. Passive subdomain enumeration.
+id: subfinder
+kind: cli-tool
+title: "subfinder — fast passive subdomain enumeration tool"
+description: >
+  subfinder is a fast passive subdomain discovery tool that enumerates
+  valid subdomains for websites using many public sources, built for
+  bug-bounty and recon. https://github.com/projectdiscovery/subfinder
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "subfinder -version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install subfinder"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "subfinder -version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "subfinder -version"
+  latest: { github: projectdiscovery/subfinder }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade subfinder"
+
+scope: user

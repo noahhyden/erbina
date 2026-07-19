@@ -1,0 +1,39 @@
+# erbina recipe — sqlite-utils, a cli-tool. Manipulate SQLite from the CLI.
+id: sqlite-utils
+kind: cli-tool
+title: "sqlite-utils — CLI tool and Python library for manipulating SQLite databases"
+description: >
+  sqlite-utils is a CLI tool and Python library for creating and
+  manipulating SQLite databases, importing CSV/JSON and running queries
+  with minimal ceremony. https://github.com/simonw/sqlite-utils
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "sqlite-utils --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install sqlite-utils"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "sqlite-utils --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "sqlite-utils --version"
+  latest: { github: simonw/sqlite-utils }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade sqlite-utils"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — argocd, a cli-tool. CLI for Argo CD GitOps.
+id: argocd
+kind: cli-tool
+title: "argocd — the CLI for Argo CD, declarative GitOps continuous delivery for Kubernetes"
+description: >
+  The argocd CLI drives Argo CD, a declarative GitOps continuous-delivery
+  tool for Kubernetes, managing apps, syncs and cluster/repo
+  registrations. https://github.com/argoproj/argo-cd
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "argocd version --client"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install argocd"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "argocd version --client"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "argocd version --client"
+  latest: { github: argoproj/argo-cd }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade argocd"
+
+scope: user

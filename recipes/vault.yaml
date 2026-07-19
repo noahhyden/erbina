@@ -1,0 +1,39 @@
+# erbina recipe — vault, a cli-tool. Secrets management by HashiCorp.
+id: vault
+kind: cli-tool
+title: "vault — manage secrets and protect sensitive data"
+description: >
+  HashiCorp Vault secures, stores and tightly controls access to tokens,
+  passwords, certificates and encryption keys, with dynamic secrets and
+  leasing. https://github.com/hashicorp/vault
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "vault version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install vault"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "vault version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "vault version"
+  latest: { github: hashicorp/vault }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade vault"
+
+scope: user

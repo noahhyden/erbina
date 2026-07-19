@@ -1,0 +1,34 @@
+# erbina recipe — jo, a cli-tool. Build JSON from shell args.
+id: jo
+kind: cli-tool
+title: "jo — a small utility to create JSON objects"
+description: >
+  jo is a small utility that creates JSON objects and arrays from
+  command-line arguments, making it easy to emit well-formed JSON from
+  shell scripts. https://github.com/jpmens/jo
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "jo -v"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install jo"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "jo -v"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade jo"
+
+scope: user

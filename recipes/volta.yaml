@@ -1,0 +1,39 @@
+# erbina recipe — volta, a cli-tool. Pin JS tool versions per project.
+id: volta
+kind: cli-tool
+title: "volta — the hassle-free JavaScript tool manager"
+description: >
+  Volta is a hassle-free JavaScript tool manager that pins node, npm and
+  yarn versions per project so every contributor uses exactly the same
+  toolchain. https://github.com/volta-cli/volta
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "volta --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install volta"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "volta --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "volta --version"
+  latest: { github: volta-cli/volta }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade volta"
+
+scope: user

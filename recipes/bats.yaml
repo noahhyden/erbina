@@ -1,0 +1,39 @@
+# erbina recipe — bats, a cli-tool. TAP-compliant testing for Bash.
+id: bats
+kind: cli-tool
+title: "bats-core — Bash Automated Testing System"
+description: >
+  Bats (Bash Automated Testing System) is a TAP-compliant testing
+  framework for Bash that lets you write tests to verify the behavior of
+  shell programs. https://github.com/bats-core/bats-core
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "bats --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install bats-core"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "bats --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "bats --version"
+  latest: { github: bats-core/bats-core }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade bats-core"
+
+scope: user

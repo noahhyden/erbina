@@ -1,0 +1,39 @@
+# erbina recipe — infracost, a cli-tool. Terraform cloud-cost estimates.
+id: infracost
+kind: cli-tool
+title: "infracost — cloud cost estimates for Terraform in pull requests"
+description: >
+  Infracost shows cloud cost estimates for Terraform, so engineers can see
+  the price impact of infrastructure changes right in their pull requests.
+  https://github.com/infracost/infracost
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "infracost --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install infracost"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "infracost --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "infracost --version"
+  latest: { github: infracost/infracost }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade infracost"
+
+scope: user

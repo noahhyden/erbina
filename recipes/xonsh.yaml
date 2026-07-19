@@ -1,0 +1,39 @@
+# erbina recipe — xonsh, a cli-tool. Python-powered shell.
+id: xonsh
+kind: cli-tool
+title: "xonsh — a Python-powered shell"
+description: >
+  xonsh is a Python-powered, cross-platform shell language and command
+  prompt that blends Python and shell syntax so you can use both fluidly.
+  https://github.com/xonsh/xonsh
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "xonsh --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install xonsh"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "xonsh --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "xonsh --version"
+  latest: { github: xonsh/xonsh }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade xonsh"
+
+scope: user

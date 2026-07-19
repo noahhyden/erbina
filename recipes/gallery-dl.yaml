@@ -1,0 +1,39 @@
+# erbina recipe — gallery-dl, a cli-tool. Download image galleries.
+id: gallery-dl
+kind: cli-tool
+title: "gallery-dl — download image galleries and collections from several image hosting sites"
+description: >
+  gallery-dl is a command-line program to download image galleries and
+  collections from several image-hosting sites, with rich configuration
+  and filtering. https://github.com/mikf/gallery-dl
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "gallery-dl --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install gallery-dl"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "gallery-dl --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "gallery-dl --version"
+  latest: { github: mikf/gallery-dl }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade gallery-dl"
+
+scope: user

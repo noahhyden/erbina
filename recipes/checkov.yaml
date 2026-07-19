@@ -1,0 +1,39 @@
+# erbina recipe — checkov, a cli-tool. Scan IaC for misconfigurations.
+id: checkov
+kind: cli-tool
+title: "checkov — prevent cloud misconfigurations by scanning infrastructure as code"
+description: >
+  Checkov scans infrastructure-as-code (Terraform, CloudFormation,
+  Kubernetes, and more) to find misconfigurations before they are deployed
+  to the cloud. https://github.com/bridgecrewio/checkov
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "checkov --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install checkov"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "checkov --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "checkov --version"
+  latest: { github: bridgecrewio/checkov }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade checkov"
+
+scope: user

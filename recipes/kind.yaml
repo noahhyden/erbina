@@ -1,0 +1,45 @@
+# erbina recipe — kind, a cli-tool. Run local Kubernetes in Docker.
+id: kind
+kind: cli-tool
+title: "kind — Kubernetes IN Docker"
+description: >
+  kind is a tool for running local Kubernetes clusters using Docker
+  container nodes, primarily designed for testing Kubernetes itself and
+  CI. https://github.com/kubernetes-sigs/kind
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "kind --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install kind"
+    - id: go
+      when: "command -v go"
+      run: "go install sigs.k8s.io/kind@latest"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "kind --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "kind --version"
+  latest: { github: kubernetes-sigs/kind }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade kind"
+    - id: go
+      when: "command -v go"
+      run: "go install sigs.k8s.io/kind@latest"
+
+scope: user

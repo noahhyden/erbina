@@ -1,0 +1,39 @@
+# erbina recipe — csvkit, a cli-tool. CSV toolkit (`csvlook`, `csvcut`, …).
+id: csvkit
+kind: cli-tool
+title: "csvkit — a suite of command-line tools for converting to and working with CSV (`csvlook`)"
+description: >
+  csvkit is a suite of command-line tools for converting to and working
+  with CSV, the ubiquitous tabular data format; csvlook, csvcut and
+  csvstat are part of it. https://github.com/wireservice/csvkit
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "csvlook --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install csvkit"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "csvlook --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "csvlook --version"
+  latest: { github: wireservice/csvkit }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade csvkit"
+
+scope: user

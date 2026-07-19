@@ -1,0 +1,45 @@
+# erbina recipe — mask, a cli-tool. Markdown-defined task runner.
+id: mask
+kind: cli-tool
+title: "mask — a CLI task runner defined by a simple markdown file"
+description: >
+  mask is a CLI task runner defined by a simple markdown file, letting you
+  document and run project commands from a readable maskfile.md.
+  https://github.com/jacobdeichert/mask
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "mask --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install mask"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install mask"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "mask --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "mask --version"
+  latest: { github: jacobdeichert/mask }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade mask"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install mask"
+
+scope: user

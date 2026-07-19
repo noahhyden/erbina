@@ -1,0 +1,39 @@
+# erbina recipe — newman, a cli-tool. Run Postman collections in CI.
+id: newman
+kind: cli-tool
+title: "newman — a command-line collection runner for Postman"
+description: >
+  Newman is a command-line collection runner for Postman that lets you run
+  and test API collections directly from the terminal and in CI pipelines.
+  https://github.com/postmanlabs/newman
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "newman --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g newman"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "newman --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "newman --version"
+  latest: { github: postmanlabs/newman }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g newman"
+
+scope: user

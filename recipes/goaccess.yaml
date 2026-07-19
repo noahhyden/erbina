@@ -1,0 +1,39 @@
+# erbina recipe — goaccess, a cli-tool. Real-time web-log analyzer.
+id: goaccess
+kind: cli-tool
+title: "goaccess — a real-time web log analyzer and interactive viewer"
+description: >
+  GoAccess is an open-source real-time web log analyzer and interactive
+  viewer that runs in a terminal or produces an HTML report from your
+  access logs. https://github.com/allinurl/goaccess
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "goaccess --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install goaccess"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "goaccess --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "goaccess --version"
+  latest: { github: allinurl/goaccess }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade goaccess"
+
+scope: user

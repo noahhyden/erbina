@@ -1,0 +1,45 @@
+# erbina recipe — watchexec, a cli-tool. Run a command on file changes.
+id: watchexec
+kind: cli-tool
+title: "watchexec — run commands when files change"
+description: >
+  watchexec watches a path and runs a command whenever files change, with
+  sensible gitignore handling and process-restart semantics.
+  https://github.com/watchexec/watchexec
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "watchexec --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install watchexec"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install watchexec-cli"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "watchexec --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "watchexec --version"
+  latest: { github: watchexec/watchexec }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade watchexec"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install watchexec-cli"
+
+scope: user

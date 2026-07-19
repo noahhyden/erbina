@@ -1,0 +1,39 @@
+# erbina recipe — asciinema, a cli-tool. Record and share terminal sessions.
+id: asciinema
+kind: cli-tool
+title: "asciinema — record and share terminal sessions"
+description: >
+  asciinema is a free tool for recording terminal sessions and sharing
+  them as lightweight, text-based recordings instead of heavy video files.
+  https://github.com/asciinema/asciinema
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "asciinema --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install asciinema"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "asciinema --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "asciinema --version"
+  latest: { github: asciinema/asciinema }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade asciinema"
+
+scope: user

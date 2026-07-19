@@ -1,0 +1,45 @@
+# erbina recipe — fclones, a cli-tool. Find and remove duplicate files.
+id: fclones
+kind: cli-tool
+title: "fclones — an efficient duplicate file finder and remover"
+description: >
+  fclones is an efficient duplicate file finder and remover that scans
+  large directory trees in parallel and can dedupe with hardlinks or
+  reflinks. https://github.com/pkolaczk/fclones
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "fclones --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install fclones"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install fclones"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "fclones --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "fclones --version"
+  latest: { github: pkolaczk/fclones }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade fclones"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install fclones"
+
+scope: user

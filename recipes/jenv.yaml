@@ -1,0 +1,39 @@
+# erbina recipe — jenv, a cli-tool. Manage multiple Java versions.
+id: jenv
+kind: cli-tool
+title: "jenv — manage your Java environment"
+description: >
+  jenv lets you manage multiple Java JDK versions and switch between them
+  per shell, directory or globally, keeping JAVA_HOME correct
+  automatically. https://github.com/jenv/jenv
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "jenv --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install jenv"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "jenv --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "jenv --version"
+  latest: { github: jenv/jenv }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade jenv"
+
+scope: user

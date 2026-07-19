@@ -1,0 +1,45 @@
+# erbina recipe — serie, a cli-tool. Rich git commit-graph TUI.
+id: serie
+kind: cli-tool
+title: "serie — a rich git commit graph in your terminal"
+description: >
+  serie renders a rich, colorful git commit graph in your terminal,
+  letting you browse history and commits interactively like a graphical
+  git log. https://github.com/lusingander/serie
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "serie --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install serie"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install serie"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "serie --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "serie --version"
+  latest: { github: lusingander/serie }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade serie"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install serie"
+
+scope: user

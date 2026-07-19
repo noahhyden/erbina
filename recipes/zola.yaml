@@ -1,0 +1,39 @@
+# erbina recipe — zola, a cli-tool. Single-binary static site generator.
+id: zola
+kind: cli-tool
+title: "zola — a fast static site generator in a single binary with everything built-in"
+description: >
+  Zola is a fast static site generator in a single binary with everything
+  built in: Sass compilation, syntax highlighting, and a flexible
+  templating engine. https://github.com/getzola/zola
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "zola --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install zola"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "zola --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "zola --version"
+  latest: { github: getzola/zola }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade zola"
+
+scope: user

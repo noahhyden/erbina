@@ -1,0 +1,39 @@
+# erbina recipe — ccache, a cli-tool. Cache C/C++ compilations.
+id: ccache
+kind: cli-tool
+title: "ccache — a fast C/C++ compiler cache"
+description: >
+  ccache is a compiler cache that speeds up recompilation by caching
+  previous compilations and detecting when the same compilation is being
+  done again. https://github.com/ccache/ccache
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "ccache --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install ccache"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "ccache --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "ccache --version"
+  latest: { github: ccache/ccache }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade ccache"
+
+scope: user

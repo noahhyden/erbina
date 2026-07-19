@@ -1,0 +1,39 @@
+# erbina recipe — swiftlint, a cli-tool. Linter for Swift.
+id: swiftlint
+kind: cli-tool
+title: "swiftlint — a tool to enforce Swift style and conventions"
+description: >
+  SwiftLint is a tool to enforce Swift style and conventions, loosely
+  based on the Swift API design guidelines, with many configurable and
+  auto-correctable rules. https://github.com/realm/SwiftLint
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "swiftlint --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install swiftlint"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "swiftlint --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "swiftlint --version"
+  latest: { github: realm/SwiftLint }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade swiftlint"
+
+scope: user

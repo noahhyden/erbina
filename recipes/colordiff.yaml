@@ -1,0 +1,34 @@
+# erbina recipe — colordiff, a cli-tool. Colorize `diff` output.
+id: colordiff
+kind: cli-tool
+title: "colordiff — a tool to colorize diff output"
+description: >
+  colordiff is a Perl wrapper for diff that produces the same output but
+  with syntax highlighting, making added and removed lines easier to read.
+  https://www.colordiff.org/
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "colordiff --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install colordiff"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "colordiff --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade colordiff"
+
+scope: user

@@ -1,0 +1,45 @@
+# erbina recipe — shfmt, a cli-tool. Format shell scripts.
+id: shfmt
+kind: cli-tool
+title: "shfmt — a shell parser, formatter, and interpreter"
+description: >
+  shfmt is a shell parser and formatter (part of mvdan/sh) that formats
+  POSIX sh, bash, and mksh scripts consistently, with an interpreter too.
+  https://github.com/mvdan/sh
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "shfmt --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install shfmt"
+    - id: go
+      when: "command -v go"
+      run: "go install mvdan.cc/sh/v3/cmd/shfmt@latest"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "shfmt --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "shfmt --version"
+  latest: { github: mvdan/sh }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade shfmt"
+    - id: go
+      when: "command -v go"
+      run: "go install mvdan.cc/sh/v3/cmd/shfmt@latest"
+
+scope: user

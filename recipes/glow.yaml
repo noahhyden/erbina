@@ -1,0 +1,45 @@
+# erbina recipe — glow, a cli-tool. Terminal markdown renderer.
+id: glow
+kind: cli-tool
+title: "glow — render markdown on the CLI, with style"
+description: >
+  Glow is a terminal-based markdown reader that renders documents with
+  style, with a TUI file browser and support for local and remote files.
+  https://github.com/charmbracelet/glow
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "glow --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install glow"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/charmbracelet/glow@latest"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "glow --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "glow --version"
+  latest: { github: charmbracelet/glow }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade glow"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/charmbracelet/glow@latest"
+
+scope: user

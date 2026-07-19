@@ -1,0 +1,45 @@
+# erbina recipe — pastel, a cli-tool. Generate and manipulate colors on the CLI.
+id: pastel
+kind: cli-tool
+title: "pastel — a tool to generate, analyze, convert and manipulate colors"
+description: >
+  pastel is a command-line tool to generate, analyze, convert and
+  manipulate colors, supporting many color spaces and a set of composable
+  subcommands. https://github.com/sharkdp/pastel
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "pastel --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install pastel"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install pastel"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "pastel --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "pastel --version"
+  latest: { github: sharkdp/pastel }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade pastel"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install pastel"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — lz4, a cli-tool. Extremely fast compression.
+id: lz4
+kind: cli-tool
+title: "lz4 — extremely fast lossless compression algorithm"
+description: >
+  LZ4 is an extremely fast lossless compression algorithm providing
+  compression speed over 500 MB/s per core, with very fast decoding.
+  https://github.com/lz4/lz4
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "lz4 --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install lz4"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "lz4 --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "lz4 --version"
+  latest: { github: lz4/lz4 }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade lz4"
+
+scope: user

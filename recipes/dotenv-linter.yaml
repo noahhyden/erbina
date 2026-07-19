@@ -1,0 +1,45 @@
+# erbina recipe — dotenv-linter, a cli-tool. Linter for .env files.
+id: dotenv-linter
+kind: cli-tool
+title: "dotenv-linter — a lightning-fast linter for .env files"
+description: >
+  dotenv-linter is a lightning-fast linter for .env files written in Rust
+  that checks for duplicated keys, incorrect ordering and other common
+  mistakes. https://github.com/dotenv-linter/dotenv-linter
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "dotenv-linter --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install dotenv-linter"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install dotenv-linter"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "dotenv-linter --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "dotenv-linter --version"
+  latest: { github: dotenv-linter/dotenv-linter }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade dotenv-linter"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install dotenv-linter"
+
+scope: user

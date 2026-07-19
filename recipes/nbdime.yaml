@@ -1,0 +1,39 @@
+# erbina recipe — nbdime, a cli-tool. Diff/merge Jupyter notebooks.
+id: nbdime
+kind: cli-tool
+title: "nbdime — tools for diffing and merging of Jupyter notebooks"
+description: >
+  nbdime provides tools for diffing and merging Jupyter notebooks in a
+  content-aware way, ignoring irrelevant metadata for cleaner reviews.
+  https://github.com/jupyter/nbdime
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "nbdime --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install nbdime"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "nbdime --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "nbdime --version"
+  latest: { github: jupyter/nbdime }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade nbdime"
+
+scope: user

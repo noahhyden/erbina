@@ -1,0 +1,40 @@
+# erbina recipe — ansible, a cli-tool. Agentless IT automation.
+id: ansible
+kind: cli-tool
+title: "ansible — a radically simple IT automation platform"
+description: >
+  Ansible is a radically simple IT automation platform for configuration
+  management, application deployment and orchestration, using agentless
+  SSH and YAML playbooks. https://github.com/ansible/ansible
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "ansible --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install ansible"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install ansible"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "ansible --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade ansible"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade ansible"
+
+scope: user

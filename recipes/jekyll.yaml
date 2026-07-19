@@ -1,0 +1,45 @@
+# erbina recipe — jekyll, a cli-tool. Ruby static site generator.
+id: jekyll
+kind: cli-tool
+title: "jekyll — a blog-aware static site generator in Ruby"
+description: >
+  Jekyll is a blog-aware static site generator in Ruby that transforms
+  plain text and markdown into static websites, the engine behind GitHub
+  Pages. https://github.com/jekyll/jekyll
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "jekyll --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install jekyll"
+    - id: gem
+      when: "command -v gem"
+      run: "gem install jekyll"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "jekyll --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "jekyll --version"
+  latest: { github: jekyll/jekyll }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade jekyll"
+    - id: gem
+      when: "command -v gem"
+      run: "gem update jekyll"
+
+scope: user

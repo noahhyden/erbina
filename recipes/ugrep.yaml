@@ -1,0 +1,39 @@
+# erbina recipe — ugrep, a cli-tool. Ultra-fast grep with a query TUI.
+id: ugrep
+kind: cli-tool
+title: "ugrep — ultra-fast grep with interactive query UI"
+description: >
+  ugrep is an ultra-fast, grep-compatible search tool with an interactive
+  query UI, fuzzy search, and the ability to search inside archives and
+  many file formats. https://github.com/Genivia/ugrep
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "ugrep --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install ugrep"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "ugrep --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "ugrep --version"
+  latest: { github: Genivia/ugrep }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade ugrep"
+
+scope: user

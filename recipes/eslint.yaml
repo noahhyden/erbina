@@ -1,0 +1,39 @@
+# erbina recipe — eslint, a cli-tool. Pluggable JavaScript linter.
+id: eslint
+kind: cli-tool
+title: "eslint — find and fix problems in your JavaScript code"
+description: >
+  ESLint statically analyzes your JavaScript and TypeScript code to
+  quickly find and fix problems, with a large ecosystem of configurable
+  rules. https://github.com/eslint/eslint
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "eslint --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g eslint"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "eslint --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "eslint --version"
+  latest: { github: eslint/eslint }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g eslint"
+
+scope: user

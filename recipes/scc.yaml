@@ -1,0 +1,39 @@
+# erbina recipe — scc, a cli-tool. Fast code counter with COCOMO.
+id: scc
+kind: cli-tool
+title: "scc — a fast and accurate code counter with complexity calculations"
+description: >
+  scc (Sloc, Cloc and Code) is a very fast and accurate code counter that
+  also computes cyclomatic complexity and COCOMO cost estimates across
+  many languages. https://github.com/boyter/scc
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "scc --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install scc"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "scc --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "scc --version"
+  latest: { github: boyter/scc }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade scc"
+
+scope: user

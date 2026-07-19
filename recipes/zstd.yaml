@@ -1,0 +1,39 @@
+# erbina recipe — zstd, a cli-tool. Fast Zstandard compression.
+id: zstd
+kind: cli-tool
+title: "zstd — Zstandard, a fast real-time compression algorithm"
+description: >
+  Zstandard (zstd) is a fast lossless compression algorithm targeting
+  real-time compression scenarios with a wide range of speed/ratio
+  trade-offs. https://github.com/facebook/zstd
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "zstd --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install zstd"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "zstd --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "zstd --version"
+  latest: { github: facebook/zstd }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade zstd"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — cmake, a cli-tool. Cross-platform build-system generator.
+id: cmake
+kind: cli-tool
+title: "cmake — a cross-platform family of tools designed to build, test and package software"
+description: >
+  CMake is a cross-platform family of tools designed to build, test and
+  package software, generating native build files from a
+  compiler-independent configuration. https://github.com/Kitware/CMake
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "cmake --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install cmake"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "cmake --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "cmake --version"
+  latest: { github: Kitware/CMake }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade cmake"
+
+scope: user

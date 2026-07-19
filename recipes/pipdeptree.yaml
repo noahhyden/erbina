@@ -1,0 +1,39 @@
+# erbina recipe — pipdeptree, a cli-tool. Show Python dependency tree.
+id: pipdeptree
+kind: cli-tool
+title: "pipdeptree — display a dependency tree of installed Python packages"
+description: >
+  pipdeptree displays the dependency tree of installed Python packages,
+  helping you understand which package requires which and spot version
+  conflicts. https://github.com/tox-dev/pipdeptree
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "pipdeptree --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install pipdeptree"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "pipdeptree --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "pipdeptree --version"
+  latest: { github: tox-dev/pipdeptree }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade pipdeptree"
+
+scope: user

@@ -1,0 +1,34 @@
+# erbina recipe — nano, a cli-tool. Small, friendly terminal editor.
+id: nano
+kind: cli-tool
+title: "nano — a small, friendly text editor for the terminal"
+description: >
+  GNU nano is a small and friendly text editor for the terminal, a
+  beginner-friendly alternative to vi with on-screen key hints and simple
+  editing. https://www.nano-editor.org/
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "nano --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install nano"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "nano --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade nano"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — opa, a cli-tool. General-purpose policy engine.
+id: opa
+kind: cli-tool
+title: "opa — Open Policy Agent, general-purpose policy engine"
+description: >
+  The Open Policy Agent (OPA) is a general-purpose policy engine that
+  unifies policy enforcement across the stack using the declarative Rego
+  language. https://github.com/open-policy-agent/opa
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "opa version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install opa"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "opa version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "opa version"
+  latest: { github: open-policy-agent/opa }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade opa"
+
+scope: user

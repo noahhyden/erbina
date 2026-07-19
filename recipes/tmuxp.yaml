@@ -1,0 +1,39 @@
+# erbina recipe — tmuxp, a cli-tool. Python tmux session manager.
+id: tmuxp
+kind: cli-tool
+title: "tmuxp — a session manager for tmux"
+description: >
+  tmuxp is a session manager for tmux that lets you save and restore
+  session layouts from YAML or JSON configuration files.
+  https://github.com/tmux-python/tmuxp
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "tmuxp --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install tmuxp"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "tmuxp --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "tmuxp --version"
+  latest: { github: tmux-python/tmuxp }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade tmuxp"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — k9s, a cli-tool. Terminal UI for Kubernetes.
+id: k9s
+kind: cli-tool
+title: "k9s — Kubernetes CLI to manage your clusters in style"
+description: >
+  K9s provides a terminal UI to interact with your Kubernetes clusters,
+  making it easier to navigate, observe and manage deployed applications.
+  https://github.com/derailed/k9s
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "k9s --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install k9s"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "k9s --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "k9s --version"
+  latest: { github: derailed/k9s }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade k9s"
+
+scope: user

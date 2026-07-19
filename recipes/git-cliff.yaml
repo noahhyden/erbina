@@ -1,0 +1,45 @@
+# erbina recipe — git-cliff, a cli-tool. Generate changelogs from commits.
+id: git-cliff
+kind: cli-tool
+title: "git-cliff — a highly customizable changelog generator"
+description: >
+  git-cliff is a highly customizable changelog generator that follows
+  Conventional Commits, producing changelogs from your git history with
+  templated output. https://github.com/orhun/git-cliff
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "git-cliff --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install git-cliff"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install git-cliff"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "git-cliff --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "git-cliff --version"
+  latest: { github: orhun/git-cliff }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade git-cliff"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install git-cliff"
+
+scope: user

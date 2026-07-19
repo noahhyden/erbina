@@ -1,0 +1,45 @@
+# erbina recipe — kondo, a cli-tool. Reclaim disk from build artifacts.
+id: kondo
+kind: cli-tool
+title: "kondo — cleans dependencies and build artifacts from your projects"
+description: >
+  kondo helps you reclaim disk space by finding and cleaning dependency
+  and build-artifact directories (node_modules, target, build) across your
+  projects. https://github.com/tbillington/kondo
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "kondo --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install kondo"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install kondo"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "kondo --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "kondo --version"
+  latest: { github: tbillington/kondo }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade kondo"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install kondo"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — fswatch, a cli-tool. Cross-platform file-change monitor.
+id: fswatch
+kind: cli-tool
+title: "fswatch — a cross-platform file change monitor with multiple backends"
+description: >
+  fswatch is a cross-platform file-change monitor that receives
+  notifications when the contents of a directory tree are modified, with
+  multiple OS backends. https://github.com/emcrisostomo/fswatch
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "fswatch --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install fswatch"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "fswatch --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "fswatch --version"
+  latest: { github: emcrisostomo/fswatch }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade fswatch"
+
+scope: user

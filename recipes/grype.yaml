@@ -1,0 +1,39 @@
+# erbina recipe — grype, a cli-tool. Vulnerability scanner for images/filesystems.
+id: grype
+kind: cli-tool
+title: "grype — a vulnerability scanner for container images and filesystems"
+description: >
+  Grype is a vulnerability scanner for container images and filesystems,
+  integrating with syft-generated SBOMs to report known CVEs in your
+  dependencies. https://github.com/anchore/grype
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "grype --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install grype"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "grype --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "grype --version"
+  latest: { github: anchore/grype }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade grype"
+
+scope: user

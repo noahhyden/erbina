@@ -1,0 +1,45 @@
+# erbina recipe — jless, a cli-tool. Interactive JSON/YAML pager.
+id: jless
+kind: cli-tool
+title: "jless — a command-line JSON viewer"
+description: >
+  jless is a command-line JSON viewer designed for reading, exploring and
+  searching through JSON data in a paged, collapsible, syntax-highlighted
+  interface. https://github.com/PaulJuliusMartinez/jless
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "jless --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install jless"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install jless"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "jless --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "jless --version"
+  latest: { github: PaulJuliusMartinez/jless }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade jless"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install jless"
+
+scope: user

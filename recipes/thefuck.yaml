@@ -1,0 +1,45 @@
+# erbina recipe — thefuck, a cli-tool. Correct the previous mistyped command.
+id: thefuck
+kind: cli-tool
+title: "thefuck — magnificent app that corrects errors in previous console commands"
+description: >
+  The Fuck is an app that corrects errors in your previous console
+  command, suggesting a fixed version you can run by pressing a key.
+  https://github.com/nvbn/thefuck
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "thefuck --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install thefuck"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install thefuck"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "thefuck --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "thefuck --version"
+  latest: { github: nvbn/thefuck }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade thefuck"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade thefuck"
+
+scope: user

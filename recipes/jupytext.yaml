@@ -1,0 +1,39 @@
+# erbina recipe — jupytext, a cli-tool. Sync notebooks with plain-text files.
+id: jupytext
+kind: cli-tool
+title: "jupytext — Jupyter notebooks as markdown documents, Julia, Python or R scripts"
+description: >
+  Jupytext lets you edit Jupyter notebooks as markdown or scripts and keep
+  them in sync, making notebooks diff-friendly and
+  version-control-friendly. https://github.com/mwouts/jupytext
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "jupytext --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install jupytext"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "jupytext --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "jupytext --version"
+  latest: { github: mwouts/jupytext }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade jupytext"
+
+scope: user

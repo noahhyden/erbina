@@ -1,0 +1,45 @@
+# erbina recipe — joshuto, a cli-tool. ranger-like TUI file manager.
+id: joshuto
+kind: cli-tool
+title: "joshuto — a ranger-like terminal file manager written in Rust"
+description: >
+  joshuto is a ranger-like terminal file manager written in Rust, with
+  fast multi-column navigation, bulk operations and configurable
+  keybindings. https://github.com/kamiyaa/joshuto
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "joshuto --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install joshuto"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install joshuto"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "joshuto --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "joshuto --version"
+  latest: { github: kamiyaa/joshuto }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade joshuto"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install joshuto"
+
+scope: user

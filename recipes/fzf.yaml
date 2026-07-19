@@ -1,0 +1,45 @@
+# erbina recipe — fzf, a cli-tool. Interactive fuzzy finder for the terminal.
+id: fzf
+kind: cli-tool
+title: "fzf — a command-line fuzzy finder"
+description: >
+  fzf is a general-purpose command-line fuzzy finder for files, history,
+  processes and any list, with live preview.
+  https://github.com/junegunn/fzf
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "fzf --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install fzf"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/junegunn/fzf@latest"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "fzf --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "fzf --version"
+  latest: { github: junegunn/fzf }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade fzf"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/junegunn/fzf@latest"
+
+scope: user

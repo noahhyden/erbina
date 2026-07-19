@@ -1,0 +1,39 @@
+# erbina recipe — buf, a cli-tool. Modern Protobuf tooling.
+id: buf
+kind: cli-tool
+title: "buf — the best way to work with Protocol Buffers"
+description: >
+  Buf provides modern Protocol Buffers tooling: linting, breaking-change
+  detection, code generation and a schema registry, replacing fragile
+  protoc invocations. https://github.com/bufbuild/buf
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "buf --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install buf"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "buf --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "buf --version"
+  latest: { github: bufbuild/buf }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade buf"
+
+scope: user

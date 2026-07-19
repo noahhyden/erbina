@@ -1,0 +1,45 @@
+# erbina recipe — tmuxinator, a cli-tool. Manage tmux sessions from YAML.
+id: tmuxinator
+kind: cli-tool
+title: "tmuxinator — create and manage complex tmux sessions easily"
+description: >
+  tmuxinator lets you create and manage complex tmux sessions easily using
+  YAML project files, launching a full window/pane layout with one
+  command. https://github.com/tmuxinator/tmuxinator
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "tmuxinator version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install tmuxinator"
+    - id: gem
+      when: "command -v gem"
+      run: "gem install tmuxinator"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "tmuxinator version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "tmuxinator version"
+  latest: { github: tmuxinator/tmuxinator }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade tmuxinator"
+    - id: gem
+      when: "command -v gem"
+      run: "gem update tmuxinator"
+
+scope: user

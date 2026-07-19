@@ -1,0 +1,39 @@
+# erbina recipe — helix, a cli-tool. Modal terminal editor (`hx`).
+id: helix
+kind: cli-tool
+title: "helix — a post-modern modal text editor"
+description: >
+  Helix is a post-modern modal text editor built in Rust, with tree-sitter
+  syntax awareness, multiple selections, and LSP support out of the box.
+  https://github.com/helix-editor/helix
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "hx --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install helix"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "hx --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "hx --version"
+  latest: { github: helix-editor/helix }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade helix"
+
+scope: user

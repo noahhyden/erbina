@@ -1,0 +1,34 @@
+# erbina recipe — bc, a cli-tool. Arbitrary-precision calculator.
+id: bc
+kind: cli-tool
+title: "bc — an arbitrary-precision calculator language"
+description: >
+  bc is an arbitrary-precision calculator language with syntax similar to
+  C, usable interactively or in scripts for math beyond shell arithmetic.
+  https://www.gnu.org/software/bc/
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "bc --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install bc"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "bc --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade bc"
+
+scope: user

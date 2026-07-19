@@ -1,0 +1,34 @@
+# erbina recipe — parallel, a cli-tool. Run shell jobs in parallel.
+id: parallel
+kind: cli-tool
+title: "parallel — GNU parallel, a shell tool for executing jobs in parallel"
+description: >
+  GNU parallel is a shell tool for executing jobs in parallel using one or
+  more computers, running the same command with different arguments
+  concurrently. https://www.gnu.org/software/parallel/
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "parallel --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install parallel"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "parallel --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade parallel"
+
+scope: user

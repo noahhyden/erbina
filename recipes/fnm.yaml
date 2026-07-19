@@ -1,0 +1,45 @@
+# erbina recipe — fnm, a cli-tool. Fast Node.js version manager in Rust.
+id: fnm
+kind: cli-tool
+title: "fnm — fast and simple Node.js version manager"
+description: >
+  fnm is a fast and simple Node.js version manager built in Rust, with
+  cross-platform support and .node-version / .nvmrc awareness.
+  https://github.com/Schniz/fnm
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "fnm --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install fnm"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install fnm"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "fnm --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "fnm --version"
+  latest: { github: Schniz/fnm }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade fnm"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install fnm"
+
+scope: user

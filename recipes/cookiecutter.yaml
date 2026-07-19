@@ -1,0 +1,45 @@
+# erbina recipe — cookiecutter, a cli-tool. Scaffold projects from templates.
+id: cookiecutter
+kind: cli-tool
+title: "cookiecutter — a command-line utility that creates projects from templates"
+description: >
+  Cookiecutter creates projects from cookiecutters (project templates),
+  letting you scaffold consistent Python and non-Python projects from a
+  prompt. https://github.com/cookiecutter/cookiecutter
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "cookiecutter --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install cookiecutter"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install cookiecutter"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "cookiecutter --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "cookiecutter --version"
+  latest: { github: cookiecutter/cookiecutter }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade cookiecutter"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade cookiecutter"
+
+scope: user

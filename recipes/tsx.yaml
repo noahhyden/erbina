@@ -1,0 +1,39 @@
+# erbina recipe — tsx, a cli-tool. Fast TS/ESM runner for Node.
+id: tsx
+kind: cli-tool
+title: "tsx — TypeScript execute: run TypeScript & ESM in Node.js"
+description: >
+  tsx is a fast, zero-config TypeScript and ESM runner for Node.js built
+  on esbuild, running .ts files directly and watching for changes.
+  https://github.com/privatenumber/tsx
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "tsx --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g tsx"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "tsx --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "tsx --version"
+  latest: { github: privatenumber/tsx }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g tsx"
+
+scope: user

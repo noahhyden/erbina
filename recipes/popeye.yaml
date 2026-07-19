@@ -1,0 +1,39 @@
+# erbina recipe — popeye, a cli-tool. Scan clusters for misconfigurations.
+id: popeye
+kind: cli-tool
+title: "popeye — a Kubernetes cluster resource sanitizer"
+description: >
+  Popeye is a utility that scans live Kubernetes clusters and reports
+  potential issues with deployed resources and configurations, sanitizing
+  your cluster. https://github.com/derailed/popeye
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "popeye --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install popeye"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "popeye --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "popeye --version"
+  latest: { github: derailed/popeye }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade popeye"
+
+scope: user

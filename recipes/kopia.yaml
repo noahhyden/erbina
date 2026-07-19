@@ -1,0 +1,39 @@
+# erbina recipe — kopia, a cli-tool. Fast, encrypted, deduplicated backups.
+id: kopia
+kind: cli-tool
+title: "kopia — a fast and secure open-source backup/restore tool"
+description: >
+  Kopia is a fast and secure open-source backup/restore tool that creates
+  encrypted, deduplicated, compressed snapshots to cloud or local
+  repositories. https://github.com/kopia/kopia
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "kopia --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install kopia"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "kopia --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "kopia --version"
+  latest: { github: kopia/kopia }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade kopia"
+
+scope: user

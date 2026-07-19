@@ -1,0 +1,40 @@
+# erbina recipe — kubescape, a cli-tool. Scan Kubernetes for security risks.
+id: kubescape
+kind: cli-tool
+title: "kubescape — a Kubernetes security platform for scanning clusters, YAML files and Helm charts"
+description: >
+  Kubescape is a Kubernetes security platform that scans clusters, YAML
+  manifests and Helm charts against frameworks like NSA and MITRE for
+  misconfigurations and vulnerabilities.
+  https://github.com/kubescape/kubescape
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "kubescape version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install kubescape"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "kubescape version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "kubescape version"
+  latest: { github: kubescape/kubescape }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade kubescape"
+
+scope: user

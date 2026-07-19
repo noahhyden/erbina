@@ -1,0 +1,39 @@
+# erbina recipe — nomad, a cli-tool. Workload orchestrator.
+id: nomad
+kind: cli-tool
+title: "nomad — an easy-to-use, flexible, and performant workload orchestrator"
+description: >
+  HashiCorp Nomad is a simple and flexible workload orchestrator that
+  deploys and manages containers and non-containerized applications across
+  on-prem and cloud. https://github.com/hashicorp/nomad
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "nomad version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install nomad"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "nomad version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "nomad version"
+  latest: { github: hashicorp/nomad }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade nomad"
+
+scope: user

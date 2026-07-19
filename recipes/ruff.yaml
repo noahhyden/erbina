@@ -1,0 +1,45 @@
+# erbina recipe — ruff, a cli-tool. Fast Python linter/formatter in Rust.
+id: ruff
+kind: cli-tool
+title: "ruff — an extremely fast Python linter and formatter"
+description: >
+  Ruff is an extremely fast Python linter and code formatter written in
+  Rust, replacing Flake8, isort, and many plugins with a single tool.
+  https://github.com/astral-sh/ruff
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "ruff --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install ruff"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install ruff"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "ruff --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "ruff --version"
+  latest: { github: astral-sh/ruff }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade ruff"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade ruff"
+
+scope: user

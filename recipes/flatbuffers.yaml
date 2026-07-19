@@ -1,0 +1,39 @@
+# erbina recipe — flatbuffers, a cli-tool. FlatBuffers schema compiler (`flatc`).
+id: flatbuffers
+kind: cli-tool
+title: "flatbuffers — a cross-platform serialization library for memory-efficient data (`flatc`)"
+description: >
+  FlatBuffers is an efficient cross-platform serialization library that
+  accesses serialized data without parsing/unpacking; flatc compiles its
+  schemas. https://github.com/google/flatbuffers
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "flatc --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install flatbuffers"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "flatc --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "flatc --version"
+  latest: { github: google/flatbuffers }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade flatbuffers"
+
+scope: user

@@ -1,0 +1,40 @@
+# erbina recipe — semantic-release, a cli-tool. Automated semver releases from commits.
+id: semantic-release
+kind: cli-tool
+title: "semantic-release — fully automated version management and package publishing"
+description: >
+  semantic-release fully automates version management and package
+  publishing, determining the next version from commit messages and
+  publishing to registries.
+  https://github.com/semantic-release/semantic-release
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "semantic-release --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g semantic-release"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "semantic-release --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "semantic-release --version"
+  latest: { github: semantic-release/semantic-release }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g semantic-release"
+
+scope: user

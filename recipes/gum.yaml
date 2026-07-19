@@ -1,0 +1,45 @@
+# erbina recipe — gum, a cli-tool. Interactive widgets for shell scripts.
+id: gum
+kind: cli-tool
+title: "gum — a tool for glamorous shell scripts"
+description: >
+  Gum provides highly configurable, ready-to-use interactive components
+  (input, choose, filter, spin, confirm) for writing glamorous shell
+  scripts. https://github.com/charmbracelet/gum
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "gum --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install gum"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/charmbracelet/gum@latest"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "gum --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "gum --version"
+  latest: { github: charmbracelet/gum }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade gum"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/charmbracelet/gum@latest"
+
+scope: user

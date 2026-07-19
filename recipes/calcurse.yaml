@@ -1,0 +1,34 @@
+# erbina recipe — calcurse, a cli-tool. Terminal calendar & todo.
+id: calcurse
+kind: cli-tool
+title: "calcurse — a text-based calendar and scheduling application"
+description: >
+  calcurse is a text-based calendar and scheduling application for the
+  terminal, combining an interactive interface with a command-line mode
+  for scripting. https://calcurse.org/
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "calcurse --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install calcurse"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "calcurse --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade calcurse"
+
+scope: user

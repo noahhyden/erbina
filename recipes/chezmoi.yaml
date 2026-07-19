@@ -1,0 +1,39 @@
+# erbina recipe — chezmoi, a cli-tool. Manage dotfiles across machines.
+id: chezmoi
+kind: cli-tool
+title: "chezmoi — manage your dotfiles across multiple diverse machines, securely"
+description: >
+  chezmoi manages your dotfiles across multiple diverse machines securely,
+  with templating, secret-manager integration and a git-backed source of
+  truth. https://github.com/twpayne/chezmoi
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "chezmoi --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install chezmoi"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "chezmoi --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "chezmoi --version"
+  latest: { github: twpayne/chezmoi }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade chezmoi"
+
+scope: user

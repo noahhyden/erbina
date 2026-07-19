@@ -1,0 +1,45 @@
+# erbina recipe — fastlane, a cli-tool. Automate iOS/Android release chores.
+id: fastlane
+kind: cli-tool
+title: "fastlane — the easiest way to automate building and releasing iOS and Android apps"
+description: >
+  fastlane is the easiest way to automate building and releasing iOS and
+  Android apps, handling screenshots, code signing and store deployment.
+  https://github.com/fastlane/fastlane
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "fastlane --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install fastlane"
+    - id: gem
+      when: "command -v gem"
+      run: "gem install fastlane"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "fastlane --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "fastlane --version"
+  latest: { github: fastlane/fastlane }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade fastlane"
+    - id: gem
+      when: "command -v gem"
+      run: "gem update fastlane"
+
+scope: user

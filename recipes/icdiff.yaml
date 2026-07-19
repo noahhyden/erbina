@@ -1,0 +1,45 @@
+# erbina recipe — icdiff, a cli-tool. Side-by-side colored diffs.
+id: icdiff
+kind: cli-tool
+title: "icdiff — improved colored diff, side-by-side"
+description: >
+  icdiff produces improved, colored, side-by-side diffs that make it easy
+  to see what changed between two files, with a git integration.
+  https://github.com/jeffkaufman/icdiff
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "icdiff --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install icdiff"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install icdiff"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "icdiff --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "icdiff --version"
+  latest: { github: jeffkaufman/icdiff }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade icdiff"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade icdiff"
+
+scope: user

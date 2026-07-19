@@ -1,0 +1,39 @@
+# erbina recipe — verilator, a cli-tool. Fast Verilog/SystemVerilog simulator.
+id: verilator
+kind: cli-tool
+title: "verilator — the fastest Verilog/SystemVerilog simulator"
+description: >
+  Verilator is the fastest free Verilog/SystemVerilog simulator, compiling
+  designs into optimized C++/SystemC models for high-performance
+  simulation. https://github.com/verilator/verilator
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "verilator --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install verilator"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "verilator --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "verilator --version"
+  latest: { github: verilator/verilator }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade verilator"
+
+scope: user

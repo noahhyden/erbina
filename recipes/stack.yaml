@@ -1,0 +1,39 @@
+# erbina recipe — stack, a cli-tool. Build tool for Haskell projects.
+id: stack
+kind: cli-tool
+title: "stack — the Haskell Tool Stack, a cross-platform build tool for Haskell projects"
+description: >
+  Stack is a cross-platform build tool for Haskell that manages GHC
+  versions and dependencies, giving reproducible builds without global
+  state. https://github.com/commercialhaskell/stack
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "stack --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install haskell-stack"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "stack --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "stack --version"
+  latest: { github: commercialhaskell/stack }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade haskell-stack"
+
+scope: user

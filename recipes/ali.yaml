@@ -1,0 +1,39 @@
+# erbina recipe — ali, a cli-tool. Real-time HTTP load-testing TUI.
+id: ali
+kind: cli-tool
+title: "ali — generate HTTP load and plot the results in real-time"
+description: >
+  ali is a load-testing tool capable of generating HTTP requests and
+  plotting the latency and throughput results in a real-time terminal
+  interface. https://github.com/nakabonne/ali
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "ali --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install ali"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "ali --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "ali --version"
+  latest: { github: nakabonne/ali }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade ali"
+
+scope: user

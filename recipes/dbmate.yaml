@@ -1,0 +1,39 @@
+# erbina recipe — dbmate, a cli-tool. Framework-agnostic DB migrations.
+id: dbmate
+kind: cli-tool
+title: "dbmate — a lightweight, framework-agnostic database migration tool"
+description: >
+  dbmate is a lightweight, framework-agnostic database migration tool that
+  keeps your schema in sync using plain SQL migration files across many
+  databases. https://github.com/amacneil/dbmate
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "dbmate --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install dbmate"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "dbmate --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "dbmate --version"
+  latest: { github: amacneil/dbmate }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade dbmate"
+
+scope: user

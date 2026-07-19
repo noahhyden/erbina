@@ -1,0 +1,34 @@
+# erbina recipe — vim, a cli-tool. Ubiquitous modal text editor.
+id: vim
+kind: cli-tool
+title: "vim — the ubiquitous, highly configurable modal text editor"
+description: >
+  Vim is a highly configurable modal text editor built to make creating
+  and changing any kind of text very efficient, available on nearly every
+  platform. https://github.com/vim/vim
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "vim --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install vim"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "vim --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade vim"
+
+scope: user

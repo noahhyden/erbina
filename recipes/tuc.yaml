@@ -1,0 +1,39 @@
+# erbina recipe — tuc, a cli-tool. cut with ranges, negatives and more.
+id: tuc
+kind: cli-tool
+title: "tuc — cut with a lot of features (a hopefully better cut)"
+description: >
+  tuc is a feature-rich replacement for cut, supporting negative indexes,
+  range compression, field joining and cutting on regex, JSON and more.
+  https://github.com/riquito/tuc
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "tuc --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install tuc"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "tuc --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "tuc --version"
+  latest: { github: riquito/tuc }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install tuc"
+
+scope: user

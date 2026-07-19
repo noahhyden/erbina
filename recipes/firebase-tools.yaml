@@ -1,0 +1,39 @@
+# erbina recipe — firebase-tools, a cli-tool. Manage Firebase projects (`firebase`).
+id: firebase-tools
+kind: cli-tool
+title: "firebase-tools — the Firebase command-line interface (`firebase`)"
+description: >
+  firebase-tools provides the Firebase CLI to test, manage and deploy
+  Firebase projects, including Hosting, Functions, Firestore and
+  emulators. https://github.com/firebase/firebase-tools
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "firebase --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g firebase-tools"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "firebase --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "firebase --version"
+  latest: { github: firebase/firebase-tools }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g firebase-tools"
+
+scope: user

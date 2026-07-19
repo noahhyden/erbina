@@ -1,0 +1,45 @@
+# erbina recipe — hwatch, a cli-tool. Modern `watch` that records history.
+id: hwatch
+kind: cli-tool
+title: "hwatch — a modern alternative to the watch command that records execution results"
+description: >
+  hwatch is a modern alternative to the watch command that records command
+  execution results over time and lets you view the diff of historical
+  output. https://github.com/blacknon/hwatch
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "hwatch --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install hwatch"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install hwatch"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "hwatch --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "hwatch --version"
+  latest: { github: blacknon/hwatch }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade hwatch"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install hwatch"
+
+scope: user

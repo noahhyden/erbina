@@ -1,0 +1,45 @@
+# erbina recipe — meson, a cli-tool. Fast, user-friendly build system.
+id: meson
+kind: cli-tool
+title: "meson — a fast and user-friendly build system"
+description: >
+  Meson is an open-source build system meant to be fast and as
+  user-friendly as possible, using a non-Turing-complete DSL and Ninja as
+  its backend. https://github.com/mesonbuild/meson
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "meson --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install meson"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install meson"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "meson --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "meson --version"
+  latest: { github: mesonbuild/meson }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade meson"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade meson"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — http-server, a cli-tool. Zero-config static HTTP server.
+id: http-server
+kind: cli-tool
+title: "http-server — a simple, zero-configuration command-line HTTP server"
+description: >
+  http-server is a simple, zero-configuration command-line static HTTP
+  server, useful for serving a folder of files or a front-end build during
+  development. https://github.com/http-party/http-server
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "http-server --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm install -g http-server"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "http-server --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "http-server --version"
+  latest: { github: http-party/http-server }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: npm
+      when: "command -v npm"
+      run: "npm update -g http-server"
+
+scope: user

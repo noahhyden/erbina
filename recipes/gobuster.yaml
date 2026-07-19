@@ -1,0 +1,39 @@
+# erbina recipe — gobuster, a cli-tool. Brute-force URIs, DNS and vhosts.
+id: gobuster
+kind: cli-tool
+title: "gobuster — directory/file, DNS and vhost busting tool"
+description: >
+  Gobuster is a tool used to brute-force URIs (directories and files), DNS
+  subdomains and virtual host names on target web servers, common in
+  security assessments. https://github.com/OJ/gobuster
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "gobuster version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install gobuster"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "gobuster version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "gobuster version"
+  latest: { github: OJ/gobuster }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade gobuster"
+
+scope: user

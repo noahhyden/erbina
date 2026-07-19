@@ -1,0 +1,45 @@
+# erbina recipe — angle-grinder, a cli-tool. Aggregate and query logs (`agrind`).
+id: angle-grinder
+kind: cli-tool
+title: "angle-grinder — slice and dice logs on the command line (`agrind`)"
+description: >
+  angle-grinder (agrind) lets you parse, aggregate, sum, average and
+  percentile log data directly in the terminal with a concise query
+  language. https://github.com/rcoh/angle-grinder
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "agrind --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install angle-grinder"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install ag"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "agrind --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "agrind --version"
+  latest: { github: rcoh/angle-grinder }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade angle-grinder"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install ag"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — mypy, a cli-tool. Static type checker for Python.
+id: mypy
+kind: cli-tool
+title: "mypy — optional static typing for Python"
+description: >
+  mypy is an optional static type checker for Python that combines dynamic
+  typing with type annotations to catch errors before you run your code.
+  https://github.com/python/mypy
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "mypy --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install mypy"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "mypy --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "mypy --version"
+  latest: { github: python/mypy }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade mypy"
+
+scope: user

@@ -1,0 +1,39 @@
+# erbina recipe — composer, a cli-tool. Dependency manager for PHP.
+id: composer
+kind: cli-tool
+title: "composer — dependency manager for PHP"
+description: >
+  Composer is a tool for dependency management in PHP, letting you declare
+  the libraries your project depends on and installing and updating them
+  for you. https://github.com/composer/composer
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "composer --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install composer"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "composer --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "composer --version"
+  latest: { github: composer/composer }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade composer"
+
+scope: user

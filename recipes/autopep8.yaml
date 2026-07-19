@@ -1,0 +1,39 @@
+# erbina recipe — autopep8, a cli-tool. Auto-format Python to PEP 8.
+id: autopep8
+kind: cli-tool
+title: "autopep8 — automatically formats Python code to conform to the PEP 8 style guide"
+description: >
+  autopep8 automatically formats Python code to conform to the PEP 8 style
+  guide, fixing whitespace, indentation and other style issues in place.
+  https://github.com/hhatto/autopep8
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "autopep8 --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install autopep8"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "autopep8 --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "autopep8 --version"
+  latest: { github: hhatto/autopep8 }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade autopep8"
+
+scope: user

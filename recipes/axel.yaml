@@ -1,0 +1,34 @@
+# erbina recipe — axel, a cli-tool. Command-line download accelerator.
+id: axel
+kind: cli-tool
+title: "axel — a light command-line download accelerator"
+description: >
+  axel is a light command-line download accelerator that speeds up
+  downloads by opening multiple connections and fetching different parts
+  of a file in parallel. https://github.com/axel-download-accelerator/axel
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "axel --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install axel"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "axel --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade axel"
+
+scope: user

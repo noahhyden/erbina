@@ -1,0 +1,34 @@
+# erbina recipe — ack, a cli-tool. grep-like search for code.
+id: ack
+kind: cli-tool
+title: "ack — a grep-like search tool optimized for source code"
+description: >
+  ack is a grep-like search tool optimized for searching source code,
+  skipping version-control directories and offering file-type-aware
+  searching. https://github.com/beyondgrep/ack3
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "ack --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install ack"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "ack --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade ack"
+
+scope: user

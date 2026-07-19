@@ -1,0 +1,39 @@
+# erbina recipe — poetry, a cli-tool. Python dependency & packaging manager.
+id: poetry
+kind: cli-tool
+title: "poetry — Python packaging and dependency management made easy"
+description: >
+  Poetry is a tool for dependency management and packaging in Python,
+  resolving and locking dependencies and building/publishing packages from
+  one config. https://github.com/python-poetry/poetry
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "poetry --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install poetry"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "poetry --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "poetry --version"
+  latest: { github: python-poetry/poetry }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade poetry"
+
+scope: user

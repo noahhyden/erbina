@@ -1,0 +1,34 @@
+# erbina recipe — tree, a cli-tool. Recursive directory tree listing.
+id: tree
+kind: cli-tool
+title: "tree — a recursive directory listing command"
+description: >
+  tree is a recursive directory listing program that produces a
+  depth-indented listing of files, a quick way to visualize a directory
+  hierarchy. https://oldmanprogrammer.net/source.php?dir=projects/tree
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "tree --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install tree"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "tree --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade tree"
+
+scope: user

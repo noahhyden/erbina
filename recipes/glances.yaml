@@ -1,0 +1,45 @@
+# erbina recipe — glances, a cli-tool. Cross-platform system monitor.
+id: glances
+kind: cli-tool
+title: "glances — a cross-platform system monitoring tool"
+description: >
+  Glances is a cross-platform system monitoring tool that presents a large
+  amount of system information in a compact, adaptive terminal interface.
+  https://github.com/nicolargo/glances
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "glances --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install glances"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install glances"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "glances --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "glances --version"
+  latest: { github: nicolargo/glances }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade glances"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade glances"
+
+scope: user

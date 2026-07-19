@@ -1,0 +1,34 @@
+# erbina recipe — mkvtoolnix, a cli-tool. Work with Matroska (MKV) files (`mkvmerge`).
+id: mkvtoolnix
+kind: cli-tool
+title: "mkvtoolnix — tools to create, alter and inspect Matroska files (`mkvmerge`)"
+description: >
+  MKVToolNix is a set of tools to create, alter and inspect Matroska (MKV)
+  files; mkvmerge muxes and remuxes audio, video and subtitle tracks.
+  https://mkvtoolnix.download/
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "mkvmerge --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install mkvtoolnix"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "mkvmerge --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade mkvtoolnix"
+
+scope: user

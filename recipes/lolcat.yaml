@@ -1,0 +1,45 @@
+# erbina recipe — lolcat, a cli-tool. Rainbow-colorize terminal output.
+id: lolcat
+kind: cli-tool
+title: "lolcat — rainbows and unicorns in your terminal"
+description: >
+  lolcat concatenates like cat but adds rainbow coloring to the output, a
+  fun way to brighten up terminal text and ASCII art.
+  https://github.com/busyloop/lolcat
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "lolcat --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install lolcat"
+    - id: gem
+      when: "command -v gem"
+      run: "gem install lolcat"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "lolcat --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "lolcat --version"
+  latest: { github: busyloop/lolcat }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade lolcat"
+    - id: gem
+      when: "command -v gem"
+      run: "gem update lolcat"
+
+scope: user

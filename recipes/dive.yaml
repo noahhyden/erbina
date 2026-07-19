@@ -1,0 +1,39 @@
+# erbina recipe — dive, a cli-tool. Explore Docker image layers.
+id: dive
+kind: cli-tool
+title: "dive — a tool for exploring a docker image and layer contents"
+description: >
+  dive is a tool for exploring each layer in a docker image, discovering
+  wasted space and shrinking the size of your Docker/OCI images.
+  https://github.com/wagoodman/dive
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "dive --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install dive"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "dive --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "dive --version"
+  latest: { github: wagoodman/dive }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade dive"
+
+scope: user

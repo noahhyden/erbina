@@ -1,0 +1,39 @@
+# erbina recipe — sphinx, a cli-tool. Documentation generator (`sphinx-build`).
+id: sphinx
+kind: cli-tool
+title: "sphinx — a documentation generator (`sphinx-build`)"
+description: >
+  Sphinx is a documentation generator that converts reStructuredText (and
+  markdown) into HTML, PDF and more, widely used for Python and other
+  project docs. https://github.com/sphinx-doc/sphinx
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "sphinx-build --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install sphinx"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "sphinx-build --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "sphinx-build --version"
+  latest: { github: sphinx-doc/sphinx }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade sphinx"
+
+scope: user

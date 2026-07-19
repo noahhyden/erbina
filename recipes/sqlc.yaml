@@ -1,0 +1,39 @@
+# erbina recipe — sqlc, a cli-tool. Compile SQL to type-safe code.
+id: sqlc
+kind: cli-tool
+title: "sqlc — generate type-safe code from SQL"
+description: >
+  sqlc generates fully type-safe, idiomatic code (Go and others) from your
+  SQL queries and schema, so you write SQL and get compile-time-checked
+  accessors. https://github.com/sqlc-dev/sqlc
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "sqlc --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install sqlc"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "sqlc --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "sqlc --version"
+  latest: { github: sqlc-dev/sqlc }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade sqlc"
+
+scope: user
