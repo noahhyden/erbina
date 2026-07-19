@@ -18,7 +18,10 @@ on:
         required: false
         default: ""
   schedule:
-    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+    # Saturdays 06:00 UTC — deliberately NOT Monday: run it going into the weekend
+    # so recipe rot surfaces with days of slack to fix before people rely on the
+    # tool during the work week, rather than the morning they need it to work.
+    - cron: "0 6 * * 6"
 
 permissions:
   contents: read
