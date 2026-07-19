@@ -7,29 +7,19 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-19
+
 ### Added
 
-- **Windows support via `winget`.** 14 cli-tool recipes gained a `winget` install
+- **Windows support via `winget`.** 13 cli-tool recipes gained a `winget` install
   + update method (ripgrep, fd, bat, jq, gh, delta, zoxide, hyperfine, uv, lazygit,
-  yq, tokei, dust, bottom). Because a method's `when:` guard runs in the platform
+  yq, dust, bottom). Because a method's `when:` guard runs in the platform
   shell, the existing brew/cargo/go guards fail cleanly on Windows (cmd.exe) while
   the winget guard (`winget --version`) fails cleanly on POSIX — so no core change
   was needed, methods just self-select per platform. The winget package ids are
   locked in the suite and **proven for real** by a new `windows` job in the
   real-bootstrap workflow (`winget show` resolves every id; a stable subset is
   bootstrapped end-to-end).
-
-### Fixed
-
-- **Version extraction prefers a labeled version.** When `--version` output labels
-  its version (contains the word "version"), `_extract_version` now takes the
-  token *after* the label, so a dotted build date printed before it
-  (`Built 2024.01.15, tool version 2.3.4`) is no longer mistaken for the version.
-  Verified to not regress the whole version corpus (incl. the real outputs proven
-  by the real-bootstrap run). Unlabeled output (a bare `v1.2.3`/`10.0` after a
-  date) stays first-token — genuinely ambiguous vs. a calver, and no recipe hits it.
-
-### Added
 
 - **Real-bootstrap smoke (`scripts/smoke_bootstrap.py` + a weekly/dispatch CI
   workflow).** A second, non-offline validation tier that bootstraps recipes *for
@@ -101,6 +91,16 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
   check (every `requires` names a real recipe; the graph is acyclic), and
   behavioral tests for ordering / idempotency / transitive + diamond deps / cycle
   safety / failure short-circuiting.
+
+### Fixed
+
+- **Version extraction prefers a labeled version.** When `--version` output labels
+  its version (contains the word "version"), `_extract_version` now takes the
+  token *after* the label, so a dotted build date printed before it
+  (`Built 2024.01.15, tool version 2.3.4`) is no longer mistaken for the version.
+  Verified to not regress the whole version corpus (incl. the real outputs proven
+  by the real-bootstrap run). Unlabeled output (a bare `v1.2.3`/`10.0` after a
+  date) stays first-token — genuinely ambiguous vs. a calver, and no recipe hits it.
 
 ## [0.1.0] - 2026-07-18
 
@@ -236,5 +236,6 @@ as `io.github.noahhyden/erbina`.
 - **Release-hygiene docs:** this changelog, `SECURITY.md`, `CONTRIBUTING.md`,
   `CODE_OF_CONDUCT.md`, and GitHub issue / pull-request templates.
 
-[Unreleased]: https://github.com/noahhyden/erbina/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/noahhyden/erbina/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/noahhyden/erbina/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/noahhyden/erbina/releases/tag/v0.1.0
