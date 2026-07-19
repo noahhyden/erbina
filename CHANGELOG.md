@@ -7,6 +7,18 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased]
 
+### Added
+
+- **Windows support via `winget`.** 14 cli-tool recipes gained a `winget` install
+  + update method (ripgrep, fd, bat, jq, gh, delta, zoxide, hyperfine, uv, lazygit,
+  yq, tokei, dust, bottom). Because a method's `when:` guard runs in the platform
+  shell, the existing brew/cargo/go guards fail cleanly on Windows (cmd.exe) while
+  the winget guard (`winget --version`) fails cleanly on POSIX — so no core change
+  was needed, methods just self-select per platform. The winget package ids are
+  locked in the suite and **proven for real** by a new `windows` job in the
+  real-bootstrap workflow (`winget show` resolves every id; a stable subset is
+  bootstrapped end-to-end).
+
 ### Fixed
 
 - **Version extraction prefers a labeled version.** When `--version` output labels

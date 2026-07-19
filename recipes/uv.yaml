@@ -20,6 +20,9 @@ install:
     - id: homebrew
       when: "command -v brew"
       run: "brew install uv"
+    - id: winget
+      when: "winget --version"
+      run: "winget install -e --id astral-sh.uv --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: standalone
       when: "command -v curl"
       run: "curl -LsSf https://astral.sh/uv/install.sh | sh"
@@ -41,6 +44,9 @@ update:
     - id: homebrew
       when: "command -v brew"
       run: "brew upgrade uv"
+    - id: winget
+      when: "winget --version"
+      run: "winget upgrade -e --id astral-sh.uv --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: self
       when: "command -v uv"
       run: "uv self update"

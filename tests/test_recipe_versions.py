@@ -102,8 +102,46 @@ def test_cli_recipe_plan_commands(rid, detect_cmd, methods, verify_cmd):
     plan = call_tool("inspect_recipe", {"recipe_id": rid})["will_run"]
     assert plan["detect"] == detect_cmd
     got = {m["id"]: m["run"] for m in plan["install"]["all_methods"]}
-    assert got == methods
+    # the brew/cargo commands must match exactly (catch a typo); a cross-platform
+    # `winget` method may additionally be present (its id is locked separately).
+    for mid, run in methods.items():
+        assert got.get(mid) == run, f"{rid}.{mid}: {got.get(mid)!r}"
+    assert set(got) - set(methods) <= {"winget"}, f"{rid}: unexpected methods {set(got) - set(methods)}"
     assert verify_cmd in plan["verify"]
+
+
+# --------------------------------------------------------------------------- #
+# Windows: the winget package IDs (typo-prone) are locked here and proven for
+# real by the `windows` job in the real-bootstrap workflow.
+# --------------------------------------------------------------------------- #
+WINGET_IDS = {
+    "ripgrep": "BurntSushi.ripgrep.MSVC", "fd": "sharkdp.fd", "bat": "sharkdp.bat",
+    "jq": "jqlang.jq", "gh": "GitHub.cli", "delta": "dandavison.delta",
+    "zoxide": "ajeetdsouza.zoxide", "hyperfine": "sharkdp.hyperfine", "uv": "astral-sh.uv",
+    "lazygit": "JesseDuffield.lazygit", "yq": "MikeFarah.yq",
+    "dust": "bootandy.dust", "bottom": "Clement.bottom",
+}
+
+
+@pytest.mark.parametrize("rid,wid", sorted(WINGET_IDS.items()))
+def test_winget_method_is_guarded_and_carries_the_id(rid, wid):
+    plan = call_tool("inspect_recipe", {"recipe_id": rid})["will_run"]
+    methods = {m["id"]: m for m in plan["install"]["all_methods"]}
+    assert "winget" in methods, f"{rid}: no winget install method"
+    win = methods["winget"]
+    assert win["when"] == "winget --version"       # Windows-only guard (degrades on POSIX)
+    assert f"--id {wid} " in win["run"]             # the exact package id
+    assert "winget install" in win["run"]
+
+
+def test_every_winget_recipe_is_covered():
+    # a recipe that grows a winget method must be listed above (so its id is locked)
+    with_winget = {rid for rid in server._recipe_ids()
+                   if any(m.get("id") == "winget"
+                          for m in (server._load_recipe(rid).get("install", {}).get("methods") or []))}
+    assert with_winget == set(WINGET_IDS), (
+        f"uncovered: {with_winget - set(WINGET_IDS)}; stale: {set(WINGET_IDS) - with_winget}"
+    )
 
 
 # --------------------------------------------------------------------------- #

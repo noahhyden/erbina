@@ -42,6 +42,9 @@ detect:
 #    Methods are tried in order; the FIRST whose `when:` guard exits 0 is used.
 #    A guard lets a recipe prefer brew on a machine that has it and fall back to
 #    curl otherwise, without ever running a package manager that isn't installed.
+#    Guards also make methods CROSS-PLATFORM: a `command -v brew` guard fails
+#    cleanly in Windows cmd.exe, and a `winget --version` guard fails cleanly on
+#    POSIX, so brew/cargo/go and winget methods can coexist and self-select per OS.
 install:
   methods:
     - id: <method id>
