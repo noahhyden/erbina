@@ -183,7 +183,8 @@ install a binary, `mcp-server`s wire a server into a chosen Claude Code scope, a
 `profile`s bundle several recipes. (This list is kept in sync with `recipes/` by a
 test. The bulk `cli-tool` entries are generated from `scripts/recipe_data.py`.)
 
-**CLI tools**
+<details>
+<summary><strong>CLI tools</strong> — the marquee set</summary>
 
 - [`ataegina`](recipes/ataegina.yaml) — collision-free dev environments per git worktree
 - [`bat`](recipes/bat.yaml) — a cat clone with syntax highlighting and Git integration
@@ -207,7 +208,10 @@ test. The bulk `cli-tool` entries are generated from `scripts/recipe_data.py`.)
 - [`yq`](recipes/yq.yaml) — a portable command-line YAML/JSON/XML processor
 - [`zoxide`](recipes/zoxide.yaml) — a smarter cd command that learns your habits
 
-_More CLI tools (bulk-curated, kept in sync with `recipes/` by `scripts/gen_recipes.py`):_
+</details>
+
+<details>
+<summary><strong>CLI tools</strong> — the full registry (500+, bulk-curated, kept in sync with <code>recipes/</code> by <code>scripts/gen_recipes.py</code>)</summary>
 
 <!-- GENERATED:cli-tools (managed by scripts/gen_recipes.py) -->
 - [`ack`](recipes/ack.yaml) — a grep-like search tool optimized for source code
@@ -687,11 +691,17 @@ _More CLI tools (bulk-curated, kept in sync with `recipes/` by `scripts/gen_reci
 - [`zstd`](recipes/zstd.yaml) — Zstandard, a fast real-time compression algorithm
 <!-- /GENERATED:cli-tools -->
 
-**Profiles** (bundle several recipes; bootstrap resolves them all)
+</details>
+
+<details>
+<summary><strong>Profiles</strong> — bundle several recipes; bootstrap resolves them all</summary>
 
 - [`modern-unix`](recipes/modern-unix.yaml) — a curated set of modern CLI replacements (ripgrep, fd, bat, eza, dust, zoxide)
 
-**MCP servers**
+</details>
+
+<details>
+<summary><strong>MCP servers</strong> — wire a server into a chosen Claude Code scope</summary>
 
 - [`everything`](recipes/everything.yaml) — official MCP reference/test server exercising the full protocol
 - [`fetch`](recipes/fetch.yaml) — official MCP server for retrieving web content
@@ -699,6 +709,8 @@ _More CLI tools (bulk-curated, kept in sync with `recipes/` by `scripts/gen_reci
 - [`memory`](recipes/memory.yaml) — official MCP server for a persistent knowledge graph
 - [`sequentialthinking`](recipes/sequentialthinking.yaml) — official MCP server for structured step-by-step reasoning
 - [`time`](recipes/time.yaml) — official MCP server for time & timezone conversions
+
+</details>
 
 ## Adding a recipe
 
