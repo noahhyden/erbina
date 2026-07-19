@@ -64,5 +64,17 @@ update:
       when: "command -v curl"
       run: "curl -fsSL https://raw.githubusercontent.com/noahhyden/ataegina-cli/main/install.sh | sh"
 
+# UNINSTALL — what the `uninstall` tool runs to reverse the install. The homebrew
+# method is eligible only when brew actually manages this formula (so a
+# curl-installed copy isn't handed to brew); otherwise the binary on PATH is removed.
+uninstall:
+  methods:
+    - id: homebrew
+      when: "brew list noahhyden/tap/ataegina"
+      run: "brew uninstall noahhyden/tap/ataegina"
+    - id: rm
+      when: "command -v ataegina"
+      run: "rm -f \"$(command -v ataegina)\""
+
 # scope is informational for cli-tool recipes; load-bearing for mcp-server recipes.
 scope: user

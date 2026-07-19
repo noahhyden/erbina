@@ -19,6 +19,7 @@ EXPECTED_TOOLS = {
     "find_dead_mcps",
     "remove_mcp",
     "doctor",
+    "uninstall",
 }
 
 

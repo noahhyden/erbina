@@ -47,7 +47,7 @@ VALID_KINDS = ("cli-tool", "mcp-server")
 # The closed set of top-level keys SCHEMA.md defines. `_path` is injected by the
 # loader AFTER validation, so it is not part of the recipe's authored contract.
 TOP_LEVEL_KEYS = frozenset(
-    {"id", "kind", "title", "description", "detect", "install", "configure", "verify", "scope", "version", "update", "rollback", "requires"}
+    {"id", "kind", "title", "description", "detect", "install", "configure", "verify", "scope", "version", "update", "rollback", "requires", "uninstall"}
 )
 # Matches the first version-looking token in arbitrary command output, e.g.
 # "ataegina 0.1.0" -> "0.1.0", "v1.2.3 (build 4)" -> "1.2.3". A leading `v` is
@@ -277,6 +277,20 @@ def _record_tool(recipe_id: str, **fields: Any) -> dict[str, Any]:
     return rec
 
 
+def _forget_tool(recipe_id: str) -> bool:
+    """Drop a tool's record from the state manifest (after it's uninstalled).
+
+    Returns True if a record existed and was removed, False if there was nothing
+    to forget. Idempotent — forgetting an unknown tool is a no-op.
+    """
+    state = _read_state()
+    if recipe_id not in state["tools"]:
+        return False
+    del state["tools"][recipe_id]
+    _write_state(state)
+    return True
+
+
 def _is_pinned(recipe_id: str) -> bool:
     """True if the tool is pinned in the state manifest (pins block updates)."""
     return bool(_read_state()["tools"].get(recipe_id, {}).get("pinned"))
@@ -432,6 +446,10 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
     # version when an update's verify fails. Its `run` may read
     # $ERBINA_ROLLBACK_VERSION (the recorded previous version erbina injects).
     _validate_methods(recipe.get("rollback"), "rollback", required=False, errors=errors)
+
+    # uninstall — optional. Same guarded-method shape; what the `uninstall` tool
+    # runs to reverse an install (`brew uninstall`, `rm`, …).
+    _validate_methods(recipe.get("uninstall"), "uninstall", required=False, errors=errors)
 
     # requires — optional list of other recipe ids to bootstrap first. Existence
     # of the referenced recipes (and freedom from cycles across the registry) is a
@@ -1142,6 +1160,89 @@ def update(
         "verify FAILED after update — the tool may be broken and is marked so in state. "
         "No rollback command declared; see rollback_plan."
     )
+    return report
+
+
+@mcp.tool
+def uninstall(
+    recipe_id: str,
+    scope: str = "user",
+    dry_run: bool = False,
+    project_dir: str | None = None,
+) -> dict[str, Any]:
+    """
+    Reverse a cli-tool install: run the recipe's `uninstall:` methods, confirm the
+    tool is actually gone (re-run detect), and forget it in the state manifest.
+
+    Destructive — like bootstrap, show the user the command and confirm first; set
+    dry_run=true to see the exact command without running it. Only recipes that
+    declare an `uninstall:` block can be removed (erbina never guesses how to delete
+    a tool). For mcp-server recipes use `remove_mcp` instead. A tool that is already
+    absent is reported so (and any stale state record is cleaned up).
+    """
+    if scope not in VALID_SCOPES:
+        return {"error": f"scope must be one of {VALID_SCOPES}"}
+    recipe = _load_recipe(recipe_id)
+    if recipe.get("kind") == "mcp-server":
+        return {"error": f"'{recipe_id}' is an mcp-server — use remove_mcp to unwire it, not uninstall"}
+
+    methods = (recipe.get("uninstall") or {}).get("methods", [])
+    if not methods:
+        return {"error": f"recipe '{recipe_id}' declares no `uninstall:` block, so erbina has no safe way to remove it"}
+    method = _pick_method(methods)
+
+    report: dict[str, Any] = {
+        "recipe": recipe_id,
+        "scope": scope,
+        "dry_run": dry_run,
+        "plan": {
+            "chosen_method": method.get("id") if method else None,
+            "command": _subst(method.get("run"), scope, project_dir) if method else None,
+        },
+        "phases": {},
+    }
+    if dry_run:
+        report["note"] = "Dry run — nothing executed. Review `plan`, then re-run with dry_run=false."
+        return report
+
+    # is it actually installed? if not, there's nothing to remove — just forget it.
+    det = recipe.get("detect", {})
+    det_cwd = project_dir if det.get("needs_project_dir") else None
+    d = _run(_subst(det.get("command"), scope, project_dir), cwd=det_cwd, timeout=30)
+    if d["exit"] != det.get("expect_exit", 0):
+        report["phases"]["detect"] = {"present": False, **d}
+        report["ok"] = True
+        report["already_absent"] = True
+        report["forgotten"] = _forget_tool(recipe_id)
+        report["note"] = "Not installed — nothing to remove."
+        return report
+    report["phases"]["detect"] = {"present": True, **d}
+
+    if not method:
+        report["phases"]["uninstall"] = {
+            "status": "failed",
+            "reason": "no uninstall method's `when:` guard passed on this machine",
+        }
+        report["ok"] = False
+        return report
+
+    res = _run(_subst(method["run"], scope, project_dir))
+    report["phases"]["uninstall"] = {"status": "ok" if res["exit"] == 0 else "failed", "method": method.get("id"), **res}
+    if res["exit"] != 0:
+        report["ok"] = False
+        return report
+
+    # confirm removal — re-run detect; the tool should now be ABSENT.
+    c = _run(_subst(det.get("command"), scope, project_dir), cwd=det_cwd, timeout=30)
+    still_present = c["exit"] == det.get("expect_exit", 0)
+    report["phases"]["confirm"] = {"present": still_present, **c}
+    if still_present:
+        report["ok"] = False
+        report["warning"] = "uninstall ran but the tool still resolves — it may not have been fully removed."
+        return report
+
+    report["ok"] = True
+    report["forgotten"] = _forget_tool(recipe_id)
     return report
 
 
