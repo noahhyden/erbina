@@ -1,0 +1,55 @@
+name: Ingest brew recipes
+
+# On-demand harvester for new cli-tool recipes from Homebrew's long tail.
+# erbina's contract is "prove it runs", and recipe metadata can't tell a CLI from
+# a library — so this runs on macOS (where brew lives), ACTUALLY installs a batch
+# of the most-installed formulae that aren't recipes yet, discovers each one's real
+# binary + a version flag that exits 0, and emits recipe rows only for tools that
+# genuinely run. The result is uploaded as an artifact for a human to review and
+# merge into scripts/recipe_data.py — never committed automatically.
+#
+# Manual only: real installs are slow, and new recipes should be reviewed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "How many candidate formulae to install & probe"
+        required: false
+        default: "40"
+      offset:
+        description: "Skip this many top formulae first (paginate across runs)"
+        required: false
+        default: "0"
+
+permissions:
+  contents: read
+
+jobs:
+  ingest:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Pick candidate formulae (most-installed, not yet recipes)
+        run: |
+          set -euo pipefail
+          python3 scripts/brew_candidates.py \
+            --limit "${{ github.event.inputs.limit }}" \
+            --offset "${{ github.event.inputs.offset }}" | tee candidates.txt
+          echo "picked $(wc -l < candidates.txt) candidates"
+      - name: Install + probe each candidate, emit validated recipe rows
+        run: |
+          set -euo pipefail
+          # --keep: don't uninstall (the runner is ephemeral); brew install is the slow part.
+          uv run --with fastmcp --with pyyaml --with packaging \
+            scripts/ingest_validated.py --manager brew --keep --out rows.json $(cat candidates.txt)
+          echo "=== validated rows ==="; cat rows.json
+      - name: Upload validated rows for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: validated-recipe-rows
+          path: |
+            rows.json
+            candidates.txt
