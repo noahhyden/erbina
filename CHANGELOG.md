@@ -9,6 +9,14 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ### Added
 
+- **`uninstall` tool — reverse a cli-tool install.** Runs the recipe's new
+  `uninstall:` block (guarded methods, same shape as install/update), confirms the
+  tool is actually gone by re-running `detect`, and forgets it in the state
+  manifest. Destructive → consent-first with a `dry_run`. erbina never guesses how
+  to remove a tool: a recipe without an `uninstall:` block is refused; an
+  mcp-server is pointed at `remove_mcp`; an already-absent tool reports so and its
+  stale record is cleaned up. Brings the tool surface to eleven.
+
 - **`doctor` tool — health-check installed CLI tools.** Re-runs each recorded
   tool's `detect` (still present?) and, when present, `verify` (still runs?),
   classifying every entry in the state manifest as healthy / missing / broken.
