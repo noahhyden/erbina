@@ -16,11 +16,11 @@ threshold a tool crosses to become part of your environment. Sibling to
 is also erbina's proof-of-concept recipe #1.
 
 > **The recipe contract is the core idea.** One server, eleven tools, and a curated
-> set of recipes spanning `cli-tool`s, scope-wiring `mcp-server`s, and `profile`s
-> that bundle them (see the [Recipe gallery](#recipe-gallery)). Each is one YAML
-> file held to a conformance bar — schema + linter policy + a 100%-covered offline
-> suite, plus a weekly job that actually installs it on macOS, Linux, and Windows —
-> and adding one is the point.
+> set of **500+ recipes** spanning `cli-tool`s, scope-wiring `mcp-server`s, and
+> `profile`s that bundle them (see the [Recipe gallery](#recipe-gallery)). Each is
+> one YAML file held to a conformance bar — schema + linter policy + a 100%-covered
+> offline suite, plus a weekly job that actually installs it on macOS, Linux, and
+> Windows — and adding one is the point.
 
 ## Why this exists
 
@@ -145,9 +145,10 @@ See [AUTO_UPDATE.md](AUTO_UPDATE.md) for the design, the `version:`/`update:`/
 
 ## Recipe gallery
 
-The curated registry today. Each links to its YAML; `cli-tool`s install a binary,
-`mcp-server`s wire a server into a chosen Claude Code scope, and `profile`s bundle
-several recipes. (This list is kept in sync with `recipes/` by a test.)
+The curated registry today — 500+ recipes. Each links to its YAML; `cli-tool`s
+install a binary, `mcp-server`s wire a server into a chosen Claude Code scope, and
+`profile`s bundle several recipes. (This list is kept in sync with `recipes/` by a
+test. The bulk `cli-tool` entries are generated from `scripts/recipe_data.py`.)
 
 **CLI tools**
 
