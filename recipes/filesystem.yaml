@@ -1,0 +1,39 @@
+# erbina recipe — the official MCP "filesystem" server (kind: mcp-server).
+# A Node/npx server (like memory): the work is the scope-aware wiring. It takes
+# the directory it may access as an argument — ${project_dir} is substituted from
+# `bootstrap`, so the server is scoped to the project it's wired into.
+id: filesystem
+kind: mcp-server
+title: "filesystem — official MCP server for scoped local file access"
+description: >
+  The Model Context Protocol reference "filesystem" server: gives an agent
+  read/write access to files under one or more allowed directories (here the
+  bootstrapped project dir), with path validation. Runs via npx, so wiring it
+  into a scope — pointed at the right directory — is the work.
+
+# 1. DETECT — already registered? `claude mcp get` resolves project scope by cwd.
+detect:
+  command: "claude mcp get filesystem"
+  expect_exit: 0
+  needs_project_dir: true
+
+# 2. INSTALL — nothing to download; confirm the runtime that launches it (npx).
+install:
+  methods:
+    - id: npx
+      when: "command -v npx"
+      run: "command -v npx"
+
+# 3. CONFIGURE — scope-aware wiring at ${scope}, scoped to ${project_dir}.
+configure:
+  steps:
+    - run: "claude mcp add filesystem --scope ${scope} -- npx -y @modelcontextprotocol/server-filesystem ${project_dir}"
+      needs_project_dir: true
+
+# 4. VERIFY — Claude Code can see the server at the chosen scope.
+verify:
+  - command: "claude mcp get filesystem"
+    expect_exit: 0
+    needs_project_dir: true
+
+scope: project

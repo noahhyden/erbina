@@ -1,0 +1,21 @@
+# erbina recipe — security, a profile (meta-recipe).
+# Installs nothing itself; `requires` a curated set of security scanners, which
+# bootstrap resolves in order.
+id: security
+kind: profile
+title: "security — a curated set of security & supply-chain scanners"
+description: >
+  A bundle of scanners for finding vulnerabilities and secrets: trivy (images,
+  filesystems, IaC), grype (vulnerability scanner), syft (SBOM generator),
+  gitleaks and ripsecrets (secret detection), and semgrep (static analysis).
+  Bootstrapping this profile sets up each one.
+
+requires:
+  - trivy
+  - grype
+  - syft
+  - gitleaks
+  - ripsecrets
+  - semgrep
+
+scope: user

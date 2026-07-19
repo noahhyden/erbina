@@ -1,0 +1,22 @@
+# erbina recipe — data, a profile (meta-recipe).
+# Installs nothing itself; `requires` a curated set of data-wrangling CLIs, which
+# bootstrap resolves in order.
+id: data
+kind: profile
+title: "data — a curated set of command-line data-wrangling tools"
+description: >
+  A bundle for slicing data on the command line: jq (JSON), yq (YAML/XML), dasel
+  (multi-format query), duckdb (in-process analytical SQL), miller (CSV/TSV/JSON
+  streams), csvkit (CSV toolkit), and qsv (fast CSV toolkit). Bootstrapping this
+  profile sets up each one.
+
+requires:
+  - jq
+  - yq
+  - dasel
+  - duckdb
+  - miller
+  - csvkit
+  - qsv
+
+scope: user

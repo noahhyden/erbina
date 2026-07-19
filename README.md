@@ -698,17 +698,26 @@ test. The bulk `cli-tool` entries are generated from `scripts/recipe_data.py`.)
 <details>
 <summary><strong>Profiles</strong> — bundle several recipes; bootstrap resolves them all</summary>
 
+- [`data`](recipes/data.yaml) — command-line data wrangling (jq, yq, dasel, duckdb, miller, csvkit, qsv)
+- [`git-power`](recipes/git-power.yaml) — git power-tools (gh, lazygit, delta, difftastic, git-lfs, tig, git-cliff)
+- [`kubernetes`](recipes/kubernetes.yaml) — Kubernetes toolkit (kubectl, helm, k9s, kustomize, stern, kubectx, kind, minikube)
 - [`modern-unix`](recipes/modern-unix.yaml) — a curated set of modern CLI replacements (ripgrep, fd, bat, eza, dust, zoxide)
+- [`node-dev`](recipes/node-dev.yaml) — Node.js / JS toolchain (fnm, pnpm, bun, esbuild, biome, tsx)
+- [`python-dev`](recipes/python-dev.yaml) — Python toolchain (uv, ruff, black, mypy, poetry, pre-commit, ipython)
+- [`security`](recipes/security.yaml) — security & supply-chain scanners (trivy, grype, syft, gitleaks, ripsecrets, semgrep)
 
 </details>
 
 <details>
 <summary><strong>MCP servers</strong> — wire a server into a chosen Claude Code scope</summary>
 
+- [`context7`](recipes/context7.yaml) — up-to-date library docs & code examples in context (Upstash)
 - [`everything`](recipes/everything.yaml) — official MCP reference/test server exercising the full protocol
 - [`fetch`](recipes/fetch.yaml) — official MCP server for retrieving web content
+- [`filesystem`](recipes/filesystem.yaml) — official MCP server for scoped local file access
 - [`git`](recipes/git.yaml) — official MCP server for Git repository operations
 - [`memory`](recipes/memory.yaml) — official MCP server for a persistent knowledge graph
+- [`playwright-mcp`](recipes/playwright-mcp.yaml) — browser automation via Microsoft Playwright
 - [`sequentialthinking`](recipes/sequentialthinking.yaml) — official MCP server for structured step-by-step reasoning
 - [`time`](recipes/time.yaml) — official MCP server for time & timezone conversions
 
