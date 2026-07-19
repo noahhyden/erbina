@@ -18,6 +18,9 @@ install:
     - id: homebrew
       when: "command -v brew"
       run: "brew install jq"
+    - id: winget
+      when: "winget --version"
+      run: "winget install -e --id jqlang.jq --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: apt
       when: "command -v apt-get"
       run: "sudo apt-get install -y jq"
@@ -39,6 +42,9 @@ update:
     - id: homebrew
       when: "command -v brew"
       run: "brew upgrade jq"
+    - id: winget
+      when: "winget --version"
+      run: "winget upgrade -e --id jqlang.jq --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: apt
       when: "command -v apt-get"
       run: "sudo apt-get install -y --only-upgrade jq"

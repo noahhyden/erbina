@@ -17,6 +17,9 @@ install:
     - id: homebrew
       when: "command -v brew"
       run: "brew install gh"
+    - id: winget
+      when: "winget --version"
+      run: "winget install -e --id GitHub.cli --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: webi
       when: "command -v curl"
       run: "curl -sS https://webi.sh/gh | sh"
@@ -37,6 +40,9 @@ update:
     - id: homebrew
       when: "command -v brew"
       run: "brew upgrade gh"
+    - id: winget
+      when: "winget --version"
+      run: "winget upgrade -e --id GitHub.cli --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: webi
       when: "command -v curl"
       run: "curl -sS https://webi.sh/gh | sh"

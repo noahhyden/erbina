@@ -42,6 +42,38 @@ jobs:
           echo "bootstrapping: $RECIPES"
           uv run --with fastmcp --with pyyaml --with packaging scripts/smoke_bootstrap.py $RECIPES
 
+  # Windows runners ship winget, so the `winget` install method fires (brew/cargo
+  # guards fail cleanly in cmd.exe). Validate every winget PACKAGE ID exists
+  # (`winget show`, fast + reliable), then bootstrap a stable subset for real
+  # end-to-end (with winget's shim dir pre-added to PATH so a just-installed tool
+  # is found by detect/verify in the same run).
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Every winget id resolves
+        run: |
+          $ids = @(
+            "BurntSushi.ripgrep.MSVC","sharkdp.fd","sharkdp.bat","jqlang.jq","GitHub.cli",
+            "dandavison.delta","ajeetdsouza.zoxide","sharkdp.hyperfine","astral-sh.uv",
+            "JesseDuffield.lazygit","MikeFarah.yq","XAMPPRocky.tokei","bootandy.dust","Clement.bottom"
+          )
+          $bad = @()
+          foreach ($id in $ids) {
+            winget show --id $id -e --source winget --disable-interactivity 2>$null | Out-Null
+            if ($LASTEXITCODE -ne 0) { $bad += $id; Write-Host "MISSING $id" } else { Write-Host "ok  $id" }
+          }
+          if ($bad.Count -gt 0) { Write-Error "unknown winget ids: $($bad -join ', ')"; exit 1 }
+      - name: Bootstrap a stable subset for real (winget)
+        run: |
+          $env:PATH = "$env:LOCALAPPDATA\Microsoft\WinGet\Links;$env:PATH"
+          uv run --with fastmcp --with pyyaml --with packaging scripts/smoke_bootstrap.py ripgrep jq zoxide
+
   # Ubuntu has Go and Rust (cargo) preinstalled but no brew, so the NON-brew
   # fallback methods fire — validates the `go install` / `cargo install` / `pipx`
   # paths. Kept to a fast subset (cargo builds from source).
