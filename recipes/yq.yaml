@@ -1,0 +1,54 @@
+# erbina recipe — yq, a cli-tool.
+id: yq
+kind: cli-tool
+title: "yq — a portable command-line YAML/JSON/XML processor"
+description: >
+  yq is a lightweight, portable processor for YAML, JSON, and XML — jq-like syntax
+  for structured config. Installs the `yq` binary. https://github.com/mikefarah/yq
+
+# 1. DETECT — already installed? `yq --version` exits 0 when present.
+detect:
+  command: "yq --version"
+  expect_exit: 0
+
+# 2. INSTALL — first guard to pass wins. Prefer brew; fall back to go.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install yq"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/mikefarah/yq/v4@latest"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "yq --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed `--version` vs the GitHub release tag).
+version:
+  current: "yq --version"
+  latest: { github: mikefarah/yq }
+
+# 5. UPDATE — how `update` upgrades it (brew, else re-run the go install).
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade yq"
+    - id: go
+      when: "command -v go"
+      run: "go install github.com/mikefarah/yq/v4@latest"
+
+# 6. UNINSTALL — reverse the install (brew when it manages the formula, else rm the binary).
+uninstall:
+  methods:
+    - id: homebrew
+      when: "brew list yq"
+      run: "brew uninstall yq"
+    - id: rm
+      when: "command -v yq"
+      run: "rm -f \"$(command -v yq)\""
+
+scope: user

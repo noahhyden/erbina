@@ -1,0 +1,54 @@
+# erbina recipe — httpie, a cli-tool.
+id: httpie
+kind: cli-tool
+title: "HTTPie — a human-friendly command-line HTTP client"
+description: >
+  HTTPie is a modern, human-friendly HTTP client with intuitive syntax, JSON
+  support, and colorized output. Installs the `http` binary. https://github.com/httpie/cli
+
+# 1. DETECT — already installed? `http --version` exits 0 when present.
+detect:
+  command: "http --version"
+  expect_exit: 0
+
+# 2. INSTALL — first guard to pass wins. Prefer brew; fall back to pipx.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install httpie"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install httpie"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "http --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed `--version` vs the GitHub release tag).
+version:
+  current: "http --version"
+  latest: { github: httpie/cli }
+
+# 5. UPDATE — how `update` upgrades it (brew, else re-run the pipx install).
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade httpie"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install httpie"
+
+# 6. UNINSTALL — reverse the install (brew when it manages the formula, else rm the binary).
+uninstall:
+  methods:
+    - id: homebrew
+      when: "brew list httpie"
+      run: "brew uninstall httpie"
+    - id: rm
+      when: "command -v http"
+      run: "rm -f \"$(command -v http)\""
+
+scope: user
