@@ -118,7 +118,7 @@ WINGET_IDS = {
     "ripgrep": "BurntSushi.ripgrep.MSVC", "fd": "sharkdp.fd", "bat": "sharkdp.bat",
     "jq": "jqlang.jq", "gh": "GitHub.cli", "delta": "dandavison.delta",
     "zoxide": "ajeetdsouza.zoxide", "hyperfine": "sharkdp.hyperfine", "uv": "astral-sh.uv",
-    "lazygit": "JesseDuffield.lazygit", "yq": "MikeFarah.yq", "tokei": "XAMPPRocky.tokei",
+    "lazygit": "JesseDuffield.lazygit", "yq": "MikeFarah.yq",
     "dust": "bootandy.dust", "bottom": "Clement.bottom",
 }
 

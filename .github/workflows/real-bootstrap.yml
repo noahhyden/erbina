@@ -61,7 +61,7 @@ jobs:
           $ids = @(
             "BurntSushi.ripgrep.MSVC","sharkdp.fd","sharkdp.bat","jqlang.jq","GitHub.cli",
             "dandavison.delta","ajeetdsouza.zoxide","sharkdp.hyperfine","astral-sh.uv",
-            "JesseDuffield.lazygit","MikeFarah.yq","XAMPPRocky.tokei","bootandy.dust","Clement.bottom"
+            "JesseDuffield.lazygit","MikeFarah.yq","bootandy.dust","Clement.bottom"
           )
           $bad = @()
           foreach ($id in $ids) {
