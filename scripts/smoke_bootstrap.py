@@ -63,10 +63,29 @@ def _uninstall(rid: str) -> dict:
     return asyncio.run(_call("uninstall", {"recipe_id": rid}))
 
 
+def _print_phases(report: dict) -> bool:
+    """Print a bootstrap report's per-phase status; return its `ok` flag."""
+    phases = report.get("phases", {})
+    for name in ("detect", "install", "configure", "verify"):
+        ph = phases.get(name)
+        if ph is not None:
+            status = ph.get("status") or ("present" if ph.get("present") else "absent") if isinstance(ph, dict) else ph
+            print(f"  {name:10}: {status}", flush=True)
+    ok = report.get("ok")
+    print(f"  ok = {ok}", flush=True)
+    if not ok:
+        print(f"  REPORT: {json.dumps(report)[:1500]}", flush=True)
+    return bool(ok)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Real bootstrap smoke test for erbina recipes.")
     ap.add_argument("recipes", nargs="+", help="recipe ids to bootstrap for real")
     ap.add_argument("--uninstall", action="store_true", help="uninstall each recipe afterward (if it has an uninstall block)")
+    ap.add_argument("--roundtrip", action="store_true",
+                    help="prove install->uninstall->reinstall: bootstrap, uninstall, then bootstrap AGAIN, "
+                         "failing unless the reinstall is ok. Catches package managers whose teardown leaves "
+                         "install state behind (pipx venv, cargo .crates2.json) so the reinstall silently no-ops.")
     ap.add_argument("--scope", default="user", help="scope for mcp-server wiring (local|project|user)")
     ap.add_argument("--project-dir", default=None, help="project dir for needs_project_dir phases (mcp-server recipes)")
     args = ap.parse_args()
@@ -77,18 +96,24 @@ def main() -> int:
     failures: list[str] = []
     for rid in args.recipes:
         print(f"\n=== bootstrap {rid} ===", flush=True)
-        report = _bootstrap(rid, scope=args.scope, project_dir=args.project_dir)
-        ok = report.get("ok")
-        phases = report.get("phases", {})
-        for name in ("detect", "install", "configure", "verify"):
-            ph = phases.get(name)
-            if ph is not None:
-                status = ph.get("status") or ("present" if ph.get("present") else "absent") if isinstance(ph, dict) else ph
-                print(f"  {name:10}: {status}", flush=True)
-        print(f"  ok = {ok}", flush=True)
-        if not ok:
-            print(f"  REPORT: {json.dumps(report)[:1500]}", flush=True)
+        if not _print_phases(_bootstrap(rid, scope=args.scope, project_dir=args.project_dir)):
             failures.append(rid)
+            continue
+
+        if args.roundtrip:
+            print(f"--- roundtrip {rid}: uninstall ---", flush=True)
+            u = _uninstall(rid)
+            print(f"  uninstall ok = {u.get('ok')}", flush=True)
+            if not u.get("ok"):
+                print(f"  UNINSTALL FAILED: {json.dumps(u)[:1000]}", flush=True)
+                failures.append(f"{rid} (uninstall)")
+                continue
+            print(f"--- roundtrip {rid}: REINSTALL (the assertion) ---", flush=True)
+            if not _print_phases(_bootstrap(rid, scope=args.scope, project_dir=args.project_dir)):
+                print(f"  BROKEN ROUND-TRIP: {rid} would not reinstall cleanly after uninstall", flush=True)
+                failures.append(f"{rid} (reinstall)")
+                continue
+            print("  round-trip ok = True", flush=True)
         elif args.uninstall:
             u = _uninstall(rid)
             print(f"  uninstall ok = {u.get('ok')} (forgotten={u.get('forgotten')})", flush=True)
@@ -97,7 +122,8 @@ def main() -> int:
     if failures:
         print(f"FAILED to bootstrap: {', '.join(failures)}")
         return 1
-    print(f"OK: bootstrapped {len(args.recipes)} recipe(s) for real.")
+    verb = "round-tripped" if args.roundtrip else "bootstrapped"
+    print(f"OK: {verb} {len(args.recipes)} recipe(s) for real.")
     return 0
 
 

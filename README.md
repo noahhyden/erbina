@@ -72,6 +72,37 @@ recipe's install method needs — typically `brew` on macOS, `winget` on Windows
 a language toolchain (`cargo` / `go` / `pipx`) or `curl` fallback elsewhere. Every
 method is guarded, so only one that actually exists on your machine ever runs.
 
+### Headless / CI usage
+
+In an interactive session `claude mcp add …` (above) handles the trust prompt for
+you. A non-interactive `claude -p` run has no prompt to answer, so you load the
+server with `--mcp-config` and **pre-approve** erbina's tools with `--allowedTools`
+(their names are `mcp__erbina__<tool>`). Write an MCP config once:
+
+```json
+// erbina.mcp.json
+{ "mcpServers": { "erbina": {
+  "command": "uv",
+  "args": ["run", "--script", "/absolute/path/to/erbina/server.py"]
+} } }
+```
+
+```bash
+# read-only: discover + inspect (nothing executes)
+claude -p "use erbina to list recipes, then inspect ripgrep" \
+  --mcp-config erbina.mcp.json --strict-mcp-config \
+  --allowedTools mcp__erbina__list_recipes mcp__erbina__inspect_recipe
+
+# install for real (add mcp__erbina__bootstrap to the allowlist)
+claude -p "use erbina to bootstrap the modern-unix profile" \
+  --mcp-config erbina.mcp.json --strict-mcp-config \
+  --allowedTools mcp__erbina__bootstrap
+```
+
+`--strict-mcp-config` makes the run use *only* the servers in that file, so it
+never picks up your global config. Omit `--allowedTools` and a headless call
+can't call any tool — that's the one thing new CI users trip on.
+
 ## Tools
 
 | Tool | What it does |
