@@ -42,7 +42,11 @@ RECIPES_DIR = HERE / "recipes"
 # the one place erbina is stateful. Overridable (tests point it at a temp dir).
 STATE_DIR = Path.home() / ".erbina"
 VALID_SCOPES = ("local", "project", "user")
-VALID_KINDS = ("cli-tool", "mcp-server")
+VALID_KINDS = ("cli-tool", "mcp-server", "profile")
+# a profile is a meta-recipe: it installs nothing itself, it just `requires` a
+# curated set of other recipes (bootstrap resolves them). These per-tool
+# lifecycle keys are therefore meaningless on a profile and are rejected.
+_PROFILE_FORBIDDEN_KEYS = ("detect", "install", "configure", "verify", "version", "update", "rollback", "uninstall")
 
 # The closed set of top-level keys SCHEMA.md defines. `_path` is injected by the
 # loader AFTER validation, so it is not part of the recipe's authored contract.
@@ -359,19 +363,33 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
     kind = recipe.get("kind")
     if kind not in VALID_KINDS:
         errors.append(f"'kind' must be one of {VALID_KINDS}, got {kind!r}")
+    is_profile = kind == "profile"
 
-    # detect — required, with a non-empty command
-    detect = recipe.get("detect")
-    if not isinstance(detect, dict):
-        errors.append("missing or malformed 'detect' (expected a mapping with a 'command')")
-    else:
-        cmd = detect.get("command")
-        if not (isinstance(cmd, str) and cmd.strip()):
-            errors.append("'detect.command' is required and must be a non-empty string")
-        _check_placeholders(detect.get("command"), "detect.command", errors)
+    # profile — a meta-recipe: it MUST declare a non-empty `requires` (the tools it
+    # bundles) and MUST NOT carry any per-tool lifecycle key (it installs nothing).
+    if is_profile:
+        if not recipe.get("requires"):
+            errors.append("kind: profile must declare a non-empty 'requires' list (the recipes it bundles)")
+        present_forbidden = [k for k in _PROFILE_FORBIDDEN_KEYS if k in recipe]
+        if present_forbidden:
+            errors.append(
+                f"kind: profile installs nothing itself, so it must not have: {', '.join(present_forbidden)}"
+            )
 
-    # install — required, methods non-empty, each method has id + run
-    _validate_methods(recipe.get("install"), "install", required=True, errors=errors)
+    # detect — required (with a non-empty command) for an installing recipe; a
+    # profile has none (its presence is rejected just above).
+    if not is_profile:
+        detect = recipe.get("detect")
+        if not isinstance(detect, dict):
+            errors.append("missing or malformed 'detect' (expected a mapping with a 'command')")
+        else:
+            cmd = detect.get("command")
+            if not (isinstance(cmd, str) and cmd.strip()):
+                errors.append("'detect.command' is required and must be a non-empty string")
+            _check_placeholders(detect.get("command"), "detect.command", errors)
+
+        # install — required, methods non-empty, each method has id + run
+        _validate_methods(recipe.get("install"), "install", required=True, errors=errors)
 
     # configure — optional, but if present each step needs a 'run'
     configure = recipe.get("configure")
@@ -396,19 +414,20 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
                         cfg_runs.append(run)
                     _check_placeholders(run, f"{tag}.run", errors)
 
-    # verify — required, non-empty, each entry has a command
-    verify = recipe.get("verify")
-    if not isinstance(verify, list) or not verify:
-        errors.append("'verify' must be a non-empty list")
-    else:
-        for i, v in enumerate(verify):
-            tag = f"verify[{i}]"
-            if not isinstance(v, dict):
-                errors.append(f"{tag}: must be a mapping")
-                continue
-            if not (isinstance(v.get("command"), str) and v["command"].strip()):
-                errors.append(f"{tag}: missing non-empty 'command'")
-            _check_placeholders(v.get("command"), f"{tag}.command", errors)
+    # verify — required for an installing recipe; a profile has none.
+    if not is_profile:
+        verify = recipe.get("verify")
+        if not isinstance(verify, list) or not verify:
+            errors.append("'verify' must be a non-empty list")
+        else:
+            for i, v in enumerate(verify):
+                tag = f"verify[{i}]"
+                if not isinstance(v, dict):
+                    errors.append(f"{tag}: must be a mapping")
+                    continue
+                if not (isinstance(v.get("command"), str) and v["command"].strip()):
+                    errors.append(f"{tag}: missing non-empty 'command'")
+                _check_placeholders(v.get("command"), f"{tag}.command", errors)
 
     # version — optional, but if present needs `current` + `latest` commands so
     # check_updates can compare the installed version against what's available.
@@ -825,6 +844,13 @@ def _bootstrap_recipe(
                 report["error"] = f"prerequisite '{dep}' failed to bootstrap"
                 return report
         report["requires"] = req_reports
+
+    # A profile installs nothing itself — its `requires` (all resolved OK above,
+    # or we'd have short-circuited) ARE the work. Report done.
+    if recipe.get("kind") == "profile":
+        report["ok"] = True
+        report["note"] = f"Profile '{recipe_id}' bootstrapped its {len(requires)} bundled recipe(s)."
+        return report
 
     # 1. detect (idempotency gate)
     det_spec = recipe.get("detect", {})

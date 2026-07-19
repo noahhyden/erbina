@@ -83,6 +83,20 @@ def mcp_recipe(rid: str = "proto_mcp", **overrides: Any) -> dict[str, Any]:
     return recipe
 
 
+def profile_recipe(rid: str = "proto_profile", requires: list[str] | None = None, **overrides: Any) -> dict[str, Any]:
+    """A minimal VALID kind: profile recipe — a meta-recipe that only bundles
+    other recipes via `requires` and carries no per-tool lifecycle keys."""
+    recipe: dict[str, Any] = {
+        "id": rid,
+        "kind": "profile",
+        "title": f"{rid} — prototype profile",
+        "description": "A synthetic prototype profile bundling other recipes.",
+        "requires": list(requires) if requires is not None else ["proto"],
+    }
+    recipe.update(overrides)
+    return recipe
+
+
 @contextlib.contextmanager
 def registry(*recipes: dict[str, Any]) -> Iterator[Path]:
     """Write prototype recipes into a temp RECIPES_DIR and point server at it.

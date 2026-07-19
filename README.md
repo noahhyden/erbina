@@ -154,6 +154,10 @@ sync with `recipes/` by a test.)
 - [`yq`](recipes/yq.yaml) — a portable command-line YAML/JSON/XML processor
 - [`zoxide`](recipes/zoxide.yaml) — a smarter cd command that learns your habits
 
+**Profiles** (bundle several recipes; bootstrap resolves them all)
+
+- [`modern-unix`](recipes/modern-unix.yaml) — a curated set of modern CLI replacements (ripgrep, fd, bat, eza, dust, zoxide)
+
 **MCP servers**
 
 - [`everything`](recipes/everything.yaml) — official MCP reference/test server exercising the full protocol
