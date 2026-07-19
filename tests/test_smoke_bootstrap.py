@@ -86,3 +86,30 @@ def test_driver_main_succeeds_when_all_ok(monkeypatch, capsys):
         rc = DRIVER.main()
     assert rc == 0
     assert "bootstrapped 2 recipe(s) for real" in capsys.readouterr().out
+
+
+# --------------------------------------------------------------------------- #
+# --roundtrip mode: bootstrap -> uninstall -> reinstall, failing unless the
+# reinstall is ok. Guards the driver arm that catches broken pipx/cargo teardown.
+# --------------------------------------------------------------------------- #
+def test_roundtrip_passes_when_reinstall_is_ok(monkeypatch, capsys):
+    r = cli_recipe("t", detect={"command": FALSE}, verify=[{"command": TRUE}],
+                   uninstall={"methods": [{"id": "u", "run": TRUE}]})
+    with registry(r):
+        monkeypatch.setattr("sys.argv", ["smoke_bootstrap.py", "--roundtrip", "t"])
+        rc = DRIVER.main()
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "round-trip ok = True" in out
+    assert "round-tripped 1 recipe(s) for real" in out
+
+
+def test_roundtrip_fails_when_recipe_has_no_uninstall_block(monkeypatch, capsys):
+    # no uninstall: block -> the uninstall step errors -> the round-trip fails loudly
+    r = cli_recipe("t", detect={"command": FALSE}, verify=[{"command": TRUE}])
+    with registry(r):
+        monkeypatch.setattr("sys.argv", ["smoke_bootstrap.py", "--roundtrip", "t"])
+        rc = DRIVER.main()
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert "t (uninstall)" in out

@@ -98,6 +98,32 @@ jobs:
           echo "bootstrapping: $RECIPES"
           uv run --with fastmcp --with pyyaml --with packaging scripts/smoke_bootstrap.py $RECIPES
 
+  # Round-trip: bootstrap -> uninstall -> REINSTALL, failing unless the reinstall
+  # is ok. This is the arm that catches a package manager whose teardown leaves
+  # install state behind (a pipx venv, a cargo .crates2.json record) so the
+  # reinstall silently no-ops and never relinks/rebuilds the binary. The rest of
+  # this workflow only ever installs once, so it can't see that class of bug.
+  # Limited to recipes that ship an `uninstall:` block and install via a manager
+  # present on Ubuntu (pipx/cargo/go).
+  roundtrip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Ensure pipx and put tool bindirs on PATH
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user --quiet pipx || true
+          { echo "$HOME/.local/bin"; echo "$HOME/go/bin"; echo "$HOME/.cargo/bin"; } >> "$GITHUB_PATH"
+      - name: Install -> uninstall -> reinstall must all be ok
+        run: |
+          set -euo pipefail
+          # httpie (pipx) + difftastic (cargo) exercise the state-tracking managers
+          # this test exists for; yq + lazygit (go) confirm the rm path still round-trips.
+          uv run --with fastmcp --with pyyaml --with packaging \
+            scripts/smoke_bootstrap.py --roundtrip httpie difftastic yq lazygit
+
   # Exercise gh's `webi` fallback specifically: GitHub runners ship gh preinstalled
   # (and have no brew), so we remove it first to force the curl|sh method to fire.
   gh-webi:
