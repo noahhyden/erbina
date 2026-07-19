@@ -123,9 +123,12 @@ jobs:
         run: |
           set -euo pipefail
           # httpie (pipx) + difftastic (cargo) exercise the state-tracking managers
-          # this test exists for; yq + lazygit (go) confirm the rm path still round-trips.
+          # this test exists for; lazygit (go) confirms the rm path still round-trips.
+          # NB: yq is deliberately excluded — ubuntu-latest ships it preinstalled at
+          # root-owned /usr/bin/yq, so detect finds the system copy (install skipped)
+          # and the rm uninstall hits "Permission denied" instead of testing anything.
           uv run --with fastmcp --with pyyaml --with packaging \
-            scripts/smoke_bootstrap.py --roundtrip httpie difftastic yq lazygit
+            scripts/smoke_bootstrap.py --roundtrip httpie difftastic lazygit
 
   # Exercise gh's `webi` fallback specifically: GitHub runners ship gh preinstalled
   # (and have no brew), so we remove it first to force the curl|sh method to fire.
