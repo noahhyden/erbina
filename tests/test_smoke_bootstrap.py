@@ -53,6 +53,31 @@ def test_driver_main_exit_code_reflects_failures(monkeypatch, capsys):
     assert "FAILED to bootstrap: bad" in out
 
 
+def test_driver_forwards_scope_and_project_dir(monkeypatch):
+    captured = {}
+
+    async def fake_call(name, args):
+        captured.update(args)
+        return {"ok": True, "phases": {}}
+
+    monkeypatch.setattr(DRIVER, "_call", fake_call)
+    DRIVER._bootstrap("fetch", scope="project", project_dir="/tmp/proj")
+    assert captured == {"recipe_id": "fetch", "scope": "project", "project_dir": "/tmp/proj"}
+
+
+def test_driver_omits_project_dir_when_not_given(monkeypatch):
+    captured = {}
+
+    async def fake_call(name, args):
+        captured.update(args)
+        return {"ok": True, "phases": {}}
+
+    monkeypatch.setattr(DRIVER, "_call", fake_call)
+    DRIVER._bootstrap("ripgrep")
+    assert "project_dir" not in captured
+    assert captured["scope"] == "user"
+
+
 def test_driver_main_succeeds_when_all_ok(monkeypatch, capsys):
     a = cli_recipe("a", detect={"command": FALSE}, verify=[{"command": TRUE}])
     b = cli_recipe("b", detect={"command": TRUE})  # already present -> install skipped

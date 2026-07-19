@@ -2,10 +2,9 @@ name: Real bootstrap smoke
 
 # The pytest suite is deterministic and OFFLINE — it proves the orchestration is
 # correct but never runs a real package manager, so a renamed brew formula, a dead
-# install URL, or a wrong `go install` path would pass CI yet break a real
-# bootstrap. This workflow closes that gap: it bootstraps a curated subset of
-# recipes FOR REAL through erbina (detect -> install -> verify) on runners that
-# actually have the package managers.
+# install URL, a wrong `go install` path, or a bad MCP-server package name would
+# pass CI yet break a real bootstrap. This workflow closes that gap: it bootstraps
+# recipes FOR REAL on runners that actually have the package managers.
 #
 # It is deliberately NOT wired to push/pull_request — real installs are slow and
 # occasionally flaky (upstream/network), so this must never gate a PR. It runs on
@@ -15,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       recipes:
-        description: "Space-separated recipe ids to bootstrap (blank = the per-OS default subset)"
+        description: "Space-separated recipe ids for the brew/fallback jobs (blank = defaults)"
         required: false
         default: ""
   schedule:
@@ -26,27 +25,27 @@ permissions:
 
 jobs:
   # macOS runners ship brew preinstalled, so the `homebrew` install method fires
-  # first for every cli-tool recipe — this validates the brew FORMULA NAMES.
+  # first for every cli-tool — this validates ALL of the brew FORMULA NAMES.
   macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install uv
         uses: astral-sh/setup-uv@v5
-      - name: Bootstrap recipes for real (brew)
+      - name: Bootstrap every cli-tool recipe for real (brew)
         run: |
           set -euo pipefail
           RECIPES="${{ github.event.inputs.recipes }}"
           if [ -z "$RECIPES" ]; then
-            RECIPES="ripgrep fd bat jq gh yq difftastic httpie lazygit zoxide"
+            RECIPES="ataegina bat bottom delta difftastic dust eza fd gh httpie hyperfine jq lazygit procs ripgrep sd tealdeer tokei uv yq zoxide"
           fi
           echo "bootstrapping: $RECIPES"
           uv run --with fastmcp --with pyyaml --with packaging scripts/smoke_bootstrap.py $RECIPES
 
-  # Ubuntu runners have Go and Rust (cargo) preinstalled but no brew, so the
-  # NON-brew fallback methods fire — this validates the `go install` / `cargo
-  # install` / `pipx` paths. Kept to a fast subset (cargo builds from source).
-  ubuntu:
+  # Ubuntu has Go and Rust (cargo) preinstalled but no brew, so the NON-brew
+  # fallback methods fire — validates the `go install` / `cargo install` / `pipx`
+  # paths. Kept to a fast subset (cargo builds from source).
+  ubuntu-fallbacks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -56,11 +55,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m pip install --user --quiet pipx || true
-          {
-            echo "$HOME/.local/bin"     # pipx shims
-            echo "$HOME/go/bin"         # go install default GOBIN
-            echo "$HOME/.cargo/bin"     # cargo install
-          } >> "$GITHUB_PATH"
+          { echo "$HOME/.local/bin"; echo "$HOME/go/bin"; echo "$HOME/.cargo/bin"; } >> "$GITHUB_PATH"
       - name: Bootstrap recipes for real (go / cargo / pipx)
         run: |
           set -euo pipefail
@@ -70,3 +65,70 @@ jobs:
           fi
           echo "bootstrapping: $RECIPES"
           uv run --with fastmcp --with pyyaml --with packaging scripts/smoke_bootstrap.py $RECIPES
+
+  # Exercise gh's `webi` fallback specifically: GitHub runners ship gh preinstalled
+  # (and have no brew), so we remove it first to force the curl|sh method to fire.
+  gh-webi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Remove preinstalled gh so the webi method must run
+        run: |
+          set -euo pipefail
+          sudo apt-get remove -y gh >/dev/null 2>&1 || true
+          sudo rm -f "$(command -v gh)" 2>/dev/null || true
+          hash -r
+          command -v gh && { echo "gh still present — cannot test webi"; exit 1; } || echo "gh removed"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"   # where webi installs
+      - name: Bootstrap gh for real (webi)
+        run: |
+          set -euo pipefail
+          uv run --with fastmcp --with pyyaml --with packaging scripts/smoke_bootstrap.py gh
+
+  # MCP-server recipes wire via `claude mcp add` — the `claude` CLI isn't on CI, so
+  # a stub records add/get (validates the wiring end to end with the REAL recipes'
+  # commands), and separately every server PACKAGE name is resolved for real
+  # (PyPI for uvx, npm for npx) — the actual real-world risk.
+  mcp-servers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Install a stub `claude` (records mcp add / answers mcp get)
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/bin" "$HOME/claude-stub-store"
+          cat > "$HOME/.local/bin/claude" <<'STUB'
+          #!/usr/bin/env bash
+          STORE="${CLAUDE_STUB_STORE:-$HOME/claude-stub-store}"
+          mkdir -p "$STORE"
+          if [ "$1" = "mcp" ] && [ "$2" = "add" ]; then echo "$*" > "$STORE/$3"; exit 0; fi
+          if [ "$1" = "mcp" ] && [ "$2" = "get" ]; then [ -f "$STORE/$3" ] && exit 0 || exit 1; fi
+          if [ "$1" = "mcp" ] && [ "$2" = "list" ]; then ls "$STORE" 2>/dev/null; exit 0; fi
+          exit 0
+          STUB
+          chmod +x "$HOME/.local/bin/claude"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Wire every mcp-server recipe for real (stub claude, uvx + npx present)
+        run: |
+          set -euo pipefail
+          export CLAUDE_STUB_STORE="$HOME/claude-stub-store"
+          proj="$(mktemp -d)"
+          for rid in everything fetch git memory sequentialthinking time; do
+            uv run --with fastmcp --with pyyaml --with packaging \
+              scripts/smoke_bootstrap.py "$rid" --scope project --project-dir "$proj"
+          done
+      - name: Resolve every MCP-server package for real (PyPI + npm)
+        run: |
+          set -euo pipefail
+          echo "--- uvx / PyPI packages ---"
+          for pkg in mcp-server-fetch mcp-server-git mcp-server-time; do
+            curl -fsSL -o /dev/null "https://pypi.org/pypi/$pkg/json" && echo "ok  $pkg" || { echo "MISSING $pkg on PyPI"; exit 1; }
+          done
+          echo "--- npx / npm packages ---"
+          for pkg in @modelcontextprotocol/server-everything @modelcontextprotocol/server-memory @modelcontextprotocol/server-sequential-thinking; do
+            npm view "$pkg" version >/dev/null 2>&1 && echo "ok  $pkg" || { echo "MISSING $pkg on npm"; exit 1; }
+          done

@@ -52,8 +52,11 @@ async def _call(name: str, args: dict) -> dict:
         return {}
 
 
-def _bootstrap(rid: str) -> dict:
-    return asyncio.run(_call("bootstrap", {"recipe_id": rid}))
+def _bootstrap(rid: str, scope: str = "user", project_dir: str | None = None) -> dict:
+    args: dict = {"recipe_id": rid, "scope": scope}
+    if project_dir is not None:
+        args["project_dir"] = project_dir
+    return asyncio.run(_call("bootstrap", args))
 
 
 def _uninstall(rid: str) -> dict:
@@ -64,6 +67,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Real bootstrap smoke test for erbina recipes.")
     ap.add_argument("recipes", nargs="+", help="recipe ids to bootstrap for real")
     ap.add_argument("--uninstall", action="store_true", help="uninstall each recipe afterward (if it has an uninstall block)")
+    ap.add_argument("--scope", default="user", help="scope for mcp-server wiring (local|project|user)")
+    ap.add_argument("--project-dir", default=None, help="project dir for needs_project_dir phases (mcp-server recipes)")
     args = ap.parse_args()
 
     # isolate the state manifest so a smoke run never touches the real ~/.erbina
@@ -72,7 +77,7 @@ def main() -> int:
     failures: list[str] = []
     for rid in args.recipes:
         print(f"\n=== bootstrap {rid} ===", flush=True)
-        report = _bootstrap(rid)
+        report = _bootstrap(rid, scope=args.scope, project_dir=args.project_dir)
         ok = report.get("ok")
         phases = report.get("phases", {})
         for name in ("detect", "install", "configure", "verify"):
