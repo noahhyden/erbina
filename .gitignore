@@ -14,3 +14,4 @@ scratch_*.py
 
 # mcp-publisher auth tokens (secrets — never commit)
 .mcpregistry_*_token
+docs/.demo-raw.gif
