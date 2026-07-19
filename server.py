@@ -177,15 +177,29 @@ def _release_notes_url(latest: Any) -> str | None:
     return None
 
 
+_VERSION_LABEL_RE = re.compile(r"\bversion\b", re.IGNORECASE)
+
+
 def _extract_version(text: str | None) -> str | None:
     """Pull the first version-looking token out of arbitrary command output.
 
     e.g. "ataegina 0.1.0\\n" -> "0.1.0", "v1.2.3 (build 4)" -> "1.2.3". Returns
     None when nothing looks like a version, so callers report "unknown" rather
     than guess a comparison.
+
+    When the output *labels* its version (contains the word "version"), the token
+    AFTER the first such label wins — so a dotted BUILD DATE printed before it
+    ("Built 2024.01.15, tool version 2.3.4") doesn't get mistaken for the version.
+    Output with no label (a bare `v1.2.3` or `10.0` after a date) still takes the
+    first token — those are genuinely ambiguous without a label.
     """
     if not isinstance(text, str):
         return None
+    label = _VERSION_LABEL_RE.search(text)
+    if label:
+        m = _VERSION_RE.search(text, label.end())
+        if m:
+            return m.group(1)
     m = _VERSION_RE.search(text)
     return m.group(1) if m else None
 

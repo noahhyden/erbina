@@ -58,18 +58,33 @@ def test_real_corpus_is_broad_enough_to_matter():
 
 
 # --------------------------------------------------------------------------- #
-# CANDIDATE FINDING #5 (characterized, NOT fixed) — "first version-looking token
-# wins", so a dotted date/number BEFORE the version is grabbed instead. Pinned
-# so that if a future iteration teaches `_extract_version` to prefer a token
-# following "version"/"v" (or to skip a leading 4-digit year), these flip to the
-# real version and the change is visible.
+# FINDING #5 (mostly fixed): "first version-looking token wins" used to let a
+# dotted build-date BEFORE the version be grabbed. `_extract_version` now prefers
+# the token AFTER an explicit "version" label, which covers the common case.
 # --------------------------------------------------------------------------- #
-@pytest.mark.parametrize("output,misextracted,real", [
-    ("Built 2024.01.15, tool version 2.3.4", "2024.01.15", "2.3.4"),
-    ("compiled 2023.12.31 v1.0.0", "2023.12.31", "1.0.0"),
-    ("release 10.0 build 2.3.4", "10.0", "2.3.4"),
+def test_labeled_version_beats_a_leading_dotted_date():
+    # the fix: a "version" label pulls extraction past the build date
+    assert server._extract_version("Built 2024.01.15, tool version 2.3.4") == "2.3.4"
+
+
+@pytest.mark.parametrize("output,extracted", [
+    ("gh version 2.62.0 (2024-11-27)", "2.62.0"),        # label + parenthetical date
+    ("GNU bash, version 5.2.21(1)-release", "5.2.21"),
+    ("commit=abc, version=0.44.1, os=linux", "0.44.1"),  # lazygit-style label=value
 ])
-def test_CURRENT_leading_dotted_number_shadows_the_real_version(output, misextracted, real):
-    got = server._extract_version(output)
-    assert got == misextracted   # <- the limitation being pinned
-    assert got != real
+def test_labeled_version_extraction(output, extracted):
+    assert server._extract_version(output) == extracted
+
+
+# RESIDUAL of #5 (documented, still ambiguous): output with NO "version" label —
+# a bare `v1.2.3` or `10.0` printed after a dotted date — is genuinely
+# indistinguishable from a calver (`2024.01.05` IS a real version), so extraction
+# still takes the first token. No recipe's real output triggers this (dates in
+# real `--version` output use '-', not '.'; confirmed by the live real-bootstrap
+# run), so it stays a pinned characterization rather than a risky heuristic.
+@pytest.mark.parametrize("output,extracted", [
+    ("compiled 2023.12.31 v1.0.0", "2023.12.31"),   # unlabeled -> first token
+    ("release 10.0 build 2.3.4", "10.0"),
+])
+def test_CURRENT_unlabeled_leading_dotted_number_still_shadows(output, extracted):
+    assert server._extract_version(output) == extracted
