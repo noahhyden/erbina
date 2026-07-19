@@ -509,8 +509,9 @@ changes, bugs, and development possibilities.
 
 ## Status: LOOP CONCLUDED — comprehensive, mutation-hardened, CI-green
 The behavioral/red-team harness is complete for the current codebase:
-- **554 tests, 99% (effective 100%) server.py coverage** — only the unreachable
-  `mcp.run()` stdio entry point is uncovered.
+- **554 tests, 100% server.py coverage** — the only non-exercised line is the
+  blocking `if __name__ == "__main__": mcp.run()` stdio entry point, excluded with
+  a standard `# pragma: no cover`.
 - All 6 MCP tools + every helper + load/validate/run/scope edges covered.
 - **6 robustness findings fixed**, each validated ≥1 iteration before the fix and
   mutation-tested: #1 parse misclassification, #2 unterminated `${`, #3(2)
@@ -528,7 +529,7 @@ or features add behavior worth red-teaming.
 
 <!-- historical status snapshot (superseded by "LOOP CONCLUDED" above) -->
 Comprehensive coverage reached — all 6 tools + all helpers + load/validate/run
-edges, **554 tests, 99% (effective 100%) server.py coverage**, **6 bugs/robustness findings fixed**
+edges, **554 tests, 100% server.py coverage**, **6 bugs/robustness findings fixed**
 (all validated ≥1 iteration before fixing: #1 parse misclassification, #2
 unterminated `${`, #3(2) non-optional configure gate, #4 permissive version
 regex, #6 non-string top-level key crashes validate_recipe, #7 pathological

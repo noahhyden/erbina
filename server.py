@@ -1171,5 +1171,5 @@ def remove_mcp(name: str, scope: str | None = None, dry_run: bool = False) -> di
     }
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover - blocking stdio entry point, not unit-testable
     mcp.run()  # stdio transport (the only way in: an MCP client / agent)
