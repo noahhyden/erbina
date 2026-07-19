@@ -7,6 +7,28 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-19
+
+### Added
+
+- **Recipe registry grown from 28 to 503 recipes** (+475 `cli-tool`s), covering
+  Rust/Go CLIs, Kubernetes & cloud, Python/Node/Ruby/PHP/Haskell/JVM/Swift tooling,
+  compression, editors/shells, docs/markup, formatters, language runtimes, build
+  systems, media/graphics, science/math, and API/testing tools. Every new recipe
+  passes the schema, linter policy, and full conformance suite.
+- **Data-driven recipe generator** (`scripts/recipe_data.py` + `scripts/gen_recipes.py`)
+  for maintaining the bulk `cli-tool` registry. It renders each `recipes/<id>.yaml`
+  (never clobbering a hand-written recipe) and keeps two invariants in sync: the
+  README recipe gallery (between `GENERATED` markers) and the version-extraction
+  red-team samples (`tests/_generated_version_samples.py`).
+
+### Notes
+
+- Generated recipes are POSIX-first (no `winget` methods yet) and their
+  version-extraction samples use a standardized `<bin> X.Y.Z` shape, so they prove
+  the extractor works but do not red-team each tool's real `--version` quirks the
+  way the hand-curated samples do.
+
 ## [0.2.0] - 2026-07-19
 
 ### Added
