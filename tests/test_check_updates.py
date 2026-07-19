@@ -176,3 +176,34 @@ def test_unparseable_latest_is_not_claimed_as_an_update():
     assert entry["update_available"] is None
     assert entry["reason"].startswith("unparseable latest version:")
     assert out["updates_available"] == []
+
+
+# --------------------------------------------------------------------------- #
+# stderr version output: many real tools print --version/-V to stderr (graphviz's
+# `dot -V`, anything JVM-based, some GNU tools). check_updates must still resolve
+# a version from there, or their version: block is silently dead weight.
+# --------------------------------------------------------------------------- #
+def test_version_current_read_from_stderr():
+    recipe = cli_recipe(
+        "t",
+        detect={"command": TRUE},
+        version={"current": "echo 1.0.0 >&2", "latest": "echo 2.0.0"},
+    )
+    out = _check(recipe)
+    entry = out["checked"][0]
+    assert entry["current"] == "1.0.0"          # rescued from stderr
+    assert entry["latest"] == "2.0.0"
+    assert entry["update_available"] is True
+
+
+def test_version_current_prefers_stdout_over_stderr():
+    # when both streams carry a token, stdout (the convention) wins so a noisy
+    # stderr warning can't shadow the real version on stdout.
+    recipe = cli_recipe(
+        "t",
+        detect={"command": TRUE},
+        version={"current": "echo 1.5.0; echo 9.9.9 >&2", "latest": "echo 1.5.0"},
+    )
+    entry = _check(recipe)["checked"][0]
+    assert entry["current"] == "1.5.0"
+    assert entry["update_available"] is False

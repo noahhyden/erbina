@@ -44,6 +44,25 @@ REAL_OUTPUTS = [
     ("GNU bash, version 5.2.21(1)-release", "5.2.21"),
     ("curl 8.5.0 (x86_64-pc-linux-gnu) libcurl/8.5.0", "8.5.0"),
     ("OpenSSL 3.0.13 30 Jan 2024", "3.0.13"),
+    # Go/cobra `<bin> version` subcommand output — a whole FAMILY in the registry
+    # (helm, consul, vault, nomad, caddy, k6, pulumi, opentofu, hugo, …). Their
+    # real output is multi-line with a Revision/BuildDate/GoVersion tail; the
+    # extractor must take the leading release token and ignore the rest.
+    ("Consul v1.17.0\nRevision e6d0525c\nBuild Date 2023-11-03", "1.17.0"),
+    ("Vault v1.15.4 ('4c5e5c3'), built 2024-01-01", "1.15.4"),
+    ("Nomad v1.7.2\nBuildDate 2023-12-13", "1.7.2"),
+    ("k6 v0.48.0 (go1.21.6, linux/amd64)", "0.48.0"),
+    ("v3.100.0", "3.100.0"),                                # pulumi: bare vX.Y.Z
+    ("OpenTofu v1.6.1\non linux_amd64", "1.6.1"),           # opentofu (tofu)
+    ("v2.7.6 h1:abcd", "2.7.6"),                            # caddy: vX.Y.Z + h1: hash
+    ("0.11.0", "0.11.0"),                                   # zig: bare version, no prefix
+    # helm's Go-struct dump: the word "version" (version.BuildInfo) precedes the
+    # token, so the label rule must land on v3.14.0 and not GoVersion's go1.21.5.
+    ('version.BuildInfo{Version:"v3.14.0", GitCommit:"e8858f8", GoVersion:"go1.21.5"}', "3.14.0"),
+    # kubectl/argocd `version --client`: "Client Version:" label, then vX.Y.Z.
+    ("Client Version: v1.29.2\nKustomize Version: v5.0.4", "1.29.2"),
+    # azure-cli `az version` prints JSON; no "version" word, first token wins.
+    ('{\n  "azure-cli": "2.57.0",\n  "azure-cli-core": "2.57.0"\n}', "2.57.0"),
 ]
 
 
