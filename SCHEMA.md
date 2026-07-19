@@ -17,7 +17,7 @@ written.
 
 ```yaml
 id: <slug>                 # stable id; must match the filename (<id>.yaml)
-kind: cli-tool             # cli-tool | mcp-server
+kind: cli-tool             # cli-tool | mcp-server | profile
 title: <human title>
 description: <one paragraph; what it is and why>
 
@@ -107,6 +107,27 @@ rollback:
 # Informational for cli-tool recipes.
 scope: user
 ```
+
+## Profiles (`kind: profile`)
+
+A **profile** is a meta-recipe that installs nothing itself — it just declares a
+`requires:` list of other recipes and lets `bootstrap` resolve the whole bundle in
+one prompt. A profile has **only** `id` / `kind: profile` / `title` /
+`description` / `requires` (and an optional informational `scope`); any per-tool
+lifecycle key (`detect`, `install`, `configure`, `verify`, `version`, `update`,
+`rollback`, `uninstall`) is rejected, and `requires` must be non-empty.
+
+```yaml
+id: modern-unix
+kind: profile
+title: "modern-unix — a curated set of modern CLI replacements"
+description: >
+  Fast, friendly replacements for the classic Unix tools.
+requires: [ripgrep, fd, bat, eza, dust, zoxide]
+```
+
+Bootstrapping it bootstraps each member idempotently (a member already present is
+skipped); a failing member aborts the profile.
 
 ## Version checks (`check_updates`)
 

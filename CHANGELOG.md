@@ -9,6 +9,13 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ### Added
 
+- **Profiles (`kind: profile`).** A meta-recipe that installs nothing itself and
+  just `requires:` a curated set of other recipes, so bootstrapping one sets up a
+  whole bundle in a single prompt (reusing the `requires` machinery: idempotent,
+  member failure aborts the profile). Validation requires a non-empty `requires`
+  and forbids every per-tool lifecycle key. Ships a first profile,
+  [`modern-unix`](recipes/modern-unix.yaml) (ripgrep, fd, bat, eza, dust, zoxide).
+
 - **Five new cli-tool recipes** (registry 22 → 27): `gh` (GitHub CLI), `lazygit`,
   `yq`, `difftastic` (`difft`), and `httpie` (`http`). Each ships the full contract
   — brew plus a native-ecosystem fallback (webi / `go install` / `cargo install` /
