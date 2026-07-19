@@ -41,12 +41,19 @@ update:
       when: "command -v cargo"
       run: "cargo install difftastic"
 
-# 6. UNINSTALL — reverse the install (brew when it manages the formula, else rm the binary).
+# 6. UNINSTALL — reverse the install with the SAME manager that owns it. cargo must
+# come before the rm fallback: `rm`-ing the `difft` binary leaves cargo's install
+# record (.crates2.json) intact, so a later `cargo install difftastic` no-ops
+# ("already installed, use --force") and never rebuilds the binary — a broken
+# reinstall. `cargo uninstall` clears the record AND removes the binary.
 uninstall:
   methods:
     - id: homebrew
       when: "brew list difftastic"
       run: "brew uninstall difftastic"
+    - id: cargo
+      when: "cargo install --list 2>/dev/null | grep -q '^difftastic '"
+      run: "cargo uninstall difftastic"
     - id: rm
       when: "command -v difft"
       run: "rm -f \"$(command -v difft)\""

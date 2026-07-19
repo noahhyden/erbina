@@ -41,12 +41,18 @@ update:
       when: "command -v pipx"
       run: "pipx install httpie"
 
-# 6. UNINSTALL — reverse the install (brew when it manages the formula, else rm the binary).
+# 6. UNINSTALL — reverse the install with the SAME manager that owns it. pipx must
+# come before the rm fallback: `rm`-ing the `http` shim leaves the pipx venv behind,
+# so a later `pipx install httpie` no-ops ("already installed") and never relinks the
+# shim — a broken reinstall. `pipx uninstall` removes the venv AND the shim cleanly.
 uninstall:
   methods:
     - id: homebrew
       when: "brew list httpie"
       run: "brew uninstall httpie"
+    - id: pipx
+      when: "pipx list --short 2>/dev/null | grep -q '^httpie '"
+      run: "pipx uninstall httpie"
     - id: rm
       when: "command -v http"
       run: "rm -f \"$(command -v http)\""
