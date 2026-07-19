@@ -9,6 +9,15 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ### Added
 
+- **Structured GitHub version source (`version.latest: { github: "owner/repo" }`).**
+  `version.latest` may now be the GitHub shorthand instead of a hand-rolled
+  command; erbina expands it to the releases-API call that isolates the latest tag
+  (`curl … /releases/latest | grep '"tag_name"'`) — the grep matters so version
+  extraction reads the tag, not another number in the JSON. All 16 GitHub-released
+  recipes were migrated to the shorthand (each verified byte-identical to its old
+  command, so no behavior change). Validation accepts a string or a `{github}`
+  mapping and rejects a malformed `owner/repo` or any extra key.
+
 - **Recipe prerequisites (`requires:`).** A recipe may declare `requires: [<id>,
   …]` — other recipes that `bootstrap` installs first, idempotently and
   depth-first, before the recipe's own detect/install. A prerequisite shared by

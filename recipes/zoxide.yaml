@@ -30,7 +30,7 @@ verify:
 # 4. VERSION — `zoxide --version` prints "zoxide 0.9.6"; tags look like "v0.9.6".
 version:
   current: "zoxide --version"
-  latest: 'curl -fsSL https://api.github.com/repos/ajeetdsouza/zoxide/releases/latest | grep ''"tag_name"'''
+  latest: { github: ajeetdsouza/zoxide }
 
 # 5. UPDATE — brew upgrade, else re-run cargo install (upgrades in place).
 update:

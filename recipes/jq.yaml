@@ -31,7 +31,7 @@ verify:
 # "jq-1.7.1". erbina extracts the "1.7.1" token from each and compares.
 version:
   current: "jq --version"
-  latest: 'curl -fsSL https://api.github.com/repos/jqlang/jq/releases/latest | grep ''"tag_name"'''
+  latest: { github: jqlang/jq }
 
 # 5. UPDATE — brew upgrade, else apt --only-upgrade.
 update:

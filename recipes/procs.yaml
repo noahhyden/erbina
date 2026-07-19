@@ -30,7 +30,7 @@ verify:
 # 4. VERSION — `procs --version` prints "procs 0.14.5"; tags look like "v0.14.5".
 version:
   current: "procs --version"
-  latest: 'curl -fsSL https://api.github.com/repos/dalance/procs/releases/latest | grep ''"tag_name"'''
+  latest: { github: dalance/procs }
 
 # 5. UPDATE — brew upgrade, else re-run cargo install (upgrades in place).
 update:

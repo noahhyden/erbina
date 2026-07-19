@@ -33,7 +33,7 @@ verify:
 # look like "0.18.2" (no v prefix). erbina extracts + compares the token.
 version:
   current: "delta --version"
-  latest: 'curl -fsSL https://api.github.com/repos/dandavison/delta/releases/latest | grep ''"tag_name"'''
+  latest: { github: dandavison/delta }
 
 # 5. UPDATE — brew upgrade, else re-run cargo install (upgrades in place).
 update:

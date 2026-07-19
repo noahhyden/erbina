@@ -72,9 +72,14 @@ verify:
 # erbina extracts the version token from each command's output and compares them,
 # so extra text around the number is fine. Only present when a tool can be
 # meaningfully version-checked.
+#
+# `latest` is either a shell command string OR the structured GitHub shorthand
+# `{ github: "owner/repo" }`, which erbina expands to the releases-API call that
+# prints the latest tag (`curl … /releases/latest | grep '"tag_name"'`). Prefer
+# the shorthand for GitHub-released tools — it's less boilerplate and can't drift.
 version:
   current: "<cmd that prints the installed version>"
-  latest: "<cmd that prints the latest available version>"
+  latest: { github: "owner/repo" }   # or: "<cmd that prints the latest version>"
   needs_project_dir: false   # optional; run both commands inside project_dir
 
 # UPDATE — optional. What the `update` tool runs to upgrade an already-installed

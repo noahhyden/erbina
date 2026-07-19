@@ -32,7 +32,7 @@ verify:
 # look like "0.10.2" (no v prefix). erbina extracts + compares the token.
 version:
   current: "btm --version"
-  latest: 'curl -fsSL https://api.github.com/repos/ClementTsang/bottom/releases/latest | grep ''"tag_name"'''
+  latest: { github: ClementTsang/bottom }
 
 # 5. UPDATE — brew upgrade (formula `bottom`), else re-run cargo install.
 update:

@@ -29,7 +29,7 @@ verify:
 # 4. VERSION — `bat --version` prints "bat 0.24.0"; tags look like "v0.24.0".
 version:
   current: "bat --version"
-  latest: 'curl -fsSL https://api.github.com/repos/sharkdp/bat/releases/latest | grep ''"tag_name"'''
+  latest: { github: sharkdp/bat }
 
 # 5. UPDATE — brew upgrade, else re-run cargo install (upgrades in place).
 update:

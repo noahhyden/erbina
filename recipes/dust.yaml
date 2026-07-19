@@ -30,7 +30,7 @@ verify:
 # 4. VERSION — `dust --version` prints "Dust 1.1.1"; bootandy/dust tags "v1.1.1".
 version:
   current: "dust --version"
-  latest: 'curl -fsSL https://api.github.com/repos/bootandy/dust/releases/latest | grep ''"tag_name"'''
+  latest: { github: bootandy/dust }
 
 # 5. UPDATE — brew upgrade (formula `dust`), else re-run cargo install (`du-dust`).
 update:

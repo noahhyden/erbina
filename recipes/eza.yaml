@@ -30,7 +30,7 @@ verify:
 # extracts the first version token (the banner has no X.Y number). Tags: "v0.20.4".
 version:
   current: "eza --version"
-  latest: 'curl -fsSL https://api.github.com/repos/eza-community/eza/releases/latest | grep ''"tag_name"'''
+  latest: { github: eza-community/eza }
 
 # 5. UPDATE — brew upgrade, else re-run cargo install (upgrades in place).
 update:

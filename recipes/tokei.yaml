@@ -29,7 +29,7 @@ verify:
 # 4. VERSION — `tokei --version` prints "tokei 12.1.2"; tags look like "v12.1.2".
 version:
   current: "tokei --version"
-  latest: 'curl -fsSL https://api.github.com/repos/XAMPPRocky/tokei/releases/latest | grep ''"tag_name"'''
+  latest: { github: XAMPPRocky/tokei }
 
 # 5. UPDATE — brew upgrade, else re-run cargo install (upgrades in place).
 update:
