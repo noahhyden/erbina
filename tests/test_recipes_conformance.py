@@ -49,6 +49,38 @@ def test_mcp_server_recipe_is_scope_aware(rid):
 
 
 @pytest.mark.parametrize("rid", RECIPE_IDS)
+def test_recipe_requires_reference_existing_recipes(rid):
+    # a `requires:` entry must name a recipe that actually ships in the registry,
+    # otherwise bootstrap would fail at runtime on a dangling prerequisite.
+    recipe = server._load_recipe(rid)
+    for dep in recipe.get("requires") or []:
+        assert dep in RECIPE_IDS, f"{rid}: requires unknown recipe {dep!r}"
+
+
+def test_requires_graph_has_no_cycles():
+    # build the whole requires DAG and assert it's acyclic (a cycle would make
+    # bootstrap's cycle-guard kick in, but the registry should never ship one).
+    graph = {rid: (server._load_recipe(rid).get("requires") or []) for rid in RECIPE_IDS}
+    WHITE, GREY, BLACK = 0, 1, 2
+    color = dict.fromkeys(graph, WHITE)
+
+    def visit(node, stack):
+        color[node] = GREY
+        for dep in graph.get(node, []):
+            if dep not in graph:
+                continue  # dangling dep is caught by the per-recipe test above
+            if color[dep] == GREY:
+                raise AssertionError(f"requires cycle: {' -> '.join(stack + [dep])}")
+            if color[dep] == WHITE:
+                visit(dep, stack + [dep])
+        color[node] = BLACK
+
+    for rid in graph:
+        if color[rid] == WHITE:
+            visit(rid, [rid])
+
+
+@pytest.mark.parametrize("rid", RECIPE_IDS)
 def test_recipe_plan_leaves_no_unexpanded_placeholder(rid):
     # After substitution the consent-surface plan must contain no literal ${...}
     # (a stray/unknown placeholder would otherwise be shelled out verbatim).
