@@ -254,6 +254,7 @@ test. The bulk `cli-tool` entries are generated from `scripts/recipe_data.py`.)
 - [`brotli`](recipes/brotli.yaml) — a generic-purpose lossless compression algorithm
 - [`btop`](recipes/btop.yaml) — a monitor of resources
 - [`buf`](recipes/buf.yaml) — the best way to work with Protocol Buffers
+- [`buku`](recipes/buku.yaml) — a powerful bookmark manager and mini web-tagger
 - [`bun`](recipes/bun.yaml) — an incredibly fast JavaScript runtime, bundler, transpiler and package manager
 - [`caddy`](recipes/caddy.yaml) — fast and extensible multi-platform web server with automatic HTTPS
 - [`calcurse`](recipes/calcurse.yaml) — a text-based calendar and scheduling application
@@ -587,6 +588,7 @@ test. The bulk `cli-tool` entries are generated from `scripts/recipe_data.py`.)
 - [`sops`](recipes/sops.yaml) — simple and flexible tool for managing secrets
 - [`sox`](recipes/sox.yaml) — the Swiss Army knife of sound processing programs
 - [`spectral`](recipes/spectral.yaml) — a flexible JSON/YAML linter for OpenAPI, AsyncAPI and more
+- [`speedtest`](recipes/speedtest.yaml) — command-line internet bandwidth tester (speedtest.net)
 - [`speedtest-cli`](recipes/speedtest-cli.yaml) — command line interface for testing internet bandwidth using speedtest.net
 - [`sphinx`](recipes/sphinx.yaml) — a documentation generator (`sphinx-build`)
 - [`sqlc`](recipes/sqlc.yaml) — generate type-safe code from SQL

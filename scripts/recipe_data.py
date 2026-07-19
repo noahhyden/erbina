@@ -2155,4 +2155,13 @@ TOOLS: list[dict] = [
      "short": "Handover tool for mob programming.",
      "desc": "mob is a command-line tool that makes it fast and smooth to hand over control between people during remote pair and mob programming sessions via git.",
      "url": "https://github.com/remotemobprogramming/mob", "brew": "mob", "gh": "remotemobprogramming/mob", "detect": "mob version"},
+    # ── validated via scripts/ingest_validated.py (installed + probed for real) ──
+    {"id": "speedtest", "title": "speedtest — command-line internet bandwidth tester (speedtest.net)",
+     "short": "Command-line internet bandwidth tester.",
+     "desc": "speedtest-cli measures your internet bandwidth (download, upload, ping) from the command line using speedtest.net's servers.",
+     "url": "https://github.com/sivel/speedtest-cli", "pipx": "speedtest-cli"},
+    {"id": "buku", "title": "buku — a powerful bookmark manager and mini web-tagger",
+     "short": "Command-line bookmark manager.",
+     "desc": "buku is a private, flexible command-line bookmark manager that stores bookmarks with tags in a local database and works like a text-based mini-web.",
+     "url": "https://github.com/jarun/buku", "pipx": "buku"},
 ]
