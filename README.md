@@ -219,6 +219,7 @@ test. The bulk `cli-tool` entries are generated from `scripts/recipe_data.py`.)
 - [`act`](recipes/act.yaml) — run your GitHub Actions locally
 - [`ag`](recipes/ag.yaml) — a code-searching tool similar to ack, but faster (`ag`)
 - [`age`](recipes/age.yaml) — a simple, modern and secure encryption tool
+- [`aichat`](recipes/aichat.yaml) — all-in-one LLM CLI tool
 - [`alex`](recipes/alex.yaml) — catch insensitive, inconsiderate writing
 - [`ali`](recipes/ali.yaml) — generate HTTP load and plot the results in real-time
 - [`angle-grinder`](recipes/angle-grinder.yaml) — slice and dice logs on the command line (`agrind`)
@@ -250,6 +251,7 @@ test. The bulk `cli-tool` entries are generated from `scripts/recipe_data.py`.)
 - [`beets`](recipes/beets.yaml) — the music geek's media organizer (`beet`)
 - [`biome`](recipes/biome.yaml) — a performant toolchain for web projects: format, lint and more
 - [`black`](recipes/black.yaml) — the uncompromising Python code formatter
+- [`borg`](recipes/borg.yaml) — deduplicating archiver with compression and encryption
 - [`bpython`](recipes/bpython.yaml) — a fancy interface to the Python interpreter
 - [`broot`](recipes/broot.yaml) — a new way to see and navigate directory trees
 - [`brotli`](recipes/brotli.yaml) — a generic-purpose lossless compression algorithm
@@ -291,6 +293,7 @@ test. The bulk `cli-tool` entries are generated from `scripts/recipe_data.py`.)
 - [`cspell`](recipes/cspell.yaml) — a spell checker for code
 - [`csvkit`](recipes/csvkit.yaml) — a suite of command-line tools for converting to and working with CSV (`csvlook`)
 - [`csvtk`](recipes/csvtk.yaml) — a cross-platform, efficient and practical CSV/TSV toolkit
+- [`ctop`](recipes/ctop.yaml) — top-like interface for container metrics
 - [`curl`](recipes/curl.yaml) — a command-line tool for transferring data with URLs
 - [`dasel`](recipes/dasel.yaml) — select, put and delete data from JSON, TOML, YAML, XML and CSV
 - [`datamash`](recipes/datamash.yaml) — a command-line program which performs basic numeric, textual and statistical operations on input textual data
@@ -305,6 +308,7 @@ test. The bulk `cli-tool` entries are generated from `scripts/recipe_data.py`.)
 - [`dive`](recipes/dive.yaml) — a tool for exploring a docker image and layer contents
 - [`doctl`](recipes/doctl.yaml) — the official command-line interface for the DigitalOcean API
 - [`doctoc`](recipes/doctoc.yaml) — generates a table of contents for markdown files
+- [`dog`](recipes/dog.yaml) — a command-line DNS client
 - [`doggo`](recipes/doggo.yaml) — a modern command-line DNS client (like dig) written in Go
 - [`dos2unix`](recipes/dos2unix.yaml) — text file format converter between DOS/Mac and Unix line endings
 - [`dotenv-linter`](recipes/dotenv-linter.yaml) — a lightning-fast linter for .env files
@@ -449,6 +453,7 @@ test. The bulk `cli-tool` entries are generated from `scripts/recipe_data.py`.)
 - [`luarocks`](recipes/luarocks.yaml) — the package manager for Lua modules
 - [`lz4`](recipes/lz4.yaml) — extremely fast lossless compression algorithm
 - [`macchina`](recipes/macchina.yaml) — a fast, minimal and customizable system information tool
+- [`magic-wormhole`](recipes/magic-wormhole.yaml) — get things from one computer to another, safely
 - [`markdownlint-cli2`](recipes/markdownlint-cli2.yaml) — a fast, flexible, configuration-based command-line interface for linting markdown
 - [`mask`](recipes/mask.yaml) — a CLI task runner defined by a simple markdown file
 - [`maven`](recipes/maven.yaml) — a build automation and project management tool for Java (`mvn`)
@@ -616,6 +621,7 @@ test. The bulk `cli-tool` entries are generated from `scripts/recipe_data.py`.)
 - [`tailwindcss`](recipes/tailwindcss.yaml) — a utility-first CSS framework CLI
 - [`taplo`](recipes/taplo.yaml) — a versatile, feature-rich TOML toolkit
 - [`task`](recipes/task.yaml) — a task runner / build tool that aims to be simpler and easier to use than make
+- [`television`](recipes/television.yaml) — a cross-platform, fast and extensible fuzzy finder
 - [`termshark`](recipes/termshark.yaml) — a terminal UI for tshark, inspired by Wireshark
 - [`terraform-docs`](recipes/terraform-docs.yaml) — generate documentation from Terraform modules
 - [`terragrunt`](recipes/terragrunt.yaml) — a thin wrapper for Terraform for keeping configurations DRY

@@ -1,0 +1,46 @@
+# erbina recipe — aichat, a cli-tool. Chat with LLMs from the terminal.
+id: aichat
+kind: cli-tool
+title: "aichat — all-in-one LLM CLI tool"
+description: >
+  aichat is an all-in-one LLM CLI tool featuring a shell assistant, chat
+  REPL, roles, sessions and RAG, working across many model providers from
+  the terminal. https://github.com/sigoden/aichat
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "aichat --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install aichat"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install aichat"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "aichat --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "aichat --version"
+  latest: { github: sigoden/aichat }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade aichat"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install aichat"
+
+scope: user
+category: devtools
