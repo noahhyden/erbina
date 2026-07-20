@@ -752,9 +752,9 @@ Keep `detect` cheap and `verify` honest (prove it runs).
 Not a package manager you run by hand (that's `mcpm` / `brew` / `aqua`), not a
 discovery registry (that's Smithery), and not a way to "rebuild my laptop
 deterministically" (use Nix / chezmoi / a Brewfile — an LLM-driven setup is the
-wrong tool for reproducible provisioning). erbina's niche is the unclaimed
-intersection: **agent-run, verify-on-install recipes that span CLI tools *and*
-MCP servers, aware of Claude Code's scopes.**
+wrong tool for reproducible provisioning). erbina's niche is the intersection: 
+**agent-run, verify-on-install recipes that span CLI tools *and* MCP servers, 
+aware of Claude Code's scopes.**
 
 ## Safety model
 
