@@ -51,8 +51,158 @@ _PROFILE_FORBIDDEN_KEYS = ("detect", "install", "configure", "verify", "version"
 # The closed set of top-level keys SCHEMA.md defines. `_path` is injected by the
 # loader AFTER validation, so it is not part of the recipe's authored contract.
 TOP_LEVEL_KEYS = frozenset(
-    {"id", "kind", "title", "description", "detect", "install", "configure", "verify", "scope", "version", "update", "rollback", "requires", "uninstall"}
+    {"id", "kind", "title", "description", "detect", "install", "configure", "verify", "scope", "version", "update", "rollback", "requires", "uninstall", "category", "tags"}
 )
+
+# --------------------------------------------------------------------------- #
+# recipe taxonomy — powers list_recipes / search_recipes queriability
+# --------------------------------------------------------------------------- #
+# A closed set of categories every recipe maps onto. `category`/`tags` are
+# OPTIONAL authored fields; when a recipe omits them, `_categorize` infers a
+# category (and a bag of search tags) from the recipe's own id/title/description,
+# so an agent can filter/search the registry without every YAML hand-labelling
+# itself. An authored `category` (validated against this set) always wins over
+# the inference; `kind: profile` / `kind: mcp-server` map to their own buckets.
+CATEGORIES = (
+    "search", "files", "git", "http", "network", "kubernetes", "containers",
+    "cloud", "data", "database", "monitoring", "editors", "shells", "terminal",
+    "docs", "languages", "build", "packaging", "media", "security", "text",
+    "benchmarking", "compression", "devtools", "mcp-server", "profile", "misc",
+)
+
+# Ordered (category, keywords) rules — the FIRST category with a keyword hit wins,
+# so specific buckets precede generic ones. A keyword containing a space or hyphen
+# is matched as a substring of the normalized text; a bare word is matched against
+# the word-token set (so "git" matches the word git but not "gitignore"/"digit").
+_CATEGORY_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("kubernetes", ("kubernetes", "k8s", "kubectl", "kubectx", "kubens",
+                    "kustomize", "kubeconfig", "cluster", "clusters", "helm")),
+    ("containers", ("docker", "podman", "container", "containers", "oci",
+                    "buildah", "nerdctl", "containerd", "dockerfile")),
+    ("cloud", ("aws", "gcp", "azure", "terraform", "terragrunt", "pulumi",
+               "cloudformation", "opentofu", "serverless", "lambda", "cloud",
+               "deploy", "deployment", "s3", "bucket", "cloudflare", "heroku")),
+    ("security", ("secret", "secrets", "vulnerability", "vulnerabilities", "cve",
+                  "encrypt", "encryption", "decrypt", "password", "passwords",
+                  "credential", "credentials", "certificate", "scanner",
+                  "malware", "exploit", "pentest", "leak", "leaks")),
+    ("git", ("git", "commit", "commits", "rebase", "staging", "branches")),
+    ("database", ("database", "databases", "sql", "postgres", "postgresql",
+                  "mysql", "sqlite", "redis", "mongodb", "mongo")),
+    ("compression", ("compression", "compress", "compresses", "decompress",
+                     "decompresses", "gzip", "lossless", "zstd", "archive",
+                     "archives", "tarball")),
+    ("benchmarking", ("benchmark", "benchmarks", "benchmarking",
+                      "load-testing", "load test", "stress")),
+    ("security", ("fuzzer", "fuzzing", "hashing")),
+    ("search", ("search", "grep", "fuzzy", "finder", "ripgrep")),
+    ("http", ("http", "rest", "webhook", "http requests")),
+    ("network", ("network", "networking", "dns", "ping", "tcp", "udp", "port",
+                 "ports", "ssh", "vpn", "bandwidth", "netcat", "socket",
+                 "latency", "traceroute", "tunnel", "download", "downloader",
+                 "accelerator", "proxy")),
+    ("data", ("json", "yaml", "csv", "toml", "xml", "parquet", "dataframe",
+              "structured data", "html", "statistical", "stats")),
+    ("media", ("image", "images", "video", "audio", "photo", "png", "jpeg",
+               "gif", "ffmpeg", "exif", "graphics", "svg", "imagemagick",
+               "color", "colors", "colour", "visualization", "graph", "plot")),
+    ("monitoring", ("monitor", "monitoring", "htop", "processes", "metrics",
+                    "observability", "disk usage", "resource usage")),
+    ("editors", ("editor", "vim", "neovim", "emacs", "text editor")),
+    ("shells", ("shell", "shells", "prompt", "zsh", "cross-shell")),
+    ("terminal", ("terminal", "multiplexer", "tmux", "panes", "tui",
+                  "terminal ui", "terminal workspace")),
+    ("docs", ("documentation", "markdown", "man page", "cheatsheet",
+              "cheatsheets", "tldr", "manpage")),
+    ("languages", ("version manager", "runtime", "compiler", "interpreter",
+                   "programming language", "language", "type checker",
+                   "type-safe")),
+    ("build", ("build system", "build tool", "build automation", "task runner",
+               "command runner", "bundler", "bundles", "compile", "makefile")),
+    ("packaging", ("package manager", "packaging", "dependency", "dependencies")),
+    ("files", ("directory", "directories", "file manager", "listing", "tree",
+               "du", "find", "files")),
+    ("text", ("formatter", "formatting", "format", "formats", "linter",
+              "linters", "linting", "lint", "style", "cut", "diff", "regex",
+              "regular expression", "unicode")),
+    ("devtools", ("developer", "utility", "productivity")),
+)
+
+# A flat vocabulary of useful single-word search terms harvested from the rules
+# above; any that appear in a recipe's text become searchable `tags`.
+_TAG_VOCAB = frozenset(
+    kw for _cat, kws in _CATEGORY_RULES for kw in kws if " " not in kw and "-" not in kw
+)
+
+
+_URL_RE = re.compile(r"https?://\S+")
+
+
+def _norm_text(recipe: dict[str, Any]) -> tuple[str, set[str]]:
+    """(lowercased raw text, word-token set) built from title + description.
+
+    Homepage URLs are stripped first — every curated description ends with one,
+    and its scheme/host ("https", "github", "io") would otherwise pollute both
+    the category inference and the tag bag.
+    """
+    parts = [str(recipe.get("title") or ""), str(recipe.get("description") or "")]
+    raw = _URL_RE.sub(" ", " ".join(parts).lower())
+    tokens = set(re.findall(r"[a-z0-9]+", raw))
+    return raw, tokens
+
+
+def _token_hit(kw: str, tokens: set[str]) -> bool:
+    """Plural-tolerant word match: `certificate` matches a `certificates` token
+    and vice-versa, so keyword lists don't have to enumerate both forms."""
+    return kw in tokens or (kw + "s") in tokens or (kw.endswith("s") and kw[:-1] in tokens)
+
+
+def _infer_category(raw: str, tokens: set[str], rid: str) -> str:
+    rid_l = rid.lower()
+    for category, keywords in _CATEGORY_RULES:
+        for kw in keywords:
+            if " " in kw or "-" in kw:
+                if kw in raw:
+                    return category
+            elif _token_hit(kw, tokens):
+                return category
+        # id-substring hints for the two buckets whose tools name themselves
+        # (lazygit/gitui → git; k9s/kubectx → kubernetes) rather than describing.
+        if category == "git" and "git" in rid_l:
+            return category
+        if category == "kubernetes" and any(h in rid_l for h in ("kube", "k9s", "k3s", "k3d")):
+            return category
+    return "misc"
+
+
+def _categorize(recipe: dict[str, Any]) -> tuple[str, list[str]]:
+    """Return (category, tags) for a recipe — the queriability metadata surfaced
+    by list_recipes/search_recipes. Total and crash-proof: a sparse or oddly
+    typed recipe dict still yields a valid taxonomy category and a tag list.
+
+    An authored `category` (valid taxonomy member) wins over inference for
+    cli-tools; `kind: profile`/`mcp-server` always map to their own bucket.
+    Authored `tags` are merged in. The recipe id is always a tag.
+    """
+    rid = str(recipe.get("id") or "")
+    kind = recipe.get("kind")
+    raw, tokens = _norm_text(recipe)
+
+    if kind == "profile":
+        category = "profile"
+    elif kind == "mcp-server":
+        category = "mcp-server"
+    else:
+        stored = recipe.get("category")
+        category = stored if stored in CATEGORIES else _infer_category(raw, tokens, rid)
+
+    tags = {rid, category}
+    tags.update(t for t in tokens if t in _TAG_VOCAB)
+    stored_tags = recipe.get("tags")
+    if isinstance(stored_tags, list):
+        tags.update(str(t) for t in stored_tags if isinstance(t, str) and t.strip())
+    tags.discard("")
+    return category, sorted(tags)
 # Matches the first version-looking token in arbitrary command output, e.g.
 # "ataegina 0.1.0" -> "0.1.0", "v1.2.3 (build 4)" -> "1.2.3". A leading `v` is
 # stripped by _extract_version before parsing.
@@ -524,6 +674,20 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
     if scope is not None and scope not in VALID_SCOPES:
         errors.append(f"'scope' must be one of {VALID_SCOPES}, got {scope!r}")
 
+    # category — optional queriability label; if present must be a taxonomy member
+    # (list_recipes/search_recipes fall back to an inferred category when absent).
+    category = recipe.get("category")
+    if category is not None and category not in CATEGORIES:
+        errors.append(f"'category' must be one of {CATEGORIES}, got {category!r}")
+
+    # tags — optional list of non-empty search-term strings
+    tags = recipe.get("tags")
+    if tags is not None:
+        if not isinstance(tags, list):
+            errors.append("'tags' must be a list of non-empty strings")
+        elif not all(isinstance(t, str) and t.strip() for t in tags):
+            errors.append("'tags' must be a list of non-empty strings")
+
     # mcp-server: the configure wiring must be scope-aware (reference ${scope}),
     # otherwise the same recipe can't target local/project/user.
     if kind == "mcp-server" and not any("${scope}" in r for r in cfg_runs):
@@ -755,24 +919,123 @@ def _parse_mcp_list(project_dir: str | None = None) -> list[dict[str, Any]]:
 # --------------------------------------------------------------------------- #
 # tools
 # --------------------------------------------------------------------------- #
+def _recipe_summary(rid: str, r: dict[str, Any]) -> dict[str, Any]:
+    """The compact, queriable view of a recipe: identity + taxonomy metadata.
+
+    `category` (a `CATEGORIES` member) and `tags` are authored when present and
+    inferred from the recipe's text otherwise, so an agent can filter/search the
+    registry without loading each recipe in full.
+    """
+    category, tags = _categorize(r)
+    return {
+        "id": rid,
+        "kind": r.get("kind", "?"),
+        "title": r.get("title", rid),
+        "description": r.get("description", ""),
+        "category": category,
+        "tags": tags,
+    }
+
+
 @mcp.tool
-def list_recipes() -> list[dict[str, str]]:
-    """List the curated recipes erbina can bootstrap (id, kind, title, description)."""
+def list_recipes() -> list[dict[str, Any]]:
+    """List the curated recipes erbina can bootstrap.
+
+    Each entry carries id, kind, title, description, plus a `category` (one of the
+    fixed taxonomy buckets) and `tags` (search terms) so you can tell at a glance
+    what each recipe is for. To find a tool by keyword/category instead of scanning
+    the whole list, use `search_recipes`.
+    """
     out = []
     for rid in _recipe_ids():
         try:
             r = _load_recipe(rid)
         except Exception:  # noqa: BLE001
             continue
-        out.append(
-            {
-                "id": rid,
-                "kind": r.get("kind", "?"),
-                "title": r.get("title", rid),
-                "description": r.get("description", ""),
-            }
-        )
+        out.append(_recipe_summary(rid, r))
     return out
+
+
+def _search_score(query: str, summary: dict[str, Any]) -> int:
+    """Relevance of a recipe to a lowercased query. Higher = better; 0 = no match.
+
+    Weighted so an id/title hit outranks a description hit, which outranks a tag
+    hit. An empty query scores every recipe equally (1) so filters still return
+    the full set in stable id order.
+    """
+    if not query:
+        return 1
+    score = 0
+    rid = summary["id"].lower()
+    title = str(summary["title"]).lower()
+    desc = str(summary["description"]).lower()
+    tags = [t.lower() for t in summary["tags"]]
+    if query == rid:
+        score += 100
+    if query in rid:
+        score += 40
+    if query in title:
+        score += 20
+    if query in desc:
+        score += 8
+    if any(query == t for t in tags):
+        score += 10
+    elif any(query in t for t in tags):
+        score += 4
+    return score
+
+
+@mcp.tool
+def search_recipes(
+    query: str = "",
+    category: str | None = None,
+    kind: str | None = None,
+    limit: int = 50,
+) -> dict[str, Any]:
+    """Find recipes by keyword and/or filter, so you don't have to scan `list_recipes`.
+
+    `query` is matched (case-insensitively) against each recipe's id, title,
+    description and tags, and results are ranked by relevance (id/title hits beat
+    description hits beat tag hits). `category` restricts to one taxonomy bucket
+    (e.g. "kubernetes", "search", "http" — see `CATEGORIES`); `kind` restricts to
+    cli-tool|mcp-server|profile. With no query and no filters this returns every
+    recipe (like `list_recipes`) in id order. `limit` caps the returned page;
+    `count` is the total number of matches before truncation.
+    """
+    if category is not None and category not in CATEGORIES:
+        return {"error": f"category must be one of {list(CATEGORIES)}"}
+    if kind is not None and kind not in VALID_KINDS:
+        return {"error": f"kind must be one of {list(VALID_KINDS)}"}
+
+    q = query.strip().lower()
+    scored: list[tuple[int, str, dict[str, Any]]] = []
+    for rid in _recipe_ids():
+        try:
+            r = _load_recipe(rid)
+        except Exception:  # noqa: BLE001
+            continue
+        summary = _recipe_summary(rid, r)
+        if category is not None and summary["category"] != category:
+            continue
+        if kind is not None and summary["kind"] != kind:
+            continue
+        score = _search_score(q, summary)
+        if score <= 0:
+            continue
+        summary = {**summary, "score": score}
+        scored.append((score, rid, summary))
+
+    # rank by score desc, then id asc for a stable, deterministic order
+    scored.sort(key=lambda t: (-t[0], t[1]))
+    results = [s for _score, _rid, s in scored]
+    capped = results[: max(0, limit)] if limit is not None else results
+    return {
+        "query": query,
+        "category": category,
+        "kind": kind,
+        "count": len(results),
+        "results": capped,
+    }
 
 
 @mcp.tool

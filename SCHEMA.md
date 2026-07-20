@@ -109,7 +109,42 @@ rollback:
 # scope this recipe targets when wiring an mcp-server (local | project | user).
 # Informational for cli-tool recipes.
 scope: user
+
+# CATEGORY / TAGS — optional queriability metadata surfaced by `list_recipes` and
+# `search_recipes` so an agent can find a tool by keyword/category instead of
+# scanning every description. `category` must be one of the fixed taxonomy
+# buckets; `tags` is a list of free-form search terms. BOTH ARE OPTIONAL — when a
+# recipe omits them, erbina infers a category and tags from the recipe's own
+# id/title/description, so the registry is fully searchable without every file
+# hand-labelling itself. An authored `category` overrides the inference.
+category: search          # one of the taxonomy buckets (see below)
+tags: [grep, regex, find] # extra search terms
 ```
+
+## Categories (`category`) and tags (`tags`)
+
+Every recipe is exposed through `list_recipes` / `search_recipes` with a
+`category` (exactly one of the closed taxonomy below) and a bag of `tags`
+(search terms). These are **optional authored fields** — when absent, erbina
+computes them from the recipe's id/title/description, so an omitted `category`
+still yields a sensible bucket and an omitted `tags` still yields useful search
+terms. An authored `category` (validated against the taxonomy) wins over the
+computed one; `kind: profile` and `kind: mcp-server` always map to the `profile`
+and `mcp-server` buckets respectively.
+
+The taxonomy:
+
+`search` · `files` · `git` · `http` · `network` · `kubernetes` · `containers` ·
+`cloud` · `data` · `database` · `monitoring` · `editors` · `shells` ·
+`terminal` · `docs` · `languages` · `build` · `packaging` · `media` ·
+`security` · `text` · `benchmarking` · `compression` · `devtools` ·
+`mcp-server` · `profile` · `misc`.
+
+`search_recipes(query, category, kind, limit)` matches `query`
+(case-insensitively) against id/title/description/tags and ranks results
+(id/title hits outrank description hits outrank tag hits); `category`/`kind`
+narrow the set; an empty query with no filters returns everything (like
+`list_recipes`) in id order.
 
 ## Profiles (`kind: profile`)
 

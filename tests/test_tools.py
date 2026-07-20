@@ -10,6 +10,7 @@ from helpers import call_tool, list_tool_names
 
 EXPECTED_TOOLS = {
     "list_recipes",
+    "search_recipes",
     "inspect_recipe",
     "bootstrap",
     "check_updates",
