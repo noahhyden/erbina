@@ -24,6 +24,11 @@ verify:
   - command: "buku --version"
     expect_exit: 0
 
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "buku --version"
+  latest: { github: jarun/buku }
+
 # 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:

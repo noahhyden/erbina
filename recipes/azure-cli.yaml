@@ -27,6 +27,11 @@ verify:
   - command: "az version"
     expect_exit: 0
 
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "az version"
+  latest: { github: Azure/azure-cli }
+
 # 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
