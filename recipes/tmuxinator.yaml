@@ -43,3 +43,4 @@ update:
       run: "gem update tmuxinator"
 
 scope: user
+category: terminal

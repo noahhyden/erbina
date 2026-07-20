@@ -43,3 +43,4 @@ update:
       run: "cargo install hwatch"
 
 scope: user
+category: monitoring

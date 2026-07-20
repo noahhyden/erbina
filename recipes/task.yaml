@@ -37,3 +37,4 @@ update:
       run: "brew upgrade go-task"
 
 scope: user
+category: build

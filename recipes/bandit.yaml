@@ -37,3 +37,4 @@ update:
       run: "pipx upgrade bandit"
 
 scope: user
+category: security

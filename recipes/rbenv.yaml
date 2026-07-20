@@ -37,3 +37,4 @@ update:
       run: "brew upgrade rbenv"
 
 scope: user
+category: languages

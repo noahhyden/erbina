@@ -37,3 +37,4 @@ update:
       run: "npm update -g verdaccio"
 
 scope: user
+category: packaging

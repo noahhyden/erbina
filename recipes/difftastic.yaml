@@ -59,3 +59,5 @@ uninstall:
       run: "rm -f \"$(command -v difft)\""
 
 scope: user
+# a structural diff tool; git-adjacent but primarily a text differ.
+category: text
