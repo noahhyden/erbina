@@ -37,3 +37,4 @@ update:
       run: "brew upgrade yazi"
 
 scope: user
+category: files

@@ -2231,6 +2231,11 @@ _CATEGORY_OVERRIDES: dict[str, str] = {
     "ghostscript": "media",
     # kubernetes over-capture corrections
     "colima": "containers", "doctl": "cloud",
+    # round 2 — git/media buckets over-captured these flagship tools because
+    # their blurbs mention "Git integration" / "color" / "graph" in passing.
+    "lsd": "files", "yazi": "files", "typos": "text", "icdiff": "text",
+    "htop": "monitoring", "concurrently": "devtools", "webpack": "build",
+    "mdcat": "docs",
 }
 
 for _row in TOOLS:

@@ -64,6 +64,18 @@ CURATED: dict[str, str] = {
     # kubernetes over-capture corrections
     "colima": "containers",
     "doctl": "cloud",
+    # round 2 — flagship tools the git/media buckets over-captured because their
+    # blurbs mention "Git integration" / "color" / "graph" in passing.
+    "bat": "files",
+    "eza": "files",
+    "lsd": "files",
+    "yazi": "files",
+    "typos": "text",
+    "icdiff": "text",
+    "htop": "monitoring",
+    "concurrently": "devtools",
+    "webpack": "build",
+    "mdcat": "docs",
 }
 
 

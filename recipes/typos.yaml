@@ -43,3 +43,4 @@ update:
       run: "cargo install typos-cli"
 
 scope: user
+category: text

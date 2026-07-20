@@ -37,3 +37,4 @@ update:
       run: "brew upgrade htop"
 
 scope: user
+category: monitoring
