@@ -19,6 +19,9 @@ install:
     - id: homebrew
       when: "command -v brew"
       run: "brew install magic-wormhole"
+    - id: winget
+      when: "winget --version"
+      run: "winget install -e --id magic-wormhole.magic-wormhole --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: pipx
       when: "command -v pipx"
       run: "pipx install magic-wormhole"
@@ -34,6 +37,9 @@ update:
     - id: homebrew
       when: "command -v brew"
       run: "brew upgrade magic-wormhole"
+    - id: winget
+      when: "winget --version"
+      run: "winget upgrade -e --id magic-wormhole.magic-wormhole --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: pipx
       when: "command -v pipx"
       run: "pipx upgrade magic-wormhole"

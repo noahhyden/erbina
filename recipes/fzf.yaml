@@ -18,6 +18,9 @@ install:
     - id: homebrew
       when: "command -v brew"
       run: "brew install fzf"
+    - id: winget
+      when: "winget --version"
+      run: "winget install -e --id junegunn.fzf --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: go
       when: "command -v go"
       run: "go install github.com/junegunn/fzf@latest"
@@ -38,6 +41,9 @@ update:
     - id: homebrew
       when: "command -v brew"
       run: "brew upgrade fzf"
+    - id: winget
+      when: "winget --version"
+      run: "winget upgrade -e --id junegunn.fzf --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: go
       when: "command -v go"
       run: "go install github.com/junegunn/fzf@latest"

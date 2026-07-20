@@ -18,6 +18,9 @@ install:
     - id: homebrew
       when: "command -v brew"
       run: "brew install glow"
+    - id: winget
+      when: "winget --version"
+      run: "winget install -e --id charmbracelet.glow --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: go
       when: "command -v go"
       run: "go install github.com/charmbracelet/glow@latest"
@@ -38,6 +41,9 @@ update:
     - id: homebrew
       when: "command -v brew"
       run: "brew upgrade glow"
+    - id: winget
+      when: "winget --version"
+      run: "winget upgrade -e --id charmbracelet.glow --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: go
       when: "command -v go"
       run: "go install github.com/charmbracelet/glow@latest"

@@ -18,6 +18,9 @@ install:
     - id: homebrew
       when: "command -v brew"
       run: "brew install gitui"
+    - id: winget
+      when: "winget --version"
+      run: "winget install -e --id StephanDilly.gitui --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: cargo
       when: "command -v cargo"
       run: "cargo install gitui"
@@ -38,6 +41,9 @@ update:
     - id: homebrew
       when: "command -v brew"
       run: "brew upgrade gitui"
+    - id: winget
+      when: "winget --version"
+      run: "winget upgrade -e --id StephanDilly.gitui --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: cargo
       when: "command -v cargo"
       run: "cargo install gitui"

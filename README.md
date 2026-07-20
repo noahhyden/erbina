@@ -157,6 +157,15 @@ Because each install method's `when:` guard runs in the host shell, methods are
 cross-platform — a `winget` method fires only on Windows, `brew`/`cargo`/`curl`
 only where they apply. The full schema is in [SCHEMA.md](SCHEMA.md).
 
+> [!WARNING]
+> **Windows support is limited and error-prone.** macOS and Linux are the
+> first-class targets. Most `winget` package ids were resolved in bulk against the
+> winget catalog and are only spot-checked, so some may be wrong, out of date, or
+> resolve to a look-alike package — a `winget install` can fail or, worse, install
+> the wrong tool. The `when:` guard means a bad winget method fails cleanly rather
+> than breaking a POSIX bootstrap, but treat Windows as best-effort: verify what
+> got installed. Fixes are welcome.
+
 ## Auto-updating tools
 
 A recipe can opt into update checks by declaring a `version:` block (an installed

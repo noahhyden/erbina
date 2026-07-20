@@ -7,6 +7,28 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased]
 
+### Added
+
+- **Broad `winget` coverage — 207 recipes now install on Windows** (up from 13).
+  A new harvester (`scripts/winget_candidates.py` + a `winget-ingest` CI workflow)
+  downloads the winget *community source* index (the SQLite catalog the `winget`
+  CLI uses) and resolves a `winget` PackageIdentifier for each `recipe_data.py` row
+  that lacked one, tiered by trust — `high` (id is the row's `gh` owner/repo exactly,
+  or a command/moniker match whose publisher equals the GitHub owner), `medium` (a
+  unique installed-command match), `low` (moniker-only). 194 ids were applied across
+  all tiers and the recipes regenerated. It installs nothing and uses stdlib only,
+  so it runs anywhere; the default emits `winget_proposals.json` for review, and
+  `--apply` stages the keys into `recipe_data.py` as a reviewable diff.
+
+### Notes
+
+- **Windows support is limited and error-prone.** The bulk-resolved winget ids are
+  only spot-checked — some may be wrong, stale, or resolve to a look-alike package,
+  so a `winget install` can fail or install the wrong tool. Each method's `when:`
+  guard means a bad winget method fails cleanly rather than breaking a POSIX
+  bootstrap, but macOS/Linux remain the first-class targets; treat Windows as
+  best-effort and verify what got installed.
+
 ## [0.2.1] - 2026-07-19
 
 ### Added
