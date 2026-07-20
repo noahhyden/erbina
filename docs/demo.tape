@@ -1,52 +1,58 @@
 # VHS tape for the erbina README demo.
-# Regenerate with:  scripts/record_demo.sh   (renders this tape, then collapses
-# the model's "thinking" dead-air with ffmpeg mpdecimate). Run from the repo root.
+# Regenerate with:  scripts/record_demo.sh   (sets up the work dir, renders this
+# tape, then crops the footer + collapses dead-air with ffmpeg). Run from repo root.
 #
 # erbina has no CLI — it is an MCP server you drive by asking Claude. So this
-# records a REAL headless Claude Code session (`claude -p`): one prompt, and the
-# agent inspects the recipe (the consent surface) then bootstraps + verifies the
-# tool for real through erbina's MCP tools. `-p` keeps the frame clean (no TUI
-# chrome / account status), which matters for a public asset.
+# records a REAL interactive Claude Code session: one prompt, and the agent
+# inspects the recipe (shows the plan) then bootstraps + verifies the tool for
+# real through erbina's MCP tools. We show the interactive TUI (the plan table,
+# the streamed tool calls + answer) because that IS the product surface.
 #
-# Setup expected beforehand (see scripts/record_demo.sh):
+# Chrome-trimming: the interactive TUI opens on a welcome box + a plan-promo
+# banner, and its footer shows account usage stats — all noise for a public
+# asset. So we launch, accept the folder-trust dialog, submit the prompt, and
+# only Show once those have scrolled off (~19s after submit; measured), landing
+# on the clean plan-table -> bootstrap -> verified payoff. record_demo.sh then
+# crops the bottom footer (usage stats) off entirely.
+#
+# Setup expected beforehand (scripts/record_demo.sh does all of it):
 #   - vhs + ttyd + ffmpeg on PATH; ~/go/bin and ~/.local/bin on PATH
-#   - a work dir with erbina.mcp.json pointing at server.py
+#   - a work dir at ~/.cache/erbina-demo with erbina.mcp.json -> server.py
 #   - the demo tool (httpie) NOT yet installed, so the install actually runs
-# `2>/dev/null` drops warnings this machine's global settings.json prints —
-# noise unrelated to erbina that wouldn't appear on a clean install.
+# `--allowedTools` pre-approves erbina's two tools so the run is deterministic
+# (no permission prompts mid-record); the "consent surface" is inspect_recipe's
+# plan, which the prompt explicitly asks for. `2>/dev/null` drops warnings this
+# machine's global settings.json prints — noise unrelated to erbina.
 
 Output docs/.demo-raw.gif
 
 Set Shell "bash"
-Set FontSize 18
-Set Width 1180
-Set Height 700
-Set Padding 26
-Set TypingSpeed 40ms
+Set FontSize 16
+Set Width 1200
+Set Height 800
+Set Padding 20
+Set TypingSpeed 35ms
 Set Framerate 24
 
-# --- hidden setup: PATH, clean prompt, demo dir ---
+# --- hidden: launch the TUI, clear the first-run folder-trust dialog (a
+#     harmless no-op once the dir is already trusted), let the MCP server
+#     cold-start, submit the prompt, and wait for the welcome box + promo banner
+#     to scroll off as the plan renders — so the frame opens clean. ---
 Hide
 Type "export PATH=$HOME/go/bin:$HOME/.local/bin:$PATH PS1='$ '" Enter
-Type "cd /tmp/claude-1000/-home-noahpimentel-repos-erbina/3b95f82d-c8a9-4b1e-89e2-810629670647/scratchpad/erbina-demo" Enter
+Type "cd $HOME/.cache/erbina-demo" Enter
 Type "clear" Enter
+Type "claude --mcp-config erbina.mcp.json --strict-mcp-config --allowedTools mcp__erbina__inspect_recipe mcp__erbina__bootstrap 2>/dev/null" Enter
+Sleep 4s
+Enter
+Sleep 9s
+Type "with erbina, inspect the httpie recipe to show the plan, then bootstrap it to install and verify"
+Sleep 800ms
+Enter
+Sleep 19s
 Show
 
-Sleep 700ms
-Type "# erbina has no CLI — you drive it by asking Claude:" Enter
-Sleep 1.2s
-
-Type `claude -p "with erbina, inspect the httpie recipe to show the plan, then \` Enter
-Type `bootstrap it to install and verify" \` Enter
-Type "  --mcp-config erbina.mcp.json --strict-mcp-config \" Enter
-Type "  --allowedTools mcp__erbina__inspect_recipe mcp__erbina__bootstrap 2>/dev/null"
-Sleep 500ms
-Enter
-
-# real work: inspect_recipe (consent) -> bootstrap via pipx -> verify.
-# In `-p` mode nothing renders until the run finishes and the answer dumps at
-# once, so this sleep must comfortably outlast a real run (~27s here) plus MCP
-# cold-start — otherwise the recording ends before the answer appears (that was
-# the old gif's bug). The trailing idle/answer-static frames are collapsed by
-# mpdecimate in record_demo.sh, so an overshoot costs nothing.
-Sleep 55s
+# From here the frame is clean: the plan table is up and bootstrap is running.
+# Hold long enough to capture the verified answer (~30s runs); ffmpeg collapses
+# the trailing static into a short hold on the payoff.
+Sleep 32s

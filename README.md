@@ -10,7 +10,7 @@
 [![MCP](https://img.shields.io/badge/Model_Context_Protocol-server-blueviolet.svg)](https://modelcontextprotocol.io)
 [![Claude Code](https://img.shields.io/badge/client-Claude_Code-d97757.svg)](https://code.claude.com)
 
-![Claude driving erbina: one prompt inspects the httpie recipe (the consent surface), then bootstraps it and verifies http --version for real](docs/demo.gif)
+![An interactive Claude Code session driving erbina: one prompt inspects the httpie recipe to show the plan, then bootstraps it — installing via pipx and verifying http --version for real](docs/demo.gif)
 
 Named after the Lusitanian goddess of boundaries and crossings — erbina is the
 threshold a tool crosses to become part of your environment. Sibling to
