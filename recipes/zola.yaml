@@ -37,3 +37,4 @@ update:
       run: "brew upgrade zola"
 
 scope: user
+category: docs

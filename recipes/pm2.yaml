@@ -37,3 +37,4 @@ update:
       run: "npm update -g pm2"
 
 scope: user
+category: monitoring

@@ -37,3 +37,4 @@ update:
       run: "brew upgrade cppcheck"
 
 scope: user
+category: text

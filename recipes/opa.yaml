@@ -37,3 +37,4 @@ update:
       run: "brew upgrade opa"
 
 scope: user
+category: security

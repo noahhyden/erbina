@@ -37,3 +37,4 @@ update:
       run: "brew upgrade hlint"
 
 scope: user
+category: text

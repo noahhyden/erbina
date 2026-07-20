@@ -42,3 +42,5 @@ update:
       run: "cargo install tokei"
 
 scope: user
+# a code-counting utility; inference reads "by language" as the languages bucket.
+category: devtools

@@ -32,3 +32,4 @@ update:
       run: "npm update -g pa11y"
 
 scope: user
+category: devtools

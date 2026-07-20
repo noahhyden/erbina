@@ -37,3 +37,4 @@ update:
       run: "npm update -g playwright"
 
 scope: user
+category: devtools

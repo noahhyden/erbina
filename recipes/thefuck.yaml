@@ -43,3 +43,4 @@ update:
       run: "pipx upgrade thefuck"
 
 scope: user
+category: shells

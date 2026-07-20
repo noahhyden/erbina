@@ -43,3 +43,4 @@ update:
       run: "cargo install wasm-pack"
 
 scope: user
+category: build

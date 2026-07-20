@@ -37,3 +37,4 @@ update:
       run: "pipx upgrade papermill"
 
 scope: user
+category: data

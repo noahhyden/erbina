@@ -43,3 +43,4 @@ update:
       run: "cargo install typst-cli"
 
 scope: user
+category: docs

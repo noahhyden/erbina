@@ -37,3 +37,4 @@ update:
       run: "brew upgrade pipx"
 
 scope: user
+category: packaging

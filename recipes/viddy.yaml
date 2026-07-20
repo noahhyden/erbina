@@ -37,3 +37,4 @@ update:
       run: "brew upgrade viddy"
 
 scope: user
+category: monitoring
