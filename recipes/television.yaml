@@ -1,0 +1,46 @@
+# erbina recipe — television, a cli-tool. Fast, extensible fuzzy finder (`tv`).
+id: television
+kind: cli-tool
+title: "television — a cross-platform, fast and extensible fuzzy finder"
+description: >
+  television is a cross-platform, fast and extensible general-purpose
+  fuzzy finder for the terminal, with channels for files, git, environment
+  variables and more. https://github.com/alexpasmantier/television
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "tv --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install television"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install television"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "tv --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "tv --version"
+  latest: { github: alexpasmantier/television }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade television"
+    - id: cargo
+      when: "command -v cargo"
+      run: "cargo install television"
+
+scope: user
+category: search

@@ -1,0 +1,46 @@
+# erbina recipe — borg, a cli-tool. Deduplicating, encrypted backup program.
+id: borg
+kind: cli-tool
+title: "borg — deduplicating archiver with compression and encryption"
+description: >
+  BorgBackup (borg) is a deduplicating backup program with optional
+  compression and authenticated encryption, making backups space-efficient
+  and secure. https://github.com/borgbackup/borg
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "borg --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install borgbackup"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install borgbackup"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "borg --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "borg --version"
+  latest: { github: borgbackup/borg }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade borgbackup"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade borgbackup"
+
+scope: user
+category: files

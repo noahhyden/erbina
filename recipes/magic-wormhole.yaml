@@ -1,0 +1,42 @@
+# erbina recipe — magic-wormhole, a cli-tool. Secure file/text transfer between computers.
+id: magic-wormhole
+kind: cli-tool
+title: "magic-wormhole — get things from one computer to another, safely"
+description: >
+  magic-wormhole lets you securely transfer files and directories (and
+  short text) from one computer to another using a one-time,
+  human-pronounceable code.
+  https://github.com/magic-wormhole/magic-wormhole
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "wormhole --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install magic-wormhole"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx install magic-wormhole"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "wormhole --version"
+    expect_exit: 0
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade magic-wormhole"
+    - id: pipx
+      when: "command -v pipx"
+      run: "pipx upgrade magic-wormhole"
+
+scope: user
+category: network

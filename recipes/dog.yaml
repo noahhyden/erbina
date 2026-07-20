@@ -1,0 +1,40 @@
+# erbina recipe — dog, a cli-tool. Colorful command-line DNS client (dig alternative).
+id: dog
+kind: cli-tool
+title: "dog — a command-line DNS client"
+description: >
+  dog is a command-line DNS client, like dig, with colorful output,
+  support for the DNS-over-TLS and DNS-over-HTTPS protocols, and JSON
+  output. https://github.com/ogham/dog
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "dog --version"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install dog"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "dog --version"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "dog --version"
+  latest: { github: ogham/dog }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade dog"
+
+scope: user
+category: network

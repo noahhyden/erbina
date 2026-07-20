@@ -1,0 +1,40 @@
+# erbina recipe — ctop, a cli-tool. Real-time top-like metrics for containers.
+id: ctop
+kind: cli-tool
+title: "ctop — top-like interface for container metrics"
+description: >
+  ctop provides a concise, condensed, top-like overview of real-time
+  metrics for multiple containers, with an expanded per-container view.
+  https://github.com/bcicen/ctop
+
+# 1. DETECT — already installed? Exits 0 when present.
+detect:
+  command: "ctop -v"
+  expect_exit: 0
+
+# 2. INSTALL — first passing guard wins.
+install:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew install ctop"
+
+# 3. VERIFY — prove it actually runs.
+verify:
+  - command: "ctop -v"
+    expect_exit: 0
+
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "ctop -v"
+  latest: { github: bcicen/ctop }
+
+# 5. UPDATE — how `update` upgrades an installed copy.
+update:
+  methods:
+    - id: homebrew
+      when: "command -v brew"
+      run: "brew upgrade ctop"
+
+scope: user
+category: containers
