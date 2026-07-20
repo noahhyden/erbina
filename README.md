@@ -109,7 +109,8 @@ can't call any tool — that's the one thing new CI users trip on.
 
 | Tool | What it does |
 |---|---|
-| `list_recipes` | List the curated recipes erbina can bootstrap. |
+| `list_recipes` | List the curated recipes erbina can bootstrap — each with a `category` and search `tags` so you can tell at a glance what it's for. |
+| `search_recipes` | Find a recipe by keyword and/or filter (`category`, `kind`) instead of scanning the whole list — ranked by relevance. E.g. "a JSON tool" or `category="kubernetes"`. |
 | `inspect_recipe` | Show **exactly** what bootstrapping a recipe would run — the consent surface. Nothing executes. |
 | `bootstrap` | Run a recipe: detect → install → configure → verify, idempotently. `dry_run=true` returns the full plan without executing. |
 | `check_updates` | Read-only report of whether installed tools have newer versions available, for recipes that declare a `version:` block. Pinned tools are flagged and excluded. |
