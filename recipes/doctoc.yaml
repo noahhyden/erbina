@@ -24,6 +24,11 @@ verify:
   - command: "doctoc --version"
     expect_exit: 0
 
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "doctoc --version"
+  latest: { github: thlorenz/doctoc }
+
 # 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:

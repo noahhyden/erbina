@@ -24,6 +24,11 @@ verify:
   - command: "netlify --version"
     expect_exit: 0
 
+# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
+version:
+  current: "netlify --version"
+  latest: { github: netlify/cli }
+
 # 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
