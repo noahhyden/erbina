@@ -1039,6 +1039,32 @@ def search_recipes(
 
 
 @mcp.tool
+def list_categories() -> dict[str, Any]:
+    """A domain map of the registry: every category that has recipes, with how
+    many and a few example ids. Call this to see what erbina COVERS at a glance
+    (e.g. "kubernetes: 26, languages: 40, git: 29"), then drill into one with
+    `search_recipes(category=...)`. Categories partition the registry — each
+    recipe has exactly one — so the counts sum to the total recipe count. Sorted
+    by count (descending), then category name.
+    """
+    buckets: dict[str, list[str]] = {}
+    for rid in _recipe_ids():
+        try:
+            r = _load_recipe(rid)
+        except Exception:  # noqa: BLE001
+            continue
+        category, _tags = _categorize(r)
+        buckets.setdefault(category, []).append(rid)
+
+    rows = [
+        {"category": cat, "count": len(ids), "examples": sorted(ids)[:5]}
+        for cat, ids in buckets.items()
+    ]
+    rows.sort(key=lambda c: (-c["count"], c["category"]))
+    return {"count": len(rows), "categories": rows}
+
+
+@mcp.tool
 def inspect_recipe(recipe_id: str, scope: str = "user", project_dir: str | None = None) -> dict[str, Any]:
     """
     Show EXACTLY what bootstrapping a recipe would run, without executing anything.
