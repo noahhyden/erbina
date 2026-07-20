@@ -37,3 +37,4 @@ update:
       run: "brew upgrade pspg"
 
 scope: user
+category: database

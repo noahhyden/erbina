@@ -158,6 +158,13 @@ def render(t: dict) -> str:
         lines.append(f'      run: "{run}"')
     lines.append("")
     lines.append("scope: user")
+    # optional queriability metadata (see SCHEMA.md) — only emitted when a row
+    # authors it, so rows without it render byte-identically to the pre-taxonomy
+    # files. `category` overrides erbina's inferred bucket; `tags` add search terms.
+    if t.get("category"):
+        lines.append(f"category: {t['category']}")
+    if t.get("tags"):
+        lines.append(f"tags: [{', '.join(t['tags'])}]")
     lines.append("")
     return "\n".join(lines)
 
@@ -223,10 +230,19 @@ def write_samples_module(tools: list[dict]) -> None:
     SAMPLES_MODULE.write_text(body)
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    import sys
+
     from recipe_data import TOOLS  # local import so the table lives in its own file
 
-    written, skipped = 0, 0
+    # By default the generator never clobbers an existing recipe (so hand-tuned
+    # files are safe). `--rewrite` re-renders every TOOLS row and overwrites a
+    # file whose content has DRIFTED from its row — the safe way to backfill a new
+    # field (e.g. `category:`) into already-generated recipes: rows unchanged since
+    # generation render byte-identically and are left untouched.
+    rewrite = "--rewrite" in (argv if argv is not None else sys.argv[1:])
+
+    written, updated, skipped = 0, 0, 0
     seen: set[str] = set()
     for t in TOOLS:
         rid = t["id"]
@@ -234,15 +250,21 @@ def main() -> int:
             raise SystemExit(f"duplicate id in TOOLS: {rid}")
         seen.add(rid)
         path = RECIPES_DIR / f"{rid}.yaml"
+        rendered = render(t)
         if path.exists():
-            skipped += 1
+            if rewrite and path.read_text() != rendered:
+                path.write_text(rendered)
+                updated += 1
+            else:
+                skipped += 1
             continue
-        path.write_text(render(t))
+        path.write_text(rendered)
         written += 1
     gallery_changed = update_readme_gallery(TOOLS)
     write_samples_module(TOOLS)
-    print(f"wrote {written}, skipped {skipped} existing, {len(seen)} rows total; "
-          f"README gallery {'updated' if gallery_changed else 'unchanged'}; "
+    print(f"wrote {written}, updated {updated}, skipped {skipped} existing, "
+          f"{len(seen)} rows total; README gallery "
+          f"{'updated' if gallery_changed else 'unchanged'}; "
           f"{sum(1 for t in TOOLS if t.get('gh'))} version samples")
     return 0
 

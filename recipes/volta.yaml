@@ -37,3 +37,4 @@ update:
       run: "brew upgrade volta"
 
 scope: user
+category: languages

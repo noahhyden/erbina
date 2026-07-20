@@ -37,3 +37,4 @@ update:
       run: "pipx upgrade nbdime"
 
 scope: user
+category: text

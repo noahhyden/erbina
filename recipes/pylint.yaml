@@ -37,3 +37,4 @@ update:
       run: "pipx upgrade pylint"
 
 scope: user
+category: text

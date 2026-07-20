@@ -37,3 +37,4 @@ update:
       run: "pipx upgrade semgrep"
 
 scope: user
+category: security

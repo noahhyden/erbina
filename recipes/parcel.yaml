@@ -32,3 +32,4 @@ update:
       run: "npm update -g parcel"
 
 scope: user
+category: build

@@ -32,3 +32,4 @@ update:
       run: "brew upgrade thrift"
 
 scope: user
+category: data

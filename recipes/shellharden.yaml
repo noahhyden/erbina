@@ -43,3 +43,4 @@ update:
       run: "cargo install shellharden"
 
 scope: user
+category: text

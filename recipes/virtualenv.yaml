@@ -37,3 +37,4 @@ update:
       run: "pipx upgrade virtualenv"
 
 scope: user
+category: packaging

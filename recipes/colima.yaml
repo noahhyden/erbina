@@ -37,3 +37,4 @@ update:
       run: "brew upgrade colima"
 
 scope: user
+category: containers

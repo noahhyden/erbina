@@ -32,3 +32,4 @@ update:
       run: "brew upgrade gawk"
 
 scope: user
+category: text

@@ -52,3 +52,6 @@ update:
       run: "uv self update"
 
 scope: user
+# uv describes itself as a script runner / drop-in, so inference misses the
+# packaging bucket; author it (see SCHEMA.md "Categories").
+category: packaging

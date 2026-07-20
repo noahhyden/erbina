@@ -2165,3 +2165,43 @@ TOOLS: list[dict] = [
      "desc": "buku is a private, flexible command-line bookmark manager that stores bookmarks with tags in a local database and works like a text-based mini-web.",
      "url": "https://github.com/jarun/buku", "pipx": "buku"},
 ]
+
+# --------------------------------------------------------------------------- #
+# Curated category overrides
+# --------------------------------------------------------------------------- #
+# erbina's `_categorize` infers a taxonomy bucket from a recipe's text, but the
+# heuristic mislabels some tools (a linter that says "many languages" lands in
+# `languages`; a DigitalOcean CLI that mentions "Kubernetes clusters" lands in
+# `kubernetes`) or leaves them in `misc`. Author the correct bucket here — the
+# generator emits it as `category:` and the stored value wins over inference.
+# Kept in one reviewable place rather than scattered across the rows above.
+# (uv and tokei are hand-written recipes, not TOOLS rows — curated in their YAML.)
+_CATEGORY_OVERRIDES: dict[str, str] = {
+    # linters / analyzers / text utilities the inference left in misc
+    "cppcheck": "text", "hlint": "text", "pylint": "text", "shellharden": "text",
+    "nbdime": "text", "gawk": "text", "cspell": "text",
+    # python packaging / environment managers
+    "hatch": "packaging", "pipx": "packaging", "virtualenv": "packaging",
+    # data / database
+    "papermill": "data", "fq": "data", "thrift": "data",
+    "pspg": "database", "prisma": "database",
+    # dev / testing utilities
+    "pa11y": "devtools", "playwright": "devtools", "scc": "devtools",
+    # process / watch monitors
+    "pm2": "monitoring", "viddy": "monitoring",
+    # build / bundlers / compilers
+    "sass": "build", "wasm-pack": "build", "parcel": "build", "pyinstaller": "build",
+    # security
+    "subfinder": "security", "semgrep": "security", "opa": "security",
+    "checkov": "security", "conftest": "security",
+    # misc-bucket rescues
+    "thefuck": "shells", "typst": "docs", "zola": "docs", "volta": "languages",
+    "ghostscript": "media",
+    # kubernetes over-capture corrections
+    "colima": "containers", "doctl": "cloud",
+}
+
+for _row in TOOLS:
+    _override = _CATEGORY_OVERRIDES.get(_row["id"])
+    if _override:
+        _row["category"] = _override

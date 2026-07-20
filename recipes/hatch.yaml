@@ -37,3 +37,4 @@ update:
       run: "pipx upgrade hatch"
 
 scope: user
+category: packaging
