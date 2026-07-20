@@ -11,6 +11,7 @@ from helpers import call_tool, list_tool_names
 EXPECTED_TOOLS = {
     "list_recipes",
     "search_recipes",
+    "list_categories",
     "inspect_recipe",
     "bootstrap",
     "check_updates",
