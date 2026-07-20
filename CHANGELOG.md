@@ -7,6 +7,22 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased]
 
+### Added
+
+- **winget id harvester (`scripts/winget_candidates.py` + a `winget-ingest` CI
+  workflow).** Directly attacks the "generated recipes are POSIX-first" gap below:
+  it downloads the winget *community source* index (the SQLite catalog the `winget`
+  CLI uses) and resolves a `winget` PackageIdentifier for each `recipe_data.py` row
+  that lacks one, tiered by trust — `high` (id is the row's `gh` owner/repo exactly,
+  or a command/moniker match whose publisher equals the GitHub owner), `medium` (a
+  unique installed-command match), `low` (moniker-only). It installs nothing and
+  uses stdlib only, so it runs anywhere. The default emits `winget_proposals.json`
+  for review (the same propose-then-a-human-merges idiom as the brew ingester);
+  `--apply` stages the keys into `recipe_data.py` so the change is reviewed as a git
+  diff. A HIGH-confidence run resolves ~145 ids (winget coverage 13 → ~158 recipes)
+  with the publisher-corroboration guard rejecting look-alike false positives (e.g.
+  the Windows app `Japplis.Pastel` for the Rust `sharkdp.pastel`).
+
 ## [0.2.1] - 2026-07-19
 
 ### Added
