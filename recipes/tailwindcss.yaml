@@ -15,6 +15,9 @@ detect:
 # 2. INSTALL — first passing guard wins.
 install:
   methods:
+    - id: winget
+      when: "winget --version"
+      run: "winget install -e --id TailwindLabs.TailwindCSS --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: npm
       when: "command -v npm"
       run: "npm install -g tailwindcss"
@@ -32,6 +35,9 @@ version:
 # 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
+    - id: winget
+      when: "winget --version"
+      run: "winget upgrade -e --id TailwindLabs.TailwindCSS --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: npm
       when: "command -v npm"
       run: "npm update -g tailwindcss"

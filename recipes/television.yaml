@@ -18,6 +18,9 @@ install:
     - id: homebrew
       when: "command -v brew"
       run: "brew install television"
+    - id: winget
+      when: "winget --version"
+      run: "winget install -e --id alexpasmantier.television --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: cargo
       when: "command -v cargo"
       run: "cargo install television"
@@ -38,6 +41,9 @@ update:
     - id: homebrew
       when: "command -v brew"
       run: "brew upgrade television"
+    - id: winget
+      when: "winget --version"
+      run: "winget upgrade -e --id alexpasmantier.television --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: cargo
       when: "command -v cargo"
       run: "cargo install television"

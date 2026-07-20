@@ -18,6 +18,9 @@ install:
     - id: homebrew
       when: "command -v brew"
       run: "brew install meson"
+    - id: winget
+      when: "winget --version"
+      run: "winget install -e --id mesonbuild.meson --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: pipx
       when: "command -v pipx"
       run: "pipx install meson"
@@ -38,6 +41,9 @@ update:
     - id: homebrew
       when: "command -v brew"
       run: "brew upgrade meson"
+    - id: winget
+      when: "winget --version"
+      run: "winget upgrade -e --id mesonbuild.meson --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: pipx
       when: "command -v pipx"
       run: "pipx upgrade meson"

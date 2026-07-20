@@ -18,6 +18,9 @@ install:
     - id: homebrew
       when: "command -v brew"
       run: "brew install oha"
+    - id: winget
+      when: "winget --version"
+      run: "winget install -e --id hatoo.oha --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: cargo
       when: "command -v cargo"
       run: "cargo install oha"
@@ -38,6 +41,9 @@ update:
     - id: homebrew
       when: "command -v brew"
       run: "brew upgrade oha"
+    - id: winget
+      when: "winget --version"
+      run: "winget upgrade -e --id hatoo.oha --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
     - id: cargo
       when: "command -v cargo"
       run: "cargo install oha"

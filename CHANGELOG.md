@@ -9,19 +9,25 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ### Added
 
-- **winget id harvester (`scripts/winget_candidates.py` + a `winget-ingest` CI
-  workflow).** Directly attacks the "generated recipes are POSIX-first" gap below:
-  it downloads the winget *community source* index (the SQLite catalog the `winget`
+- **Broad `winget` coverage — 207 recipes now install on Windows** (up from 13).
+  A new harvester (`scripts/winget_candidates.py` + a `winget-ingest` CI workflow)
+  downloads the winget *community source* index (the SQLite catalog the `winget`
   CLI uses) and resolves a `winget` PackageIdentifier for each `recipe_data.py` row
-  that lacks one, tiered by trust — `high` (id is the row's `gh` owner/repo exactly,
+  that lacked one, tiered by trust — `high` (id is the row's `gh` owner/repo exactly,
   or a command/moniker match whose publisher equals the GitHub owner), `medium` (a
-  unique installed-command match), `low` (moniker-only). It installs nothing and
-  uses stdlib only, so it runs anywhere. The default emits `winget_proposals.json`
-  for review (the same propose-then-a-human-merges idiom as the brew ingester);
-  `--apply` stages the keys into `recipe_data.py` so the change is reviewed as a git
-  diff. A HIGH-confidence run resolves ~145 ids (winget coverage 13 → ~158 recipes)
-  with the publisher-corroboration guard rejecting look-alike false positives (e.g.
-  the Windows app `Japplis.Pastel` for the Rust `sharkdp.pastel`).
+  unique installed-command match), `low` (moniker-only). 194 ids were applied across
+  all tiers and the recipes regenerated. It installs nothing and uses stdlib only,
+  so it runs anywhere; the default emits `winget_proposals.json` for review, and
+  `--apply` stages the keys into `recipe_data.py` as a reviewable diff.
+
+### Notes
+
+- **Windows support is limited and error-prone.** The bulk-resolved winget ids are
+  only spot-checked — some may be wrong, stale, or resolve to a look-alike package,
+  so a `winget install` can fail or install the wrong tool. Each method's `when:`
+  guard means a bad winget method fails cleanly rather than breaking a POSIX
+  bootstrap, but macOS/Linux remain the first-class targets; treat Windows as
+  best-effort and verify what got installed.
 
 ## [0.2.1] - 2026-07-19
 

@@ -18,6 +18,9 @@ install:
     - id: homebrew
       when: "command -v brew"
       run: "brew install mediainfo"
+    - id: winget
+      when: "winget --version"
+      run: "winget install -e --id MediaArea.MediaInfo --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
 # 3. VERIFY — prove it actually runs.
 verify:
@@ -30,5 +33,8 @@ update:
     - id: homebrew
       when: "command -v brew"
       run: "brew upgrade mediainfo"
+    - id: winget
+      when: "winget --version"
+      run: "winget upgrade -e --id MediaArea.MediaInfo --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
 scope: user

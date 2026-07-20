@@ -19,6 +19,9 @@ install:
     - id: homebrew
       when: "command -v brew"
       run: "brew install cloudflared"
+    - id: winget
+      when: "winget --version"
+      run: "winget install -e --id Cloudflare.cloudflared --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
 # 3. VERIFY — prove it actually runs.
 verify:
@@ -36,5 +39,8 @@ update:
     - id: homebrew
       when: "command -v brew"
       run: "brew upgrade cloudflared"
+    - id: winget
+      when: "winget --version"
+      run: "winget upgrade -e --id Cloudflare.cloudflared --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
 scope: user

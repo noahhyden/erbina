@@ -18,6 +18,9 @@ install:
     - id: homebrew
       when: "command -v brew"
       run: "brew install ninja"
+    - id: winget
+      when: "winget --version"
+      run: "winget install -e --id Ninja-build.Ninja --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
 # 3. VERIFY — prove it actually runs.
 verify:
@@ -35,5 +38,8 @@ update:
     - id: homebrew
       when: "command -v brew"
       run: "brew upgrade ninja"
+    - id: winget
+      when: "winget --version"
+      run: "winget upgrade -e --id Ninja-build.Ninja --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
 scope: user

@@ -144,13 +144,23 @@ def test_winget_method_is_guarded_and_carries_the_id(rid, wid):
 
 
 def test_every_winget_recipe_is_covered():
-    # a recipe that grows a winget method must be listed above (so its id is locked)
+    # Every recipe with a winget method must have its (typo-prone) id pinned by a
+    # source of truth: the hand-curated flagship map above (locked here and proven
+    # for real by the windows real-bootstrap job), OR scripts/recipe_data.py for the
+    # bulk-generated recipes (whose Windows support is best-effort — see the README
+    # disclaimer). This catches a hand-written recipe that grows a winget method
+    # without being locked, and a flagship that silently loses its winget method.
+    from recipe_data import TOOLS
+
+    generated = {t["id"] for t in TOOLS if t.get("winget")}
     with_winget = {rid for rid in server._recipe_ids()
                    if any(m.get("id") == "winget"
                           for m in (server._load_recipe(rid).get("install", {}).get("methods") or []))}
-    assert with_winget == set(WINGET_IDS), (
-        f"uncovered: {with_winget - set(WINGET_IDS)}; stale: {set(WINGET_IDS) - with_winget}"
+    assert set(WINGET_IDS) <= with_winget, (
+        f"flagship recipe lost its winget method: {set(WINGET_IDS) - with_winget}"
     )
+    orphans = with_winget - set(WINGET_IDS) - generated
+    assert not orphans, f"winget recipe not pinned in WINGET_IDS or recipe_data.py: {orphans}"
 
 
 # --------------------------------------------------------------------------- #

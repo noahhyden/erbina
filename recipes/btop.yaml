@@ -18,6 +18,9 @@ install:
     - id: homebrew
       when: "command -v brew"
       run: "brew install btop"
+    - id: winget
+      when: "winget --version"
+      run: "winget install -e --id aristocratos.btop4win --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
 # 3. VERIFY — prove it actually runs.
 verify:
@@ -35,6 +38,9 @@ update:
     - id: homebrew
       when: "command -v brew"
       run: "brew upgrade btop"
+    - id: winget
+      when: "winget --version"
+      run: "winget upgrade -e --id aristocratos.btop4win --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
 scope: user
 category: monitoring
