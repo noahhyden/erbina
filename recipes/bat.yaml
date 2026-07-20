@@ -48,3 +48,5 @@ update:
       run: "cargo install bat"
 
 scope: user
+# a `cat` replacement; inference reads "Git integration" as the git bucket.
+category: files

@@ -43,3 +43,5 @@ update:
       run: "cargo install eza"
 
 scope: user
+# an `ls` replacement; inference reads "git status" as the git bucket.
+category: files

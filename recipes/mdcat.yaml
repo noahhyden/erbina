@@ -43,3 +43,4 @@ update:
       run: "cargo install mdcat"
 
 scope: user
+category: docs
