@@ -37,3 +37,4 @@ update:
       run: "pipx upgrade mkdocs"
 
 scope: user
+category: docs

@@ -32,3 +32,4 @@ update:
       run: "brew upgrade ncdu"
 
 scope: user
+category: files

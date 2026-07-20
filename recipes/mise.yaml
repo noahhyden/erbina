@@ -43,3 +43,4 @@ update:
       run: "cargo install mise"
 
 scope: user
+category: languages

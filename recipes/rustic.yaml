@@ -43,3 +43,4 @@ update:
       run: "cargo install rustic-rs"
 
 scope: user
+category: files

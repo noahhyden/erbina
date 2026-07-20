@@ -37,3 +37,4 @@ update:
       run: "npm update -g eslint"
 
 scope: user
+category: text

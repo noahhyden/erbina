@@ -43,3 +43,4 @@ update:
       run: "cargo install tree-sitter-cli"
 
 scope: user
+category: devtools

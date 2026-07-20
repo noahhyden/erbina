@@ -51,3 +51,5 @@ update:
       run: "cargo install bottom --locked"
 
 scope: user
+# a system/process monitor (btm); inference reads "network" usage as networking.
+category: monitoring

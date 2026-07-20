@@ -37,3 +37,4 @@ update:
       run: "pipx upgrade beets"
 
 scope: user
+category: media

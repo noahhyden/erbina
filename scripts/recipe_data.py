@@ -2236,6 +2236,18 @@ _CATEGORY_OVERRIDES: dict[str, str] = {
     "lsd": "files", "yazi": "files", "typos": "text", "icdiff": "text",
     "htop": "monitoring", "concurrently": "devtools", "webpack": "build",
     "mdcat": "docs",
+    # round 3 — systematic classifier gaps (version managers, docs generators,
+    # system monitors, JS/TS tooling). bottom + difftastic are hand-written.
+    "pyenv": "languages", "rbenv": "languages", "jenv": "languages",
+    "mise": "languages", "ts-node": "languages", "tsx": "languages",
+    "tox": "build", "tailwindcss": "build", "cmake": "build", "task": "build",
+    "mkdocs": "docs", "sphinx": "docs", "pandoc": "docs", "doxygen": "docs",
+    "btop": "monitoring", "hwatch": "monitoring",
+    "ncdu": "files", "rustic": "files", "dysk": "files",
+    "eslint": "text", "isort": "text",
+    "ollama": "devtools", "tree-sitter": "devtools",
+    "ghq": "git", "beets": "media", "gobuster": "security", "bandit": "security",
+    "verdaccio": "packaging", "tmuxinator": "terminal", "tmuxp": "terminal",
 }
 
 for _row in TOOLS:

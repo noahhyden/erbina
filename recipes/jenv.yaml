@@ -37,3 +37,4 @@ update:
       run: "brew upgrade jenv"
 
 scope: user
+category: languages

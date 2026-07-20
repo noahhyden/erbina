@@ -37,3 +37,4 @@ update:
       run: "pipx upgrade isort"
 
 scope: user
+category: text

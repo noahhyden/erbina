@@ -37,3 +37,4 @@ update:
       run: "brew upgrade pyenv"
 
 scope: user
+category: languages
