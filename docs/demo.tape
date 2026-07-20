@@ -44,5 +44,9 @@ Sleep 500ms
 Enter
 
 # real work: inspect_recipe (consent) -> bootstrap via pipx -> verify.
-# the static "thinking" span here is collapsed by mpdecimate in record_demo.sh.
-Sleep 34s
+# In `-p` mode nothing renders until the run finishes and the answer dumps at
+# once, so this sleep must comfortably outlast a real run (~27s here) plus MCP
+# cold-start — otherwise the recording ends before the answer appears (that was
+# the old gif's bug). The trailing idle/answer-static frames are collapsed by
+# mpdecimate in record_demo.sh, so an overshoot costs nothing.
+Sleep 55s
