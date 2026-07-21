@@ -65,9 +65,10 @@ def _install_methods(t: dict) -> list[tuple[str, str, str]]:
     # curl|sh is the last-resort fallback (a tool's official install script):
     # listed after every package manager — including winget, since Windows also
     # ships `curl` — so it only fires when nothing more managed matches (e.g. a
-    # plain Linux box with no Homebrew).
+    # plain Linux box with no Homebrew). `curl_shell` overrides the pipe shell for
+    # scripts that require bash (default: POSIX sh).
     if t.get("curl"):
-        out.append(("curl", GUARDS["curl"], f"curl -fsSL {t['curl']} | sh"))
+        out.append(("curl", GUARDS["curl"], f"curl -fsSL {t['curl']} | {t.get('curl_shell', 'sh')}"))
     return out
 
 
@@ -91,7 +92,7 @@ def _update_methods(t: dict) -> list[tuple[str, str, str]]:
     # re-running the official install script upgrades to latest (same fallback
     # ordering rationale as install)
     if t.get("curl"):
-        out.append(("curl", GUARDS["curl"], f"curl -fsSL {t['curl']} | sh"))
+        out.append(("curl", GUARDS["curl"], f"curl -fsSL {t['curl']} | {t.get('curl_shell', 'sh')}"))
     return out
 
 
