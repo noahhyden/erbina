@@ -568,7 +568,7 @@ TOOLS: list[dict] = [
     {"id": "ollama", "winget": "Ollama.Ollama", "title": "ollama — get up and running with large language models locally",
      "short": "Run LLMs locally.",
      "desc": "Ollama lets you get up and running with large language models locally, pulling and running models like Llama and Mistral with a single command.",
-     "url": "https://github.com/ollama/ollama", "brew": "ollama", "gh": "ollama/ollama"},
+     "url": "https://github.com/ollama/ollama", "brew": "ollama", "curl": "https://ollama.com/install.sh", "gh": "ollama/ollama"},
 
     # ── security / supply-chain ─────────────────────────────────────────────
     {"id": "cosign", "winget": "Sigstore.Cosign", "title": "cosign — container signing, verification and storage in an OCI registry",

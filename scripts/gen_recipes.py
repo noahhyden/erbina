@@ -35,6 +35,7 @@ GUARDS = {
     "npm": "command -v npm",
     "gem": "command -v gem",
     "pip": "command -v pipx",  # prefer pipx for pip apps
+    "curl": "command -v curl",
 }
 
 WINGET_TAIL = (
@@ -61,6 +62,12 @@ def _install_methods(t: dict) -> list[tuple[str, str, str]]:
         out.append(("npm", GUARDS["npm"], f"npm install -g {t['npm']}"))
     if t.get("gem"):
         out.append(("gem", GUARDS["gem"], f"gem install {t['gem']}"))
+    # curl|sh is the last-resort fallback (a tool's official install script):
+    # listed after every package manager — including winget, since Windows also
+    # ships `curl` — so it only fires when nothing more managed matches (e.g. a
+    # plain Linux box with no Homebrew).
+    if t.get("curl"):
+        out.append(("curl", GUARDS["curl"], f"curl -fsSL {t['curl']} | sh"))
     return out
 
 
@@ -81,6 +88,10 @@ def _update_methods(t: dict) -> list[tuple[str, str, str]]:
         out.append(("npm", GUARDS["npm"], f"npm update -g {t['npm']}"))
     if t.get("gem"):
         out.append(("gem", GUARDS["gem"], f"gem update {t['gem']}"))
+    # re-running the official install script upgrades to latest (same fallback
+    # ordering rationale as install)
+    if t.get("curl"):
+        out.append(("curl", GUARDS["curl"], f"curl -fsSL {t['curl']} | sh"))
     return out
 
 
