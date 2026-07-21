@@ -21,6 +21,9 @@ install:
     - id: winget
       when: "winget --version"
       run: "winget install -e --id Ollama.Ollama --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
+    - id: curl
+      when: "command -v curl"
+      run: "curl -fsSL https://ollama.com/install.sh | sh"
 
 # 3. VERIFY — prove it actually runs.
 verify:
@@ -41,6 +44,9 @@ update:
     - id: winget
       when: "winget --version"
       run: "winget upgrade -e --id Ollama.Ollama --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
+    - id: curl
+      when: "command -v curl"
+      run: "curl -fsSL https://ollama.com/install.sh | sh"
 
 scope: user
 category: devtools
