@@ -1,4 +1,3 @@
-# erbina recipe — kdash, a cli-tool. Fast Kubernetes dashboard TUI.
 id: kdash
 kind: cli-tool
 title: "kdash — a simple and fast dashboard for Kubernetes"
@@ -7,12 +6,9 @@ description: >
   an at-a-glance, real-time view of the resources in your cluster.
   https://github.com/kdash-rs/kdash
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "kdash --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "command -v cargo"
       run: "cargo install kdash"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "kdash --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "kdash --version"
   latest: { github: kdash-rs/kdash }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "command -v cargo"
       run: "cargo install kdash"
 
-scope: user

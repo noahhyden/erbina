@@ -1,4 +1,3 @@
-# erbina recipe — ugrep, a cli-tool. Ultra-fast grep with a query TUI.
 id: ugrep
 kind: cli-tool
 title: "ugrep — ultra-fast grep with interactive query UI"
@@ -7,12 +6,9 @@ description: >
   query UI, fuzzy search, and the ability to search inside archives and
   many file formats. https://github.com/Genivia/ugrep
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "ugrep --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id Genivia.ugrep --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "ugrep --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "ugrep --version"
   latest: { github: Genivia/ugrep }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id Genivia.ugrep --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

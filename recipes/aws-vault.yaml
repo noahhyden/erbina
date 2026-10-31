@@ -1,4 +1,3 @@
-# erbina recipe — aws-vault, a cli-tool. Securely store AWS credentials.
 id: aws-vault
 kind: cli-tool
 title: "aws-vault — a vault for securely storing and accessing AWS credentials"
@@ -7,12 +6,9 @@ description: >
   development environment, generating temporary credentials and keeping
   keys out of plaintext. https://github.com/99designs/aws-vault
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "aws-vault --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id 99designs.aws-vault --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "aws-vault --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "aws-vault --version"
   latest: { github: 99designs/aws-vault }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id 99designs.aws-vault --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

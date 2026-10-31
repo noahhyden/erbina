@@ -40,9 +40,6 @@ server's real code paths:
   temp dir holding the given prototypes and restores it afterward, so synthetic
   recipes resolve through the real MCP tool surface without touching `recipes/`.
 
-See `PROTOTYPE_NOTES.md` for the design, the iteration log, the loop discipline
-(mutation testing to catch false passes), and the running list of findings.
-
 ## What's covered
 
 | file | covers |

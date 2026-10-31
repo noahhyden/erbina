@@ -1,4 +1,3 @@
-# erbina recipe — task, a cli-tool. Simple YAML-based task runner.
 id: task
 kind: cli-tool
 title: "task — a task runner / build tool that aims to be simpler and easier to use than make"
@@ -7,12 +6,9 @@ description: >
   to use than GNU Make, defining tasks and dependencies in a readable YAML
   Taskfile. https://github.com/go-task/task
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "task --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id Task.Task --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "task --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "task --version"
   latest: { github: go-task/task }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,5 +34,4 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id Task.Task --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user
 category: build

@@ -1,4 +1,3 @@
-# erbina recipe — mediainfo, a cli-tool. Inspect media file metadata.
 id: mediainfo
 kind: cli-tool
 title: "mediainfo — display technical and tag data for video and audio files"
@@ -7,12 +6,9 @@ description: >
   files, reporting codecs, bitrates, durations and stream details from the
   command line. https://mediaarea.net/en/MediaInfo
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "mediainfo --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,12 +18,9 @@ install:
       when: "winget --version"
       run: "winget install -e --id MediaArea.MediaInfo --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "mediainfo --version"
-    expect_exit: 0
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -37,4 +30,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id MediaArea.MediaInfo --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

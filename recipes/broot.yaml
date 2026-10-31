@@ -1,4 +1,3 @@
-# erbina recipe — broot, a cli-tool. Interactive tree navigator.
 id: broot
 kind: cli-tool
 title: "broot — a new way to see and navigate directory trees"
@@ -7,12 +6,9 @@ description: >
   navigate, search, and act on files with a compact interactive tree.
   https://github.com/Canop/broot
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "broot --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "command -v cargo"
       run: "cargo install broot"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "broot --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "broot --version"
   latest: { github: Canop/broot }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "command -v cargo"
       run: "cargo install broot"
 
-scope: user

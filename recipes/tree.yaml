@@ -1,4 +1,3 @@
-# erbina recipe — tree, a cli-tool. Recursive directory tree listing.
 id: tree
 kind: cli-tool
 title: "tree — a recursive directory listing command"
@@ -7,12 +6,9 @@ description: >
   depth-indented listing of files, a quick way to visualize a directory
   hierarchy. https://oldmanprogrammer.net/source.php?dir=projects/tree
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "tree --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,12 +18,9 @@ install:
       when: "winget --version"
       run: "winget install -e --id GnuWin32.Tree --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "tree --version"
-    expect_exit: 0
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -37,4 +30,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id GnuWin32.Tree --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

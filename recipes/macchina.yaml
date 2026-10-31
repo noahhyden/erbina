@@ -1,4 +1,3 @@
-# erbina recipe — macchina, a cli-tool. Fast system information fetch.
 id: macchina
 kind: cli-tool
 title: "macchina — a fast, minimal and customizable system information tool"
@@ -7,12 +6,9 @@ description: >
   tool written in Rust, a lightweight alternative to neofetch for terminal
   system info. https://github.com/Macchina-CLI/macchina
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "macchina --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "command -v cargo"
       run: "cargo install macchina"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "macchina --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "macchina --version"
   latest: { github: Macchina-CLI/macchina }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "command -v cargo"
       run: "cargo install macchina"
 
-scope: user

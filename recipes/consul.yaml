@@ -1,4 +1,3 @@
-# erbina recipe — consul, a cli-tool. Service discovery and mesh.
 id: consul
 kind: cli-tool
 title: "consul — service networking across any cloud"
@@ -7,12 +6,9 @@ description: >
   and a service mesh for connecting and securing services across any
   runtime and cloud. https://github.com/hashicorp/consul
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "consul version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id Hashicorp.Consul --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "consul version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "consul version"
   latest: { github: hashicorp/consul }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id Hashicorp.Consul --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user
