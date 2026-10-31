@@ -12,9 +12,7 @@ detect:
   command: "delta --version"
   expect_exit: 0
 
-# 2. INSTALL — prefer brew; fall back to cargo. NOTE the name mismatch: the brew
-# formula and cargo crate are both `git-delta`, but the installed binary is
-# `delta`.
+# Formula and crate are `git-delta`; the binary is `delta`.
 install:
   methods:
     - id: homebrew
@@ -32,8 +30,7 @@ verify:
   - command: "delta --version"
     expect_exit: 0
 
-# 4. VERSION — `delta --version` prints "delta 0.18.2"; dandavison/delta tags
-# look like "0.18.2" (no v prefix). erbina extracts + compares the token.
+# Tags have no v prefix (0.18.2).
 version:
   current: "delta --version"
   latest: { github: dandavison/delta }

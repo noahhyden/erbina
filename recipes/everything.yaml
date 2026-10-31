@@ -1,6 +1,4 @@
 # erbina recipe — the official MCP "everything" server (kind: mcp-server).
-# A Node/npx server that exercises the full MCP surface (tools, resources,
-# prompts) — handy for testing a client. Wiring it into a scope is the work.
 id: everything
 kind: mcp-server
 title: "everything — official MCP reference/test server exercising the full protocol"

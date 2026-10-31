@@ -1,6 +1,4 @@
 # erbina recipe — proof of concept #1
-# A recipe is a four-part contract an agent executes: detect -> install ->
-# configure -> verify. See SCHEMA.md for the full schema.
 id: ataegina
 kind: cli-tool # cli-tool | mcp-server
 title: "ataegina — collision-free dev environments per git worktree"
@@ -25,18 +23,12 @@ install:
       when: "command -v curl"
       run: "curl -fsSL https://raw.githubusercontent.com/noahhyden/ataegina-cli/main/install.sh | sh"
 
-# 3. CONFIGURE — tool-specific wiring. `ataegina init` detects the stack and
-# writes ataegina.config.sh; it needs to run inside the target repo, so it is
-# gated on a supplied project_dir and is optional (a fresh checkout may have
-# nothing to detect yet).
 configure:
   steps:
     - run: "ataegina init --yes"
       needs_project_dir: true
       optional: true
 
-# 4. VERIFY — every command must exit `expect_exit` (default 0) or the bootstrap
-# is reported failed. Prove it actually runs, not merely that a file was written.
 verify:
   - command: "ataegina --version"
     expect_exit: 0
@@ -44,17 +36,10 @@ verify:
     expect_exit: 0
     optional: true # doctor is meaningful only inside a configured worktree
 
-# VERSION — powers `check_updates`. `current` is the installed version; `latest`
-# is queried from GitHub releases. erbina extracts the version token from each
-# command's output and compares them (so the grep line printing the raw
-# `"tag_name": "v0.2.0"` is fine — the 0.2.0 is pulled out and compared).
 version:
   current: "ataegina --version"
   latest: { github: noahhyden/ataegina-cli }
 
-# UPDATE — what `update` runs to upgrade an already-installed ataegina. Same
-# guarded/ordered shape as install: prefer brew's upgrade, else re-run the
-# install script (which overwrites in place). `update` re-runs `verify` after.
 update:
   methods:
     - id: homebrew
@@ -64,9 +49,7 @@ update:
       when: "command -v curl"
       run: "curl -fsSL https://raw.githubusercontent.com/noahhyden/ataegina-cli/main/install.sh | sh"
 
-# UNINSTALL — what the `uninstall` tool runs to reverse the install. The homebrew
-# method is eligible only when brew actually manages this formula (so a
-# curl-installed copy isn't handed to brew); otherwise the binary on PATH is removed.
+# Brew uninstall only when brew manages the formula; otherwise rm the PATH binary.
 uninstall:
   methods:
     - id: homebrew

@@ -1,6 +1,4 @@
 # erbina recipe — the official MCP "sequential thinking" server (mcp-server).
-# Unlike fetch/git/time (uvx / Python), this one runs via npx (a Node package),
-# exercising a different runtime — the scope-aware wiring is otherwise identical.
 id: sequentialthinking
 kind: mcp-server
 title: "sequentialthinking — official MCP server for structured step-by-step reasoning"

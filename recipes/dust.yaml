@@ -11,8 +11,7 @@ detect:
   command: "dust --version"
   expect_exit: 0
 
-# 2. INSTALL — prefer brew; fall back to cargo. NOTE the name mismatch: the brew
-# formula and binary are `dust`, but the cargo crate is `du-dust`.
+# Brew formula and binary are `dust`; the cargo crate is `du-dust`.
 install:
   methods:
     - id: homebrew

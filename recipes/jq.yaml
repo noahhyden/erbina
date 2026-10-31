@@ -11,8 +11,6 @@ detect:
   command: "jq --version"
   expect_exit: 0
 
-# 2. INSTALL — prefer brew; fall back to apt (Debian/Ubuntu, needs sudo, so the
-# agent shows it first). The package is `jq` on both.
 install:
   methods:
     - id: homebrew
@@ -30,8 +28,7 @@ verify:
   - command: "jq --version"
     expect_exit: 0
 
-# 4. VERSION — `jq --version` prints "jq-1.7.1"; the release tag is also
-# "jq-1.7.1". erbina extracts the "1.7.1" token from each and compares.
+# Both the version output and the release tag are `jq-1.7.1`.
 version:
   current: "jq --version"
   latest: { github: jqlang/jq }

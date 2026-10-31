@@ -1,6 +1,4 @@
 # erbina recipe — git-power, a profile (meta-recipe).
-# Installs nothing itself; `requires` a curated set of git power-tools, which
-# bootstrap resolves in order.
 id: git-power
 kind: profile
 title: "git-power — a curated set of git power-tools"

@@ -1,6 +1,4 @@
 # erbina recipe — the official MCP "memory" server (kind: mcp-server).
-# A Node/npx server (like sequentialthinking): uvx isn't involved; the work is
-# the scope-aware wiring. ${scope} is substituted from `bootstrap`.
 id: memory
 kind: mcp-server
 title: "memory — official MCP server for a persistent knowledge graph"
