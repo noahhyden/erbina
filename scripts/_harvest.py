@@ -29,9 +29,7 @@ def _id_token(rid: str) -> re.Pattern[str]:
 
 def apply_keys(source_text: str, proposals: list[dict],
                keys: tuple[str, ...]) -> tuple[str, list[str], list[str]]:
-    """Insert `, "<key>": "<value>"` for each of `keys` (skipping keys the proposal
-    lacks) directly after each row's id. Returns (new_text, applied ids, missing
-    ids). Idempotent: a row already carrying keys[0] is left untouched."""
+    """Insert `, "<key>": "<value>"` after each row's id; idempotent, a row already carrying keys[0] is skipped."""
     text = source_text
     applied: list[str] = []
     missing: list[str] = []
@@ -62,8 +60,7 @@ def load_tools(recipe_data_path: str | Path) -> list[dict]:
 
 def resolve_rows(rows: list[dict], resolve: Callable[[dict], dict | None],
                  min_confidence: str = "high", ids: set[str] | None = None) -> list[dict]:
-    """Resolve each row (optionally restricted to `ids`), keep proposals at or above
-    `min_confidence`, sorted by id."""
+    """Resolve rows (restricted to `ids`), keep proposals at or above `min_confidence`, sorted by id."""
     threshold = CONF_RANK[min_confidence]
     out = []
     for tool in rows:
