@@ -70,6 +70,11 @@ def python_violations(text: str) -> list[tuple[int, str]]:
         if not body:
             continue
         first = body[0]
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and any(
+            (isinstance(d, ast.Attribute) and d.attr == "tool") or (isinstance(d, ast.Name) and d.id == "tool")
+            for d in node.decorator_list
+        ):
+            continue
         if not (
             isinstance(first, ast.Expr)
             and isinstance(first.value, ast.Constant)

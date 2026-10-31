@@ -727,7 +727,13 @@ def _recipe_summary(rid: str, r: dict[str, Any]) -> dict[str, Any]:
 
 @mcp.tool
 def list_recipes() -> list[dict[str, Any]]:
-    """List the curated recipes erbina can bootstrap (id, kind, title, description, `category`, `tags`); to find a tool by keyword or category use `search_recipes`."""
+    """List the curated recipes erbina can bootstrap.
+
+    Each entry carries id, kind, title, description, plus a `category` (one of the
+    fixed taxonomy buckets) and `tags` (search terms) so you can tell at a glance
+    what each recipe is for. To find a tool by keyword/category instead of scanning
+    the whole list, use `search_recipes`.
+    """
     out = []
     for rid in _recipe_ids():
         try:
@@ -769,7 +775,16 @@ def search_recipes(
     kind: str | None = None,
     limit: int = 50,
 ) -> dict[str, Any]:
-    """Find recipes by case-insensitive `query` (id/title/description/tags, ranked by relevance) and/or `category` (see CATEGORIES) / `kind` (cli-tool|mcp-server|profile) filters; `limit` caps the page, `count` is the total matches."""
+    """Find recipes by keyword and/or filter, so you don't have to scan `list_recipes`.
+
+    `query` is matched (case-insensitively) against each recipe's id, title,
+    description and tags, and results are ranked by relevance (id/title hits beat
+    description hits beat tag hits). `category` restricts to one taxonomy bucket
+    (e.g. "kubernetes", "search", "http" — see `CATEGORIES`); `kind` restricts to
+    cli-tool|mcp-server|profile. With no query and no filters this returns every
+    recipe (like `list_recipes`) in id order. `limit` caps the returned page;
+    `count` is the total number of matches before truncation.
+    """
     if category is not None and category not in CATEGORIES:
         return {"error": f"category must be one of {list(CATEGORIES)}"}
     if kind is not None and kind not in VALID_KINDS:
@@ -808,7 +823,13 @@ def search_recipes(
 
 @mcp.tool
 def list_categories() -> dict[str, Any]:
-    """A domain map of the registry: every category with its recipe count and a few example ids (sorted by count desc), to see what erbina covers before drilling in with `search_recipes(category=...)`."""
+    """A domain map of the registry: every category that has recipes, with how
+    many and a few example ids. Call this to see what erbina COVERS at a glance
+    (e.g. "kubernetes: 26, languages: 40, git: 29"), then drill into one with
+    `search_recipes(category=...)`. Categories partition the registry — each
+    recipe has exactly one — so the counts sum to the total recipe count. Sorted
+    by count (descending), then category name.
+    """
     buckets: dict[str, list[str]] = {}
     for rid in _recipe_ids():
         try:
@@ -828,7 +849,11 @@ def list_categories() -> dict[str, Any]:
 
 @mcp.tool
 def inspect_recipe(recipe_id: str, scope: str = "user", project_dir: str | None = None) -> dict[str, Any]:
-    """Show EXACTLY what bootstrapping a recipe would run, without executing anything; call this and show the user before `bootstrap`; `scope` is local|project|user (only meaningful for kind: mcp-server)."""
+    """
+    Show EXACTLY what bootstrapping a recipe would run, without executing anything.
+    Call this and show the user before running `bootstrap`. `scope` is one of
+    local|project|user (only meaningful for kind: mcp-server recipes).
+    """
     if scope not in VALID_SCOPES:
         return {"error": f"scope must be one of {VALID_SCOPES}"}
     recipe = _load_recipe(recipe_id)
@@ -850,7 +875,21 @@ def bootstrap(
     project_dir: str | None = None,
     force_configure: bool = False,
 ) -> dict[str, Any]:
-    """Install + configure + verify a recipe idempotently: `requires` prerequisites first (depth-first, a failed one aborts), then detect (skip install if present) -> install (first method whose `when:` guard passes) -> configure (skipped if present unless force_configure) -> verify (must exit 0); dry_run=true returns the full plan without executing, `scope` (local|project|user) targets mcp-server wiring, `project_dir` is the cwd for configure steps."""
+    """
+    Install + configure + verify a recipe, idempotently.
+
+    If the recipe declares `requires: [<id>, …]`, each prerequisite is bootstrapped
+    first (idempotently, depth-first; a shared prereq runs once; a cyclic one is
+    skipped) and a failed prerequisite aborts before this recipe installs. Then
+    phases: detect (skip install if already present) -> install (first method whose
+    `when:` guard passes) -> configure (tool-specific wiring; skipped if already
+    present unless force_configure) -> verify (commands that must exit 0).
+
+    Set dry_run=true to get the full plan (including `requires`) without executing.
+    `scope` (local|project|user) targets where an mcp-server recipe is wired.
+    `project_dir` is the working dir for configure steps (e.g. where
+    `ataegina init` runs).
+    """
     return _bootstrap_recipe(recipe_id, scope, dry_run, project_dir, force_configure, set(), ())
 
 
@@ -996,7 +1035,15 @@ def _bootstrap_recipe(
 
 @mcp.tool
 def check_updates(recipe_id: str | None = None, project_dir: str | None = None) -> dict[str, Any]:
-    """Report whether installed tools have newer versions available, read-only: for recipes with a `version:` block it confirms the tool is installed (detect) then compares the `current`/`latest` commands, for one `recipe_id` or all; to apply an update re-run `update`."""
+    """
+    Report whether installed tools have newer versions available — read-only.
+
+    For each recipe that declares a `version:` block (with `current` + `latest`
+    commands), erbina confirms the tool is installed (via `detect`), then runs the
+    two version commands and compares them. Pass a `recipe_id` to check one tool,
+    or omit it to check every recipe that supports update checks. Nothing is
+    installed or changed; to apply an update, re-run `bootstrap`.
+    """
     ids = [recipe_id] if recipe_id else _recipe_ids()
     checked: list[dict[str, Any]] = []
     for rid in ids:
@@ -1099,7 +1146,15 @@ def update(
     project_dir: str | None = None,
     force: bool = False,
 ) -> dict[str, Any]:
-    """Update an already-installed tool (run `bootstrap` first otherwise): run the first `update:` method whose `when:` guard passes then re-run `verify`, flagging the tool as possibly broken if verify fails; dry_run=true shows the command without executing, a pinned tool is refused unless force=true."""
+    """
+    Update an already-installed tool, then re-run its `verify` as a safety net.
+
+    Runs the recipe's `update:` methods — the first whose `when:` guard
+    passes — then re-runs `verify`. If verify fails, the update is reported failed
+    and flagged (the tool may be broken). Set dry_run=true to see the exact
+    command without executing. Only updates a tool that is already installed; run
+    `bootstrap` first otherwise. A pinned tool is refused unless force=true.
+    """
     if scope not in VALID_SCOPES:
         return {"error": f"scope must be one of {VALID_SCOPES}"}
     recipe = _load_recipe(recipe_id)
@@ -1203,7 +1258,16 @@ def uninstall(
     dry_run: bool = False,
     project_dir: str | None = None,
 ) -> dict[str, Any]:
-    """Reverse a cli-tool install via the recipe's `uninstall:` methods, confirm it is gone (re-run detect) and forget it in state; Destructive — show the user the command and confirm first, dry_run=true shows it without running, only recipes with an `uninstall:` block qualify, and mcp-server recipes use `remove_mcp` instead."""
+    """
+    Reverse a cli-tool install: run the recipe's `uninstall:` methods, confirm the
+    tool is actually gone (re-run detect), and forget it in the state manifest.
+
+    Destructive — like bootstrap, show the user the command and confirm first; set
+    dry_run=true to see the exact command without running it. Only recipes that
+    declare an `uninstall:` block can be removed (erbina never guesses how to delete
+    a tool). For mcp-server recipes use `remove_mcp` instead. A tool that is already
+    absent is reported so (and any stale state record is cleaned up).
+    """
     if scope not in VALID_SCOPES:
         return {"error": f"scope must be one of {VALID_SCOPES}"}
     recipe = _load_recipe(recipe_id)
@@ -1269,7 +1333,14 @@ def uninstall(
 
 @mcp.tool
 def pin(recipe_id: str, pinned: bool = True) -> dict[str, Any]:
-    """Pin (or unpin with pinned=false) a tool so `check_updates` excludes it from `updates_available` and `update` refuses it unless force=true; recorded in state, installs and changes nothing."""
+    """
+    Pin (or unpin) a tool so automatic updates skip it.
+
+    A pinned tool is flagged by `check_updates` and excluded from its
+    `updates_available` list, and `update` refuses it unless called with
+    force=true. Call `pin(recipe_id, pinned=false)` to unpin. Pinning is recorded
+    in the state manifest and does not install or change the tool.
+    """
     if recipe_id not in _recipe_ids():
         return {"error": f"no recipe '{recipe_id}'. Available: {', '.join(_recipe_ids()) or '(none)'}"}
     state = _read_state()
@@ -1291,7 +1362,12 @@ def pin(recipe_id: str, pinned: bool = True) -> dict[str, Any]:
 
 @mcp.tool
 def audit_scopes(project_dir: str | None = None) -> dict[str, Any]:
-    """Show where MCP servers are configured across Claude Code's scopes (user in ~/.claude.json, local per-project in ~/.claude.json, project in .mcp.json under project_dir or CWD), read-only."""
+    """
+    Show where MCP servers are configured across Claude Code's scopes — one place
+    that knows what's installed where. Reads user scope (~/.claude.json top-level),
+    local scope (~/.claude.json per-project), and project scope (.mcp.json in
+    project_dir or CWD). Read-only.
+    """
     cj = _claude_json()
     proj_root = _resolve_project_root(project_dir)
     root_str = str(proj_root) if proj_root is not None else f"{project_dir!r} (could not be resolved)"
@@ -1326,7 +1402,12 @@ def audit_scopes(project_dir: str | None = None) -> dict[str, Any]:
 
 @mcp.tool
 def find_dead_mcps(project_dir: str | None = None) -> dict[str, Any]:
-    """Health-check every configured MCP server via `claude mcp list` and report those that fail to connect, annotated with the scope(s) they live in so removal knows where to delete; read-only."""
+    """
+    Health-check every configured MCP server (via `claude mcp list`) and report
+    which ones fail to connect — stale/dead servers that are candidates for
+    removal. Each result is annotated with the scope(s) it lives in, so removal
+    knows where to delete it. Read-only.
+    """
     servers = _parse_mcp_list(project_dir)
     smap = _scope_map(project_dir)
     for s in servers:
@@ -1347,7 +1428,14 @@ def find_dead_mcps(project_dir: str | None = None) -> dict[str, Any]:
 
 @mcp.tool
 def doctor(project_dir: str | None = None) -> dict[str, Any]:
-    """Health-check the CLI tools erbina installed (from its state manifest) by re-running each recorded tool's `detect` then `verify`, classifying healthy/missing/broken; read-only (runs only the recipe's own detect/verify), the CLI-tool counterpart to `find_dead_mcps`."""
+    """
+    Health-check the CLI tools erbina has installed (from its state manifest):
+    re-run each recorded tool's `detect` (is it still present?) and, when present,
+    its `verify` (does it still run?), classifying each as healthy / missing /
+    broken. Read-only — it runs only the recipe's own non-destructive
+    detect/verify commands. This is the CLI-tool counterpart to `find_dead_mcps`
+    (which health-checks MCP servers); mcp-server records are deferred to it.
+    """
     recorded = _read_state()["tools"]
     healthy: list[str] = []
     problems: list[dict[str, Any]] = []
@@ -1392,7 +1480,14 @@ def doctor(project_dir: str | None = None) -> dict[str, Any]:
 
 @mcp.tool
 def remove_mcp(name: str, scope: str | None = None, dry_run: bool = False) -> dict[str, Any]:
-    """Remove a configured MCP server by name (e.g. one surfaced by `find_dead_mcps`), resolving its scope if `scope` is omitted; Destructive — run `find_dead_mcps` and confirm with the user first, dry_run=true shows the `claude mcp remove` command without running it."""
+    """
+    Remove a configured MCP server by name (e.g. a dead one surfaced by
+    `find_dead_mcps`). If `scope` is omitted, erbina resolves which scope holds
+    it; pass it explicitly if the same name exists in more than one scope.
+
+    Destructive — run `find_dead_mcps` and confirm with the user first. Set
+    dry_run=true to see the exact `claude mcp remove` command without running it.
+    """
     if scope is None:
         scopes = _scope_map().get(name, [])
         if not scopes:

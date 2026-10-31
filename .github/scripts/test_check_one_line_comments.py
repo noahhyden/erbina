@@ -15,6 +15,13 @@ def test_multi_line_docstring_is_flagged():
     assert [why for _n, why in hits] == ["docstring spans 2 lines (f)"]
 
 
+def test_mcp_tool_docstring_is_exempt_but_plain_is_not():
+    body = '    """one\n    two"""\n    return 1\n'
+    assert guard.python_violations("@mcp.tool\ndef f():\n" + body) == []
+    assert guard.python_violations("@tool\ndef f():\n" + body) == []
+    assert len(guard.python_violations("def f():\n" + body)) == 1
+
+
 def test_one_line_docstring_is_clean():
     assert guard.python_violations('def f():\n    """one"""\n    return 1\n') == []
 
