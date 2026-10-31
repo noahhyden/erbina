@@ -1,11 +1,4 @@
-"""Importing `server` must succeed and must NOT start the MCP server.
-
-`mcp.run()` is guarded behind `if __name__ == "__main__":`, so importing the
-module as `server` should be a pure, side-effect-free definition of tools and
-helpers. If someone ever moves `mcp.run()` out from under that guard, importing
-the module would block forever (stdio transport) and this test would hang —
-which is exactly the regression we want to catch.
-"""
+"""Importing `server` must not start the MCP server: if `mcp.run()` leaves its `__main__` guard, stdio blocks forever and this hangs."""
 from __future__ import annotations
 
 import server

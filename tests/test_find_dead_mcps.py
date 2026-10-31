@@ -1,11 +1,4 @@
-"""Behavioral coverage for find_dead_mcps — the health-check-and-triage tool.
-
-Driven by monkeypatching the two sources it composes: `_parse_mcp_list` (live
-`claude mcp list` status) and `_scope_map` (which scope each name lives in). No
-subprocess, no real config. The contract: split servers into alive/dead, annotate
-each dead one with the scope(s) that removal will need, and hint the confirm-
-then-remove workflow.
-"""
+"""find_dead_mcps splits servers into alive/dead and annotates dead ones with their scopes, with `_parse_mcp_list` and `_scope_map` monkeypatched."""
 from __future__ import annotations
 
 import server
@@ -43,8 +36,7 @@ def test_dead_entries_are_annotated_with_scopes(monkeypatch):
 
 
 def test_dead_server_absent_from_scope_map_gets_empty_scopes(monkeypatch):
-    # If a listed server isn't found in any scope, annotate [] rather than crash;
-    # remove_mcp will then report it can't be located.
+    # A listed server found in no scope gets [] rather than a crash; remove_mcp then reports it cannot be located.
     _patch(monkeypatch, [{"name": "orphan", "connected": False, "command": "x"}], {})
     out = call_tool("find_dead_mcps", {})
     assert out["dead"][0]["scopes"] == []

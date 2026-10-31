@@ -1,11 +1,4 @@
-"""Behavioral tests for the `uninstall` tool — the teardown counterpart to
-bootstrap for cli-tools. It runs the recipe's `uninstall:` methods, confirms the
-tool is actually gone (re-runs detect), and forgets it in the state manifest.
-
-State is isolated per-test (conftest). Recipes are prototype recipes; the
-state-changing tests use a marker file so detect flips present -> absent exactly
-as a real uninstall would.
-"""
+"""`uninstall` runs the recipe's `uninstall:` methods, re-runs detect to confirm the tool is gone, and forgets it in state; a marker file flips detect present -> absent (AGENTS.d/141)."""
 from __future__ import annotations
 
 import pytest
@@ -30,9 +23,7 @@ def _marker_recipe(rid, marker, uninstall_run):
     )
 
 
-# --------------------------------------------------------------------------- #
 # validation
-# --------------------------------------------------------------------------- #
 def test_valid_uninstall_block_validates_clean():
     r = cli_recipe("t", uninstall={"methods": [{"id": "u", "run": "brew uninstall t"}]})
     assert server.validate_recipe(r, stem="t") == []
@@ -51,9 +42,7 @@ def test_bad_uninstall_block_is_reported(block, needle):
     assert any(needle in e for e in errs), (block, errs)
 
 
-# --------------------------------------------------------------------------- #
 # consent surface / guards
-# --------------------------------------------------------------------------- #
 def test_dry_run_returns_plan_and_runs_nothing():
     r = cli_recipe("t", uninstall={"methods": [{"id": "u", "run": TRUE}]})
     out = _uninstall(r, dry_run=True)
@@ -82,9 +71,7 @@ def test_mcp_server_is_pointed_at_remove_mcp():
     assert "remove_mcp" in out["error"]
 
 
-# --------------------------------------------------------------------------- #
 # not installed
-# --------------------------------------------------------------------------- #
 def test_forget_tool_is_a_noop_for_an_unrecorded_tool():
     assert server._forget_tool("never-recorded") is False
 
@@ -110,9 +97,7 @@ def test_not_installed_reports_nothing_to_remove(tmp_path):
     assert "t" not in server._read_state()["tools"]
 
 
-# --------------------------------------------------------------------------- #
 # successful teardown
-# --------------------------------------------------------------------------- #
 def test_successful_uninstall_removes_tool_and_forgets_it(tmp_path):
     marker = tmp_path / "m"
     marker.write_text("x")  # tool present

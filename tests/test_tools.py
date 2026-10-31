@@ -1,9 +1,4 @@
-"""Tool-surface tests, driven through the in-memory FastMCP client.
-
-These exercise erbina exactly as an agent would (Client(server.mcp)) and assert
-only on read-only / dry-run paths — nothing here installs, wires, or removes
-anything.
-"""
+"""Tool surface driven through the in-memory FastMCP client as an agent would, on read-only/dry-run paths only: nothing installs, wires or removes."""
 from __future__ import annotations
 
 from helpers import call_tool, list_tool_names
@@ -48,8 +43,7 @@ def test_inspect_recipe_returns_plan_without_executing():
     # The consent surface must name the detect + verify commands verbatim.
     assert plan["detect"] == "ataegina --version"
     assert "ataegina --version" in plan["verify"]
-    # inspect_recipe never executes anything — it says so, and returns no
-    # execution "phases" (that key only appears on a real bootstrap run).
+    # inspect_recipe never executes anything: it says so and returns no execution "phases" (only a real bootstrap run has that key).
     assert "Nothing was executed" in out["note"]
     assert "phases" not in out
 
@@ -81,12 +75,9 @@ def test_bootstrap_dry_run_substitutes_scope_for_mcp_server_recipe():
     assert "${scope}" not in joined
 
 
-# --------------------------------------------------------------------------- #
 # path traversal & bad input rejection
-# --------------------------------------------------------------------------- #
 def _tool_error(tool: str, recipe_id: str):
-    """Call a load-path tool and return the surfaced error, whether it comes
-    back as a FastMCP ToolError (raised) or an {'error': ...} payload."""
+    """Call a load-path tool and return the surfaced error, whether a raised FastMCP ToolError or an {'error': ...} payload."""
     try:
         out = call_tool(tool, {"recipe_id": recipe_id})
     except Exception as e:  # noqa: BLE001 - we want the message, whatever the type
@@ -97,8 +88,7 @@ def _tool_error(tool: str, recipe_id: str):
 
 
 def test_inspect_recipe_rejects_dotdot_server_traversal():
-    # ../server would reach server.py if traversal were possible; _load_recipe
-    # collapses it to `server.yaml`, which does not exist -> "no recipe".
+    # ../server would reach server.py if traversal worked; _load_recipe collapses it to `server.yaml`, which does not exist -> "no recipe".
     msg = _tool_error("inspect_recipe", "../server")
     assert "no recipe" in msg.lower()
     # It must not have LOADED server.py — no server source leaks into the reply.
@@ -109,8 +99,7 @@ def test_inspect_recipe_rejects_dotdot_server_traversal():
 def test_bootstrap_rejects_etc_passwd_traversal():
     msg = _tool_error("bootstrap", "../../etc/passwd")
     assert "no recipe" in msg.lower()
-    # The rejection may echo back the (safe) recipe_id, but it must not have
-    # READ /etc/passwd — no file contents leak (e.g. the classic root: line).
+    # The rejection may echo the (safe) recipe_id but must not have READ /etc/passwd: no file contents (the classic root: line) leak.
     assert "root:" not in msg
     assert "/bin/" not in msg
     # available-recipes hint should list only real registry entries

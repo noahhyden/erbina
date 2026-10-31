@@ -1,17 +1,4 @@
-"""Tests for scripts/winget_candidates.py — the winget-id harvester.
-
-The harvester closes erbina's Windows-install gap: the generator already renders
-a `winget` install/update method whenever a recipe_data.py row carries a `winget`
-key, but almost no rows do. This tool resolves winget community-source
-PackageIdentifiers for rows that lack one, tiered by confidence, and stages them
-for review.
-
-These tests build a REAL in-memory SQLite index with the winget source schema
-(packages / commands2 / commands2_map) so both the SQL and the pure resolver are
-exercised without a network round-trip. The resolver's confidence model is the
-security-relevant surface — a wrong id silently installs the wrong software on a
-user's machine — so the mutation-guard tests below pin each tier's boundary.
-"""
+"""The winget-id harvester (scripts/winget_candidates.py), tested on a REAL in-memory SQLite index with the winget schema; each tier boundary is pinned because a wrong id installs the wrong software."""
 from __future__ import annotations
 
 import io
@@ -25,9 +12,7 @@ import pytest
 import winget_candidates as wc
 
 
-# --------------------------------------------------------------------------- #
 # fixtures: a real SQLite index matching the winget source2 schema
-# --------------------------------------------------------------------------- #
 def build_conn(packages: list[tuple], commands: dict[str, list[str]]) -> sqlite3.Connection:
     """packages: list of (id, name, moniker); commands: {command: [package_id, ...]}."""
     conn = sqlite3.connect(":memory:")
@@ -50,25 +35,17 @@ def build_conn(packages: list[tuple], commands: dict[str, list[str]]) -> sqlite3
     return conn
 
 
-# Each package is crafted to isolate exactly one resolver path:
-#   sharkdp.pastel      gh-id-exact target (beats the moniker false-positive)
-#   Japplis.Pastel      moniker `pastel` false-positive (a different, wrong tool)
-#   Zellij.Zellij       command-unique, no publisher corroboration -> medium
-#   acme.watcli         command-unique WHERE publisher==owner but repo!=pkg -> high
-#   BurntSushi.ripgrep.MSVC   moniker `rg`, publisher==owner -> high
-#   Task.Task           moniker `task`, no gh -> low
-#   orf.gpingx/Some.Othergp   ambiguous command `gp`, publisher disambiguates
-#   orf.gping/Some.Othergping ambiguous command `gping`, no gh -> none
+# Each package isolates one resolver path; the trailing note on each row names it.
 PACKAGES = [
-    ("sharkdp.pastel", "pastel", None),
-    ("Japplis.Pastel", "Japplis Pastel", "pastel"),
-    ("Zellij.Zellij", "Zellij", None),
-    ("acme.watcli", "wat", None),
-    ("BurntSushi.ripgrep.MSVC", "RipGrep MSVC", "rg"),
-    ("Task.Task", "Task", "task"),
-    ("orf.gpingx", "gpingx", None),
+    ("sharkdp.pastel", "pastel", None),  # gh-id-exact target, beats the moniker false-positive
+    ("Japplis.Pastel", "Japplis Pastel", "pastel"),  # moniker `pastel` false-positive (a different, wrong tool)
+    ("Zellij.Zellij", "Zellij", None),  # command-unique, no publisher corroboration -> medium
+    ("acme.watcli", "wat", None),  # command-unique, publisher==owner but repo!=pkg -> high
+    ("BurntSushi.ripgrep.MSVC", "RipGrep MSVC", "rg"),  # moniker `rg`, publisher==owner -> high
+    ("Task.Task", "Task", "task"),  # moniker `task`, no gh -> low
+    ("orf.gpingx", "gpingx", None),  # ambiguous command `gp`, publisher disambiguates
     ("Some.Othergp", "other gp", None),
-    ("orf.gping", "gping", None),
+    ("orf.gping", "gping", None),  # ambiguous command `gping`, no gh -> none
     ("Some.Othergping", "other gping", None),
 ]
 COMMANDS = {
@@ -87,9 +64,7 @@ def index():
     idx.close()
 
 
-# --------------------------------------------------------------------------- #
 # norm
-# --------------------------------------------------------------------------- #
 @pytest.mark.parametrize("raw,expected", [
     ("RipGrep", "ripgrep"),
     ("dua-cli", "duacli"),
@@ -102,9 +77,7 @@ def test_norm(raw, expected):
     assert wc.norm(raw) == expected
 
 
-# --------------------------------------------------------------------------- #
 # rows_missing_winget — truthy check, not just key presence
-# --------------------------------------------------------------------------- #
 def test_rows_missing_winget_treats_empty_string_as_missing():
     tools = [
         {"id": "a", "winget": "Pub.A"},   # present -> excluded
@@ -115,9 +88,7 @@ def test_rows_missing_winget_treats_empty_string_as_missing():
     assert [t["id"] for t in wc.rows_missing_winget(tools)] == ["b", "c", "d"]
 
 
-# --------------------------------------------------------------------------- #
 # index queries
-# --------------------------------------------------------------------------- #
 def test_by_command_case_insensitive(index):
     assert index.by_command("PASTEL")[0][0] == "sharkdp.pastel"
 
@@ -136,20 +107,16 @@ def test_queries_return_empty_for_unknown(index):
     assert index.by_id("nope") == []
 
 
-# --------------------------------------------------------------------------- #
 # resolve — the confidence tiers
-# --------------------------------------------------------------------------- #
 def test_gh_id_exact_is_high_and_beats_a_moniker_false_positive(index):
-    # `pastel`'s moniker hit is the WRONG tool (Japplis.Pastel, a Windows color
-    # picker). The gh-derived exact id must win and produce sharkdp.pastel HIGH.
+    # `pastel`'s moniker hit is the WRONG tool (Japplis.Pastel, a Windows color picker); the gh-derived exact id must win as sharkdp.pastel HIGH.
     p = wc.resolve({"id": "pastel", "bin": "pastel", "gh": "sharkdp/pastel"}, index)
     assert p == {"id": "pastel", "winget": "sharkdp.pastel",
                  "package_name": "pastel", "confidence": "high", "matched_by": "gh-id-exact"}
 
 
 def test_command_unique_plus_publisher_is_high(index):
-    # gh acme/watool: no exact id `acme.watool`, but command `wat` maps uniquely to
-    # acme.watcli whose publisher matches the gh owner -> HIGH cmd+publisher.
+    # gh acme/watool has no exact id, but command `wat` maps uniquely to acme.watcli whose publisher matches the gh owner -> HIGH cmd+publisher.
     p = wc.resolve({"id": "wat", "bin": "wat", "gh": "acme/watool"}, index)
     assert p["winget"] == "acme.watcli"
     assert p["confidence"] == "high"
@@ -157,8 +124,7 @@ def test_command_unique_plus_publisher_is_high(index):
 
 
 def test_ambiguous_command_disambiguated_by_publisher_is_high(index):
-    # command `gp` -> {orf.gpingx, Some.Othergp}; gh owner orf picks orf.gpingx.
-    # (gh repo `gpingtool` has no exact id, so gh-id-exact deliberately misses.)
+    # Command `gp` -> {orf.gpingx, Some.Othergp}; gh owner orf picks orf.gpingx (repo `gpingtool` has no exact id, so gh-id-exact deliberately misses).
     p = wc.resolve({"id": "gp", "bin": "gp", "gh": "orf/gpingtool"}, index)
     assert p["winget"] == "orf.gpingx"
     assert p["confidence"] == "high"
@@ -199,21 +165,17 @@ def test_no_match_is_none(index):
 
 # --- mutation guards on the confidence boundaries ------------------------- #
 def test_publisher_match_is_normalized_equality_not_substring(index):
-    # gh owner "or" must NOT be treated as matching publisher "orf" (substring),
-    # so the ambiguous command `gp` stays unresolved -> None.
+    # gh owner "or" must NOT match publisher "orf" by substring, so the ambiguous command `gp` stays unresolved -> None.
     assert wc.resolve({"id": "gp", "bin": "gp", "gh": "or/gpingtool"}, index) is None
 
 
 def test_gh_id_exact_requires_full_owner_and_repo(index):
-    # A gh with no slash must not crash and must not fabricate an id — it should
-    # fall through to the command tier (medium), proving gh parsing was safe.
+    # A gh with no slash must not crash or fabricate an id; it falls through to the command tier (medium).
     p = wc.resolve({"id": "zellij", "bin": "zellij", "gh": "noslash"}, index)
     assert p["confidence"] == "medium"
 
 
-# --------------------------------------------------------------------------- #
 # resolve_all — threshold filtering and ordering
-# --------------------------------------------------------------------------- #
 def test_resolve_all_respects_min_confidence(index):
     tools = [
         {"id": "pastel", "bin": "pastel", "gh": "sharkdp/pastel"},  # high
@@ -246,9 +208,7 @@ def test_resolve_all_id_filter(index):
     assert [p["id"] for p in got] == ["task"]
 
 
-# --------------------------------------------------------------------------- #
 # apply_proposals — staging into recipe_data.py source text (pure)
-# --------------------------------------------------------------------------- #
 SRC = (
     'TOOLS = [\n'
     '    {"id": "fd", "bin": "fd", "brew": "fd", "gh": "sharkdp/fd"},\n'
@@ -294,9 +254,7 @@ def test_apply_multiple_and_result_is_valid_python():
     assert tools == {"fd": "sharkdp.fd", "fdupes": "Adrian.fdupes", "rg": "BurntSushi.ripgrep.MSVC"}
 
 
-# --------------------------------------------------------------------------- #
 # WingetIndex.from_msix — extract Public/index.db out of a msix (zip)
-# --------------------------------------------------------------------------- #
 def _make_msix(tmp_path: Path) -> Path:
     conn = build_conn([("Zellij.Zellij", "Zellij", None)], {"zellij": ["Zellij.Zellij"]})
     dbfile = tmp_path / "src.db"
@@ -320,9 +278,7 @@ def test_from_msix_extracts_and_queries(tmp_path):
         idx.close()
 
 
-# --------------------------------------------------------------------------- #
 # main — end-to-end against a fixture msix + fixture recipe_data.py
-# --------------------------------------------------------------------------- #
 def _fixture_recipe_data(tmp_path: Path) -> Path:
     p = tmp_path / "recipe_data.py"
     p.write_text(

@@ -1,13 +1,4 @@
-"""Tests for recipe validation.
-
-`validate_recipe` (and load-time validation) shipped in #4. The skipif guard is
-kept as a harmless safety net (the module skips rather than errors if the symbol
-is ever removed), but on the current tree these tests always run.
-
-We NEVER write into recipes/ — malformed recipes are built as in-memory dicts.
-The one test that must exercise the _load_recipe path writes to a tmp dir and
-monkeypatches RECIPES_DIR, restoring it after.
-"""
+"""Recipe validation: `validate_recipe` on in-memory dicts (never writing recipes/), plus one _load_recipe test against a tmp RECIPES_DIR; the skipif is a harmless safety net."""
 from __future__ import annotations
 
 import pytest
@@ -22,14 +13,7 @@ pytestmark = pytest.mark.skipif(
 
 
 def _errors(recipe: dict, stem: str | None = None) -> list[str]:
-    """Normalise validate_recipe's return into a list of error strings.
-
-    validate_recipe takes the parsed recipe plus the filename `stem` it must
-    match; we default `stem` to the recipe's own id so a well-formed recipe
-    validates clean. The return is normalised across the two most likely shapes
-    (a list of strings, or an object exposing an .errors list) so this test
-    stays robust to a minor signature choice.
-    """
+    """Normalise validate_recipe's return (list of strings or object with .errors) into error strings; `stem` defaults to the recipe id so a good recipe validates clean."""
     result = server.validate_recipe(recipe, stem=stem if stem is not None else recipe.get("id", ""))
     if isinstance(result, list):
         return [str(e) for e in result]
@@ -72,11 +56,7 @@ def test_malformed_recipe_reports_all_problems():
 
 
 def test_load_path_refuses_malformed_recipe(tmp_path, monkeypatch):
-    """inspect_recipe/bootstrap must refuse a recipe that fails validation.
-
-    We write a malformed recipe into a TEMP recipes dir and repoint the server
-    at it, so the real recipes/ registry is never touched.
-    """
+    """inspect_recipe/bootstrap must refuse a recipe failing validation, using a TEMP recipes dir so the real registry is untouched."""
     bad_yaml = (
         "id: temp_bad\n"
         "kind: not-a-kind\n"
@@ -90,8 +70,7 @@ def test_load_path_refuses_malformed_recipe(tmp_path, monkeypatch):
     (tmp_path / "temp_bad.yaml").write_text(bad_yaml)
     monkeypatch.setattr(server, "RECIPES_DIR", tmp_path)
 
-    # However validation is wired into the load path, a malformed recipe must
-    # not yield a clean plan. Accept either a raised error or an {'error': ...}.
+    # However validation is wired into the load path, a malformed recipe must not yield a clean plan: a raised error or {'error': ...} both count.
     try:
         out = call_tool("inspect_recipe", {"recipe_id": "temp_bad"})
     except Exception as e:  # noqa: BLE001

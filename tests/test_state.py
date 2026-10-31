@@ -1,9 +1,4 @@
-"""Tests for the state manifest (~/.erbina/state.json) and the recording that
-bootstrap / update do into it.
-
-The autouse `_isolate_erbina_state` fixture (conftest.py) points server.STATE_DIR
-at a fresh temp dir per test, so nothing here touches the real home directory.
-"""
+"""State manifest (~/.erbina/state.json) and what bootstrap/update record into it; the autouse conftest fixture isolates STATE_DIR per test."""
 from __future__ import annotations
 
 import json
@@ -13,9 +8,7 @@ from helpers import call_tool
 from prototype import FALSE, TRUE, cli_recipe, registry
 
 
-# --------------------------------------------------------------------------- #
 # read/write helpers
-# --------------------------------------------------------------------------- #
 def test_read_missing_state_returns_default():
     assert server._read_state() == {"version": 1, "tools": {}}
 
@@ -43,9 +36,7 @@ def test_wrong_shape_state_degrades_to_default():
     assert server._read_state() == {"version": 1, "tools": {}}
 
 
-# --------------------------------------------------------------------------- #
 # _record_tool
-# --------------------------------------------------------------------------- #
 def test_record_sets_timestamps_and_fields():
     rec = server._record_tool("t", kind="cli-tool", installed_version="1.0.0")
     assert rec["kind"] == "cli-tool"
@@ -71,9 +62,7 @@ def test_record_keeps_first_installed_at():
     assert second["installed_at"] == first  # installed_at is not overwritten
 
 
-# --------------------------------------------------------------------------- #
 # bootstrap records into state
-# --------------------------------------------------------------------------- #
 def test_successful_bootstrap_records_the_tool():
     recipe = cli_recipe("t", detect={"command": FALSE})  # install runs
     with registry(recipe):
@@ -110,9 +99,7 @@ def test_dry_run_bootstrap_does_not_record():
     assert server._read_state()["tools"] == {}
 
 
-# --------------------------------------------------------------------------- #
 # update records before/after into state
-# --------------------------------------------------------------------------- #
 def test_successful_update_records_before_and_after(tmp_path):
     vfile = tmp_path / "v"
     vfile.write_text("1.0.0")
@@ -133,8 +120,7 @@ def test_successful_update_records_before_and_after(tmp_path):
 
 
 def test_failed_update_with_no_rollback_marks_broken(tmp_path):
-    # Behavior since phase 3c: a verify failure after update (with no rollback
-    # path) marks the tool broken in state rather than recording success.
+    # Since phase 3c a verify failure after update (no rollback path) marks the tool broken in state instead of recording success.
     recipe = cli_recipe(
         "t",
         detect={"command": TRUE},
@@ -149,8 +135,7 @@ def test_failed_update_with_no_rollback_marks_broken(tmp_path):
 
 
 def test_failed_update_command_does_not_mark_broken(tmp_path):
-    # If the update COMMAND itself fails (the upgrade never ran), the tool is
-    # still at its old version — not broken — so nothing is recorded.
+    # If the update COMMAND itself fails the upgrade never ran, so the tool is still at its old version, not broken: record nothing.
     recipe = cli_recipe(
         "t",
         detect={"command": TRUE},

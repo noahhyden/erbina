@@ -1,12 +1,4 @@
-"""Property-style coverage of validate_recipe using the prototype factory.
-
-The base recipes from tests/prototype.py are valid by construction, so the
-'clean' direction is a real assertion (not a tautology). Each corruption then
-introduces exactly ONE defect and asserts it is surfaced — this is the round-trip
-property: valid -> no errors; single-defect -> at least one matching error.
-
-Complements tests/test_validate_recipe.py (which uses hand-built dicts).
-"""
+"""Property-style `validate_recipe` coverage on prototype factory recipes (valid by construction, so clean is a real assertion); each corruption adds ONE defect and must surface an error."""
 from __future__ import annotations
 
 import copy
@@ -18,14 +10,11 @@ from prototype import cli_recipe, mcp_recipe
 
 
 def _errs(recipe, stem=None):
-    # default the stem to the recipe's own id when present; a corruption that
-    # drops 'id' must still be validatable (stem falls back to "").
+    # Default the stem to the recipe id when present; a corruption that drops 'id' must still validate (stem falls back to "").
     return server.validate_recipe(recipe, stem=stem if stem is not None else recipe.get("id", ""))
 
 
-# --------------------------------------------------------------------------- #
 # the clean direction — factory recipes validate with zero errors
-# --------------------------------------------------------------------------- #
 def test_factory_cli_and_mcp_validate_clean():
     assert _errs(cli_recipe("t")) == []
     assert _errs(mcp_recipe("t")) == []
@@ -38,9 +27,7 @@ def test_configure_absent_is_valid_for_cli_tool():
     assert _errs(r) == []
 
 
-# --------------------------------------------------------------------------- #
 # single-defect corruptions — each must produce >=1 error naming the problem
-# --------------------------------------------------------------------------- #
 def _drop(key):
     def f(r):
         r.pop(key, None)
@@ -81,12 +68,7 @@ def test_single_defect_is_reported(label, mutate, needle):
     )
 
 
-# --------------------------------------------------------------------------- #
-# WHITESPACE-only fields must be rejected exactly like empty ones — the `.strip()`
-# in each "non-empty string" check is what makes "   " count as empty. (These pin
-# that: mutation testing showed dropping any of those .strip() calls survived,
-# because only empty-string, not whitespace-only, was covered.)
-# --------------------------------------------------------------------------- #
+# WHITESPACE-only fields must be rejected like empty ones: dropping any `.strip()` in the non-empty checks survived mutation testing without this coverage.
 @pytest.mark.parametrize("mutate,needle", [
     (lambda r: r.__setitem__("install", {"methods": [{"id": "  ", "run": "true"}]}), "id"),
     (lambda r: r.__setitem__("install", {"methods": [{"id": "m", "run": "   "}]}), "run"),
@@ -116,9 +98,7 @@ def test_mcp_server_requires_scope_aware_configure():
     assert any("${scope}" in e for e in errs)
 
 
-# --------------------------------------------------------------------------- #
 # version block (optional; powers check_updates)
-# --------------------------------------------------------------------------- #
 def test_valid_version_block_validates_clean():
     r = cli_recipe("t", version={"current": "t --version", "latest": "echo 1.2.3"})
     assert _errs(r) == []
@@ -138,9 +118,7 @@ def test_bad_version_block_is_reported(version, needle):
     assert needle in " ".join(errs)
 
 
-# --------------------------------------------------------------------------- #
 # update block (optional; powers the update tool)
-# --------------------------------------------------------------------------- #
 def test_valid_update_block_validates_clean():
     r = cli_recipe("t", update={"methods": [{"id": "u", "run": "brew upgrade t"}]})
     assert _errs(r) == []
@@ -166,13 +144,7 @@ def test_corruptions_are_independent():
     assert _errs(copy.deepcopy(base)) == []
 
 
-# --------------------------------------------------------------------------- #
-# never-raise contract: validate_recipe is documented to RETURN a list of error
-# strings for ANY input (it's the shared validator behind _load_recipe AND
-# lint_recipes.py). A hostile type in any field must produce errors, never an
-# exception. This is a fuzz over field VALUES (keys stay strings — non-string
-# KEYS are a separate, pinned bug: see finding #6 below).
-# --------------------------------------------------------------------------- #
+# Never-raise contract: validate_recipe returns error strings for ANY input (shared by _load_recipe and lint_recipes.py), so hostile field VALUES must give errors not exceptions (non-string KEYS: finding #6).
 _HOSTILE_VALUES = [
     None, 0, 1, -1, True, False, 1.5, "", "  ", "x", [], {}, [1, 2], {"a": 1},
     {"nested": {"deep": [None]}}, ["a", "b"], (1, 2), b"bytes", [[[]]], {"": ""},
@@ -213,13 +185,7 @@ def test_validate_never_raises_on_a_hostile_nested_member(hostile_step):
         assert isinstance(out, list)
 
 
-# --------------------------------------------------------------------------- #
-# FINDING #6 (FIXED): a non-string TOP-LEVEL key — valid YAML, e.g. a file
-# starting `2024: hi` → {2024: "hi"} — used to crash validate_recipe at the
-# `", ".join(sorted(unknown))` over the unknown-key set (TypeError). Keys are now
-# coerced through str() before sorting/join, so the key is reported as an unknown
-# top-level key instead of crashing _load_recipe / the linter / the tool surface.
-# --------------------------------------------------------------------------- #
+# Finding #6 (FIXED): a non-string top-level key (YAML `2024: hi`) crashed validate_recipe at `sorted(unknown)` with TypeError; keys now go through str() and report as unknown.
 @pytest.mark.parametrize("bad_recipe", [
     {2024: "hi", "id": "t", "kind": "cli-tool"},
     {1: 2},

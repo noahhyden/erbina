@@ -1,11 +1,4 @@
-"""Coverage of the REAL shipped recipes (ataegina, fetch) through the dry-run
-plan surface — 'extend to real tools'. Everything here is read-only / dry-run:
-no install, no wiring, no subprocess beyond the in-memory client.
-
-These lock in the plan erbina would present as its consent surface, so a change
-to a shipped recipe (or to _plan / _subst) that alters what a user is shown
-can't land silently.
-"""
+"""Dry-run plan coverage of the shipped recipes (ataegina, fetch), so a recipe or `_plan`/`_subst` change cannot alter the consent surface silently."""
 from __future__ import annotations
 
 import pytest
@@ -15,9 +8,7 @@ from helpers import call_tool
 SCOPES = ("local", "project", "user")
 
 
-# --------------------------------------------------------------------------- #
 # ataegina — a cli-tool recipe
-# --------------------------------------------------------------------------- #
 def test_ataegina_plan_shape():
     plan = call_tool("inspect_recipe", {"recipe_id": "ataegina"})["will_run"]
     assert plan["detect"] == "ataegina --version"
@@ -46,9 +37,7 @@ def test_ataegina_cli_recipe_has_no_scope_placeholder():
     assert "${scope}" not in blob
 
 
-# --------------------------------------------------------------------------- #
 # fetch — an mcp-server recipe (scope-aware wiring)
-# --------------------------------------------------------------------------- #
 @pytest.mark.parametrize("scope", SCOPES)
 def test_fetch_configure_substitutes_each_scope(scope):
     out = call_tool("bootstrap", {"recipe_id": "fetch", "scope": scope, "dry_run": True})
@@ -66,8 +55,7 @@ def test_fetch_configure_command_is_the_expected_wiring():
 
 
 def test_fetch_detect_and_verify_need_project_dir():
-    # project-scope wiring lands in <project_dir>/.mcp.json, so detect + verify
-    # must be flagged to run inside project_dir.
+    # Project-scope wiring lands in <project_dir>/.mcp.json, so detect and verify must run inside project_dir.
     out = call_tool("inspect_recipe", {"recipe_id": "fetch"})
     # detect command is surfaced verbatim
     assert out["will_run"]["detect"] == "claude mcp get fetch"
