@@ -1,11 +1,6 @@
 name: CI
 
-# Lint, run the test suite on Linux + macOS, prove the server still imports on
-# the minimum supported Python (3.10, the requires-python floor), and verify the
-# release metadata (recipes lint clean, server.json is valid, version <-> tag
-# agree). Everything here honors erbina's ethos: the server stays a single
-# server.py with PEP 723 inline deps, so there is nothing to build or install --
-# `uv` materializes deps on the fly with `--with`, and no lockfile/venv is added.
+# Lint, test on Linux + macOS, 3.10 floor import check, release metadata; no build, deps via `uv --with`.
 
 on:
   push:
@@ -18,12 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # Lint: ruff over the whole tree, a byte-compile check of the server, and the
-  # project's own recipe linter (when present -- it lands in a separate PR). Ruff
-  # is version-pinned so a new release adding rules can't turn CI red out from
-  # under a green PR.
-  # ---------------------------------------------------------------------------
+  # Lint: ruff (version-pinned so new rules cannot redden a green PR), byte-compile, recipe linter.
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -43,11 +33,7 @@ jobs:
       - name: Self-check the comment guard
         run: uv run --with pytest python -m pytest .github/scripts/test_check_one_line_comments.py -q
 
-  # ---------------------------------------------------------------------------
-  # Test: the pytest suite on Linux and macOS. It drives an in-memory FastMCP
-  # client and only touches read-only / dry_run paths, so no servers, network,
-  # or `claude` CLI are needed. Deps are pulled in per-run via `uv --with`.
-  # ---------------------------------------------------------------------------
+  # Test: pytest on Linux and macOS via an in-memory FastMCP client, read-only / dry_run paths only.
   test:
     strategy:
       fail-fast: false
@@ -61,11 +47,7 @@ jobs:
       - name: Run the test suite
         run: uv run --with pytest --with fastmcp --with pyyaml --with packaging pytest tests/ -v
 
-  # ---------------------------------------------------------------------------
-  # Floor: the server declares requires-python >= 3.10, so prove it actually
-  # imports and its tools register under 3.10 -- the analogue of asserting the
-  # oldest supported runtime, not just whatever the runner ships.
-  # ---------------------------------------------------------------------------
+  # Floor: prove the server imports and registers its tools on the requires-python floor (3.10).
   python-floor:
     runs-on: ubuntu-latest
     steps:
@@ -77,12 +59,7 @@ jobs:
           uv run --python 3.10 --with pytest --with fastmcp --with pyyaml --with packaging
           python -m pytest tests/test_import.py tests/test_tools.py -q
 
-  # ---------------------------------------------------------------------------
-  # Release verification: the recipes must lint clean, server.json (the MCP
-  # registry manifest) must be valid against its published constraints, and on a
-  # tag build the manifest version must match the tag. Steps that reference files
-  # landing in other PRs skip gracefully when the file is absent.
-  # ---------------------------------------------------------------------------
+  # Release verification: recipes lint clean, server.json valid, tag matches manifest version.
   release-verify:
     runs-on: ubuntu-latest
     steps:

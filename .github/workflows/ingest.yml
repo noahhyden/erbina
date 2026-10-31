@@ -1,14 +1,6 @@
 name: Ingest brew recipes
 
-# On-demand harvester for new cli-tool recipes from Homebrew's long tail.
-# erbina's contract is "prove it runs", and recipe metadata can't tell a CLI from
-# a library — so this runs on macOS (where brew lives), ACTUALLY installs a batch
-# of the most-installed formulae that aren't recipes yet, discovers each one's real
-# binary + a version flag that exits 0, and emits recipe rows only for tools that
-# genuinely run. The result is uploaded as an artifact for a human to review and
-# merge into scripts/recipe_data.py — never committed automatically.
-#
-# Manual only: real installs are slow, and new recipes should be reviewed.
+# Manual only: installs a batch of top brew formulae on macOS and uploads rows for review, never committed.
 
 on:
   workflow_dispatch:
