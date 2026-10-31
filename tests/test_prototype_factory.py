@@ -1,11 +1,4 @@
-"""Self-tests for the prototype factory (tests/prototype.py).
-
-A test harness that lies about its own fixtures is worse than none: these guard
-the factory itself. They prove the synthetic recipes are genuinely VALID (so a
-later behavioral test can't 'pass' merely because erbina rejected a malformed
-prototype), that `registry()` actually swaps the recipe registry, and that it
-restores it afterward (no leakage into other tests).
-"""
+"""Self-tests for tests/prototype.py: prototypes are genuinely VALID and `registry()` swaps the recipe registry and restores it, with no leakage."""
 from __future__ import annotations
 
 import server
@@ -14,8 +7,7 @@ from prototype import cli_recipe, mcp_recipe, registry
 
 
 def test_factory_recipes_validate_clean():
-    # If a prototype didn't validate, _load_recipe would refuse it and every
-    # behavioral test built on it would be exercising the error path by accident.
+    # An invalid prototype would be refused by _load_recipe, so every behavioral test built on it would exercise the error path by accident.
     assert server.validate_recipe(cli_recipe(), stem="proto") == []
     assert server.validate_recipe(mcp_recipe(), stem="proto_mcp") == []
 

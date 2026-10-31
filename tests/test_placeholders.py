@@ -1,11 +1,4 @@
-"""Placeholder handling: `_check_placeholders` (the linter's guard) and its
-consistency with `_subst` (the runtime expander).
-
-The load-bearing invariant is: *anything the linter passes, `_subst` fully
-expands* — no `${known}` token should ever reach an executed command literally.
-The linter only knows two placeholders (${scope}, ${project_dir}); any other
-`${...}` token is a recipe bug and must be flagged.
-"""
+"""Placeholder handling: anything `_check_placeholders` passes, `_subst` fully expands, and any `${...}` beyond ${scope}/${project_dir} is a flagged recipe bug."""
 from __future__ import annotations
 
 import pytest
@@ -13,9 +6,7 @@ import pytest
 import server
 
 
-# --------------------------------------------------------------------------- #
 # _check_placeholders — what gets flagged
-# --------------------------------------------------------------------------- #
 @pytest.mark.parametrize("text", [
     "echo ${scope}",
     "cd ${project_dir}",
@@ -52,9 +43,7 @@ def test_check_placeholders_ignores_non_strings():
     assert errs == []
 
 
-# --------------------------------------------------------------------------- #
 # the invariant: lint-clean known placeholders always fully expand
-# --------------------------------------------------------------------------- #
 @pytest.mark.parametrize("text", [
     "echo ${scope}",
     "cd ${project_dir} && ${scope}",
@@ -71,18 +60,12 @@ def test_lint_clean_text_leaves_no_placeholder_after_subst(text):
 
 
 def test_subst_leaves_unknown_tokens_untouched():
-    # _subst only expands the two known tokens; a flagged token is left literal
-    # (the linter is what stops it reaching a real command, not _subst).
+    # _subst expands only the two known tokens and leaves a flagged one literal; the linter, not _subst, stops it reaching a command.
     assert server._subst("${SCOPE}", "user", None) == "${SCOPE}"
     assert server._subst("${ scope }", "user", None) == "${ scope }"
 
 
-# --------------------------------------------------------------------------- #
-# Regression for finding #2, FIXED in iteration 5: a dangling `${scope` (missing
-# closing brace) survives _subst untouched (the regex needs a closing `}`), so
-# the linter now flags an unterminated `${` explicitly — refusing the recipe at
-# load time rather than letting a literal `${` reach an executed command.
-# --------------------------------------------------------------------------- #
+# Finding #2 (fixed): a dangling `${scope` survives _subst, so the linter flags an unterminated `${` and refuses the recipe at load time.
 @pytest.mark.parametrize("text", [
     "echo ${scope",                 # lone dangling
     "cd ${project_dir} && ${scope", # one closed, one dangling
@@ -96,6 +79,5 @@ def test_unterminated_placeholder_is_flagged(text):
 
 
 def test_dangling_brace_still_survives_subst_literally():
-    # _subst is unchanged (only expands closed known tokens); the LINTER is what
-    # now stops a dangling ${ from reaching a command.
+    # _subst is unchanged (closed known tokens only); the LINTER now stops a dangling ${ from reaching a command.
     assert server._subst("echo ${scope", "user", "/p") == "echo ${scope"

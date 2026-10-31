@@ -1,6 +1,4 @@
-"""Tests for pinning (phase 3b): the `pin` tool and how check_updates / update
-honor pins. State is isolated to a temp dir by the autouse conftest fixture.
-"""
+"""Tests for pinning (phase 3b): the `pin` tool and how check_updates / update honor pins."""
 from __future__ import annotations
 
 import server
@@ -18,9 +16,7 @@ def _versioned(rid="t", current="1.0.0", latest="2.0.0"):
     )
 
 
-# --------------------------------------------------------------------------- #
 # the pin tool
-# --------------------------------------------------------------------------- #
 def test_pin_sets_flag_in_state():
     with registry(cli_recipe("t")):
         out = call_tool("pin", {"recipe_id": "t"})
@@ -54,9 +50,7 @@ def test_pin_does_not_clobber_existing_record():
     assert "install_method" in rec  # earlier recording survived
 
 
-# --------------------------------------------------------------------------- #
 # check_updates honors pins
-# --------------------------------------------------------------------------- #
 def test_check_updates_excludes_pinned_from_updates_available():
     with registry(_versioned("t", current="1.0.0", latest="2.0.0")):
         call_tool("pin", {"recipe_id": "t"})
@@ -76,10 +70,7 @@ def test_check_updates_includes_unpinned_update():
 
 
 def test_pinned_but_current_tool_is_not_reported_as_skipped():
-    # a pinned tool with NO newer version must NOT show up in the
-    # "Pinned (skipped despite an update)" hint — that hint is only for a pin
-    # that actually hides an available update. (mutation guard: pinned_with_update
-    # is update_available AND pinned, not OR.)
+    # A pinned tool with NO newer version must not appear in the 'Pinned (skipped despite an update)' hint (mutation guard: update_available AND pinned, not OR).
     with registry(_versioned("t", current="1.0.0", latest="1.0.0")):
         call_tool("pin", {"recipe_id": "t"})
         out = call_tool("check_updates", {"recipe_id": "t"})
@@ -90,9 +81,7 @@ def test_pinned_but_current_tool_is_not_reported_as_skipped():
     assert "Pinned (skipped" not in out["hint"]     # nothing was skipped
 
 
-# --------------------------------------------------------------------------- #
 # update honors pins
-# --------------------------------------------------------------------------- #
 def test_update_refuses_pinned_tool():
     with registry(_versioned("t")):
         call_tool("pin", {"recipe_id": "t"})

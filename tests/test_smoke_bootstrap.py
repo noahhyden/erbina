@@ -1,10 +1,4 @@
-"""Offline plumbing test for scripts/smoke_bootstrap.py.
-
-The smoke driver's JOB is to run real installs on CI, but its wiring — does it
-drive bootstrap through the tool surface and report ok/failure correctly? — can
-be validated deterministically here against prototype recipes (builtin commands,
-no real install). This guards the driver against bit-rot without any network.
-"""
+"""Offline plumbing test for scripts/smoke_bootstrap.py: does it drive bootstrap through the tool surface and report ok/failure, on builtin prototypes."""
 from __future__ import annotations
 
 import importlib.util
@@ -88,10 +82,7 @@ def test_driver_main_succeeds_when_all_ok(monkeypatch, capsys):
     assert "bootstrapped 2 recipe(s) for real" in capsys.readouterr().out
 
 
-# --------------------------------------------------------------------------- #
-# --roundtrip mode: bootstrap -> uninstall -> reinstall, failing unless the
-# reinstall is ok. Guards the driver arm that catches broken pipx/cargo teardown.
-# --------------------------------------------------------------------------- #
+# --roundtrip mode (bootstrap, uninstall, reinstall) fails unless the reinstall is ok, guarding the arm that catches broken pipx/cargo teardown.
 def test_roundtrip_passes_when_reinstall_is_ok(monkeypatch, capsys):
     r = cli_recipe("t", detect={"command": FALSE}, verify=[{"command": TRUE}],
                    uninstall={"methods": [{"id": "u", "run": TRUE}]})

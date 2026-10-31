@@ -1,15 +1,4 @@
-"""Real end-to-end integration tests for the bootstrap/update pipeline.
-
-Unlike the rest of the suite (shell builtins / monkeypatched subprocess), these
-drive the ACTUAL pipeline against a throwaway fixture tool that is genuinely
-absent, gets genuinely installed (a real script written into a temp dir on PATH),
-and is genuinely verified by execution. Real subprocesses, real filesystem state
-transitions — but fully deterministic and offline (no package managers, no
-network), so they're safe in CI.
-
-The fixture tool `erbtool` is installed into $ERB_BIN (a temp dir prepended to
-PATH), so nothing touches the real system.
-"""
+"""Real end-to-end tests: a genuinely absent fixture tool `erbtool` is installed by a real script into a temp $ERB_BIN on PATH and verified by execution, offline."""
 from __future__ import annotations
 
 import os
@@ -35,8 +24,7 @@ def erb_bin(tmp_path, monkeypatch):
 
 
 def _write_script(version: str = "1.0.0", ok: bool = True) -> str:
-    """A shell command that installs the `erbtool` script into $ERB_BIN. When
-    ok=False the installed tool exits nonzero (a broken install verify must catch)."""
+    """A shell command that installs the `erbtool` script into $ERB_BIN; ok=False makes the installed tool exit nonzero."""
     body = f"echo erbtool {version}" if ok else "exit 1"
     return (
         "echo '#!/bin/sh' > \"$ERB_BIN/erbtool\"; "
@@ -62,9 +50,7 @@ def _recipe(*, version="1.0.0", ok=True, update_to=None):
     return r
 
 
-# --------------------------------------------------------------------------- #
 # bootstrap: real detect -> install -> verify
-# --------------------------------------------------------------------------- #
 def test_bootstrap_installs_and_verifies_a_real_tool(erb_bin):
     with registry(_recipe()):
         out = call_tool("bootstrap", {"recipe_id": "erbtool"})
@@ -91,8 +77,7 @@ def test_bootstrap_is_idempotent_on_second_run(erb_bin):
 
 
 def test_verify_catches_a_broken_install(erb_bin):
-    # install succeeds (writes a file) but the installed tool is broken (exits 1),
-    # so the real verify must fail the bootstrap.
+    # Install succeeds but the installed tool exits 1, so the real verify must fail the bootstrap.
     with registry(_recipe(ok=False)):
         out = call_tool("bootstrap", {"recipe_id": "erbtool"})
     assert out["phases"]["install"]["status"] == "ok"      # the install command ran fine
@@ -101,9 +86,7 @@ def test_verify_catches_a_broken_install(erb_bin):
     assert (erb_bin / "erbtool").exists()  # the (broken) file was written
 
 
-# --------------------------------------------------------------------------- #
 # update: real install v1 -> update to v2 -> re-verify -> state records both
-# --------------------------------------------------------------------------- #
 def test_update_upgrades_a_real_tool_end_to_end(erb_bin):
     with registry(_recipe(version="1.0.0", update_to="2.0.0")):
         boot = call_tool("bootstrap", {"recipe_id": "erbtool"})
@@ -121,13 +104,10 @@ def test_update_upgrades_a_real_tool_end_to_end(erb_bin):
     assert rec["previous_version"] == "1.0.0"
 
 
-# --------------------------------------------------------------------------- #
 # mcp-server wiring: real bootstrap against a STUB `claude` binary
-# --------------------------------------------------------------------------- #
 @pytest.fixture
 def stub_claude(erb_bin, tmp_path):
-    """A fake `claude` on PATH: `mcp add <name> …` records the invocation to a
-    store dir; `mcp get <name>` exits 0 iff that name was added. Returns the store."""
+    """A fake `claude` on PATH: `mcp add <name>` records to a store dir and `mcp get <name>` exits 0 iff added; returns the store."""
     store = tmp_path / "mcp_store"
     store.mkdir()
     claude = erb_bin / "claude"

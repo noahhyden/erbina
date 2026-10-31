@@ -1,11 +1,4 @@
-"""Spec-lock for a curated batch of well-known CLI tools added to the registry.
-
-These are real, widely-used tools with package names verified by hand (the
-weekly real-bootstrap CI is the ultimate check, but this pins the intended
-identity/category so a regeneration or classifier change can't drop or relabel
-them). Each must load cleanly, verify by RUNNING its binary, and land in its
-intended category.
-"""
+"""Spec-lock for a curated batch of CLI tools: each must load, verify by RUNNING its own binary, and land in its intended category."""
 from __future__ import annotations
 
 import shlex
@@ -31,8 +24,7 @@ def test_added_tools_load_and_categorize():
 
 
 def test_added_tools_verify_by_running_their_binary():
-    # erbina's thesis: verify RUNS the tool. Each verify command's first token
-    # must be the tool's own binary, not a filesystem probe.
+    # erbina's thesis is that verify RUNS the tool, so each verify command's first token must be the tool's own binary, not a filesystem probe.
     for rid, (_category, binary) in ADDED.items():
         recipe = server._load_recipe(rid)
         verify_cmds = [v["command"] for v in recipe["verify"]]

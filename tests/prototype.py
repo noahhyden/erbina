@@ -1,23 +1,4 @@
-"""Prototype "fake tool" factory for erbina behavioral testing.
-
-erbina's whole extensibility surface is the *recipe* — a detect -> install ->
-configure -> verify contract (see SCHEMA.md). This module lets a test synthesize
-a prototype recipe (a fake tool), give it *special properties* (controllable
-exit codes, install guards, placeholders, optional / needs_project_dir flags),
-and push it through erbina's REAL code paths: `validate_recipe`, `_load_recipe`,
-`_plan`, and a live (non-dry) `bootstrap`.
-
-Determinism is the whole point. Every command a prototype runs is a POSIX shell
-builtin with a fixed exit code (`true`, `false`, `exit N`, `echo`), so a live
-bootstrap is fully reproducible and machine-independent: no brew/curl, no
-network, no `claude` CLI, nothing installed. That lets these tests exercise the
-bootstrap *orchestration* (detect gating, guarded install selection, configure
-skipping, verify pass/fail) — the logic where real bugs live — without side
-effects.
-
-Nothing here writes into the real recipes/ directory: `registry()` builds a
-throwaway temp dir and repoints `server.RECIPES_DIR` at it, restoring it after.
-"""
+"""Prototype fake-tool factory: recipes of shell builtins with fixed exit codes, so a live bootstrap through the REAL code paths installs nothing."""
 from __future__ import annotations
 
 import contextlib
@@ -40,13 +21,7 @@ def exit_code(n: int) -> str:
 
 
 def cli_recipe(rid: str = "proto", **overrides: Any) -> dict[str, Any]:
-    """A minimal VALID kind: cli-tool recipe. Override any top-level key.
-
-    Defaults are all shell builtins, so the recipe both validates clean AND runs
-    deterministically under a live bootstrap. Override e.g. detect={"command":
-    FALSE} to force the install path, or verify=[{"command": FALSE}] to force a
-    verify failure.
-    """
+    """A minimal VALID kind: cli-tool recipe; override any top-level key (e.g. detect={"command": FALSE} forces the install path)."""
     recipe: dict[str, Any] = {
         "id": rid,
         "kind": "cli-tool",
@@ -62,12 +37,7 @@ def cli_recipe(rid: str = "proto", **overrides: Any) -> dict[str, Any]:
 
 
 def mcp_recipe(rid: str = "proto_mcp", **overrides: Any) -> dict[str, Any]:
-    """A minimal VALID kind: mcp-server recipe.
-
-    Its configure step references ${scope}, which `validate_recipe` requires for
-    an mcp-server. The configure command is a harmless `echo`, so a live
-    bootstrap wires nothing real.
-    """
+    """A minimal VALID kind: mcp-server recipe whose configure step is a harmless echo of ${scope}."""
     recipe: dict[str, Any] = {
         "id": rid,
         "kind": "mcp-server",
@@ -84,8 +54,7 @@ def mcp_recipe(rid: str = "proto_mcp", **overrides: Any) -> dict[str, Any]:
 
 
 def profile_recipe(rid: str = "proto_profile", requires: list[str] | None = None, **overrides: Any) -> dict[str, Any]:
-    """A minimal VALID kind: profile recipe — a meta-recipe that only bundles
-    other recipes via `requires` and carries no per-tool lifecycle keys."""
+    """A minimal VALID kind: profile recipe, a meta-recipe that only bundles others via `requires`."""
     recipe: dict[str, Any] = {
         "id": rid,
         "kind": "profile",
@@ -99,12 +68,7 @@ def profile_recipe(rid: str = "proto_profile", requires: list[str] | None = None
 
 @contextlib.contextmanager
 def registry(*recipes: dict[str, Any]) -> Iterator[Path]:
-    """Write prototype recipes into a temp RECIPES_DIR and point server at it.
-
-    Restores `server.RECIPES_DIR` afterward, so the real recipes/ registry is
-    never touched and the tools (`list_recipes` / `inspect_recipe` / `bootstrap`)
-    resolve ONLY these prototypes for the duration of the `with` block.
-    """
+    """Write prototype recipes into a temp RECIPES_DIR, point server at it, and restore the real one on exit."""
     original = server.RECIPES_DIR
     with tempfile.TemporaryDirectory() as d:
         tmp = Path(d)

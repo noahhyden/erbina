@@ -1,15 +1,4 @@
-"""Tests for scripts/curl_candidates.py — the curl-installer harvester.
-
-The harvester closes erbina's Linux-install gap: the generator renders a `curl`
-install/update method whenever a recipe_data.py row carries a `curl` key, but most
-bulk-generated rows only have brew/winget and install NOTHING on a Homebrew-less
-Linux box. This tool proposes official install scripts (from a vetted allowlist)
-for those gapped rows, tiered by whether the URL corroborates the row's `gh`.
-
-A wrong installer runs the wrong software, so the security-relevant surface is the
-confidence model (`corroborate`) and the gap/idempotency filters — the mutation
-guards below pin each boundary. No network: the allowlist is static data.
-"""
+"""Tests for scripts/curl_candidates.py: a wrong installer runs the wrong software, so pin the `corroborate` confidence model and the gap/idempotency filters."""
 from __future__ import annotations
 
 import json
@@ -17,9 +6,7 @@ import json
 import curl_candidates as cc
 
 
-# --------------------------------------------------------------------------- #
 # norm
-# --------------------------------------------------------------------------- #
 def test_norm():
     assert cc.norm("Golangci-Lint") == "golangcilint"
     assert cc.norm("volta-cli") == "voltacli"
@@ -27,9 +14,7 @@ def test_norm():
     assert cc.norm("") == ""
 
 
-# --------------------------------------------------------------------------- #
 # is_linux_gapped / rows_needing_curl — the gap + idempotency filters
-# --------------------------------------------------------------------------- #
 def test_is_linux_gapped_true_for_brew_winget_only():
     assert cc.is_linux_gapped({"id": "deno", "brew": "deno", "winget": "DenoLand.Deno"}) is True
 
@@ -50,17 +35,14 @@ def test_rows_needing_curl_excludes_non_gapped_and_already_curl():
     assert [t["id"] for t in cc.rows_needing_curl(tools)] == ["deno", "empty"]
 
 
-# --------------------------------------------------------------------------- #
 # corroborate — the confidence tiers (security-relevant)
-# --------------------------------------------------------------------------- #
 def test_raw_githubusercontent_matching_owner_repo_is_high():
     url = "https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh"
     assert cc.corroborate(url, "aquasecurity/trivy") == "high"
 
 
 def test_raw_githubusercontent_wrong_repo_is_not_high():
-    # served from a DIFFERENT repo than the row claims -> must not be trusted as
-    # first-party; falls back to the domain check (githubusercontent != owner/repo)
+    # Served from a DIFFERENT repo than the row claims, so it is not first-party and falls back to the domain check.
     url = "https://raw.githubusercontent.com/someoneelse/thing/main/install.sh"
     assert cc.corroborate(url, "aquasecurity/trivy") == "medium"
 
@@ -75,8 +57,7 @@ def test_vanity_domain_matching_owner_is_high():
 
 
 def test_uncorroborated_domain_is_medium():
-    # fly.io is fly's official installer, but nothing in the URL proves it against
-    # gh superfly/flyctl -> medium, for a human to eyeball.
+    # fly.io is the official installer but nothing in the URL proves it against gh superfly/flyctl, so medium for a human to eyeball.
     assert cc.corroborate("https://fly.io/install.sh", "superfly/flyctl") == "medium"
 
 
@@ -97,9 +78,7 @@ def test_registrable_label():
     assert cc._registrable_label("not a url") == ""
 
 
-# --------------------------------------------------------------------------- #
 # resolve — allowlist lookup + shell passthrough
-# --------------------------------------------------------------------------- #
 def test_resolve_unknown_id_is_none():
     assert cc.resolve({"id": "totally-unlisted", "brew": "x"}) is None
 
@@ -118,18 +97,14 @@ def test_resolve_bash_installer_carries_shell(monkeypatch):
     assert p["curl_shell"] == "bash"
 
 
-# --------------------------------------------------------------------------- #
 # the shipped allowlist is internally consistent (guards against typos)
-# --------------------------------------------------------------------------- #
 def test_shipped_allowlist_entries_are_wellformed():
     for rid, entry in cc.KNOWN_INSTALLERS.items():
         assert entry["url"].startswith("https://"), f"{rid}: url must be https"
         assert set(entry) <= {"url", "shell"}, f"{rid}: unexpected keys {set(entry)}"
 
 
-# --------------------------------------------------------------------------- #
 # resolve_all — threshold filtering, gap filter, ordering
-# --------------------------------------------------------------------------- #
 def test_resolve_all_respects_gap_and_min_confidence(monkeypatch):
     monkeypatch.setattr(cc, "KNOWN_INSTALLERS", {
         "hi":   {"url": "https://hi.dev/install.sh"},          # domain label hi == repo -> high
@@ -158,9 +133,7 @@ def test_resolve_all_id_filter(monkeypatch):
     assert [p["id"] for p in got] == ["b"]
 
 
-# --------------------------------------------------------------------------- #
 # apply_proposals — staging into recipe_data.py source text (pure)
-# --------------------------------------------------------------------------- #
 SRC = (
     'TOOLS = [\n'
     '    {"id": "deno", "bin": "deno", "brew": "deno", "gh": "denoland/deno"},\n'
@@ -201,9 +174,7 @@ def test_apply_result_is_valid_python():
     assert tools["deno"] == "https://deno.land/install.sh"
 
 
-# --------------------------------------------------------------------------- #
 # main — end-to-end against a fixture recipe_data.py
-# --------------------------------------------------------------------------- #
 def _fixture_recipe_data(tmp_path):
     p = tmp_path / "recipe_data.py"
     p.write_text(

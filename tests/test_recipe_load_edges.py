@@ -1,9 +1,4 @@
-"""Edge cases in recipe loading and validation input types.
-
-A recipe file that parses to something other than a populated mapping (empty
-file, comment-only, a top-level list) must be refused with a clear message —
-never loaded as a half-recipe that silently no-ops a phase.
-"""
+"""Edge cases in recipe loading: an empty, comment-only or top-level-list file must be refused clearly, never loaded as a half-recipe that no-ops a phase."""
 from __future__ import annotations
 
 import pytest
@@ -35,9 +30,7 @@ def test_top_level_list_recipe_is_refused(tmp_path, monkeypatch):
         server._load_recipe("lst")
 
 
-# --------------------------------------------------------------------------- #
 # validate_recipe input-type guards (the very first check)
-# --------------------------------------------------------------------------- #
 @pytest.mark.parametrize("bad", [None, [1, 2], "a string", 42])
 def test_validate_recipe_rejects_non_mapping(bad):
     errs = server.validate_recipe(bad, stem="x")
@@ -50,14 +43,9 @@ def test_validate_recipe_non_mapping_short_circuits_to_single_error():
     assert len(server.validate_recipe(None, stem="x")) == 1
 
 
-# --------------------------------------------------------------------------- #
 # _recipe_ids over a nonexistent RECIPES_DIR
-# --------------------------------------------------------------------------- #
 def test_recipe_ids_is_empty_when_recipes_dir_is_missing(tmp_path, monkeypatch):
-    # contract: a missing RECIPES_DIR yields [] (drives list_recipes/check_updates
-    # bulk scans off an empty set). NB: the explicit `if not exists` guard in
-    # _recipe_ids is belt-and-suspenders — Path.glob already returns empty on a
-    # missing dir — so this test pins the CONTRACT, not that specific guard.
+    # Contract: a missing RECIPES_DIR yields [] (the `if not exists` guard is belt-and-suspenders since Path.glob is already empty), so this pins the CONTRACT.
     monkeypatch.setattr(server, "RECIPES_DIR", tmp_path / "no_such_dir")
     assert server._recipe_ids() == []
 

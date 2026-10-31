@@ -1,11 +1,4 @@
-"""Behavioral tests for the `doctor` tool — a health check over the CLI tools
-erbina has recorded in its state manifest, symmetric to `find_dead_mcps` for MCP
-servers. It re-runs each recorded tool's detect (still installed?) and verify
-(still runs?) and classifies healthy / missing / broken. Read-only.
-
-State is isolated to a temp dir by the autouse conftest fixture; recipes are
-prototype recipes (builtin commands) so detect/verify are deterministic.
-"""
+"""Behavioral tests for `doctor`, which re-runs detect and verify on recorded CLI tools and classifies healthy / missing / broken, read-only."""
 from __future__ import annotations
 
 import server
@@ -17,9 +10,7 @@ def _record(rid, kind="cli-tool"):
     server._record_tool(rid, kind=kind, installed_version="1.0.0", install_method="m")
 
 
-# --------------------------------------------------------------------------- #
 # nothing recorded
-# --------------------------------------------------------------------------- #
 def test_empty_state_reports_nothing_to_check():
     with registry(cli_recipe("t")):
         out = call_tool("doctor", {})
@@ -28,9 +19,7 @@ def test_empty_state_reports_nothing_to_check():
     assert out["problems"] == []
 
 
-# --------------------------------------------------------------------------- #
 # healthy / missing / broken classification
-# --------------------------------------------------------------------------- #
 def test_healthy_tool_is_reported_healthy():
     r = cli_recipe("t", detect={"command": TRUE}, verify=[{"command": TRUE}])
     with registry(r):
@@ -65,8 +54,7 @@ def test_broken_tool_is_flagged():
 
 
 def test_verify_not_run_when_tool_is_missing():
-    # a missing tool must NOT be probed with verify (it's absent) -> status missing,
-    # not broken, even if verify would fail
+    # A missing tool must NOT be probed with verify, so its status is missing, not broken, even if verify would fail.
     r = cli_recipe("t", detect={"command": FALSE}, verify=[{"command": FALSE}])
     with registry(r):
         _record("t")
@@ -74,9 +62,7 @@ def test_verify_not_run_when_tool_is_missing():
     assert out["problems"][0]["status"] == "missing"
 
 
-# --------------------------------------------------------------------------- #
 # scope of what's checked
-# --------------------------------------------------------------------------- #
 def test_only_recorded_tools_are_checked_not_the_whole_registry():
     healthy = cli_recipe("recorded", detect={"command": TRUE}, verify=[{"command": TRUE}])
     other = cli_recipe("not_recorded", detect={"command": FALSE})

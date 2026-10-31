@@ -1,17 +1,4 @@
-"""Behavioral tests for the LIVE bootstrap orchestration engine.
-
-Unlike test_tools.py (which only touches dry-run / read-only paths), these run
-`bootstrap` with dry_run=False against prototype recipes whose every command is
-a POSIX shell builtin with a fixed exit code. That makes a real bootstrap fully
-deterministic and side-effect-free — nothing is installed or wired — so we can
-assert on the orchestration logic itself:
-
-  detect (idempotency gate) -> install (first eligible `when` method) ->
-  configure (skipped when already present) -> verify (must exit expect_exit).
-
-This is the code path with the most branching in server.py:bootstrap and thus
-the most room for regressions.
-"""
+"""Behavioral tests for the LIVE bootstrap engine: detect gate, first eligible install method, configure skip, verify, on shell-builtin prototypes."""
 from __future__ import annotations
 
 from helpers import call_tool
@@ -24,9 +11,7 @@ def _boot(recipe, **kwargs):
         return call_tool("bootstrap", {"recipe_id": recipe["id"], **kwargs})
 
 
-# --------------------------------------------------------------------------- #
 # detect gates install (the core idempotency contract)
-# --------------------------------------------------------------------------- #
 def test_detect_present_skips_install():
     out = _boot(cli_recipe(detect={"command": TRUE}))
     assert out["phases"]["detect"]["present"] is True
@@ -48,9 +33,7 @@ def test_detect_expect_exit_custom_code():
     assert out["phases"]["install"]["status"] == "skipped"
 
 
-# --------------------------------------------------------------------------- #
 # guarded, ordered install-method selection
-# --------------------------------------------------------------------------- #
 def test_install_skips_ineligible_method_for_eligible_one():
     recipe = cli_recipe(
         detect={"command": FALSE},
@@ -64,8 +47,7 @@ def test_install_skips_ineligible_method_for_eligible_one():
 
 
 def test_install_picks_earliest_among_multiple_eligible_methods():
-    # Both guards pass; ORDER must decide (prefer brew over curl, etc.). A test
-    # with only one eligible method can't tell 'first' from 'last' — this one can.
+    # Both guards pass so ORDER must decide (brew over curl); a one-method test cannot tell 'first' from 'last'.
     recipe = cli_recipe(
         detect={"command": FALSE},
         install={"methods": [
@@ -78,8 +60,7 @@ def test_install_picks_earliest_among_multiple_eligible_methods():
 
 
 def test_install_guard_that_errors_is_treated_as_ineligible():
-    # A `when:` guard pointing at a missing binary exits nonzero (127), so the
-    # method is skipped — never run a package manager the machine lacks.
+    # A `when:` guard on a missing binary exits 127 so the method is skipped; never run a package manager the machine lacks.
     recipe = cli_recipe(
         detect={"command": FALSE},
         install={"methods": [
@@ -123,9 +104,7 @@ def test_install_command_failure_short_circuits_before_verify():
     assert "verify" not in out["phases"]
 
 
-# --------------------------------------------------------------------------- #
 # configure phase
-# --------------------------------------------------------------------------- #
 def test_configure_skipped_when_already_present():
     recipe = cli_recipe(
         detect={"command": TRUE},
@@ -156,9 +135,7 @@ def test_configure_step_needing_project_dir_is_skipped_without_one():
     assert "no project_dir" in step["reason"]
 
 
-# --------------------------------------------------------------------------- #
 # verify phase
-# --------------------------------------------------------------------------- #
 def test_verify_failure_fails_bootstrap():
     recipe = cli_recipe(detect={"command": TRUE}, verify=[{"command": FALSE}])
     out = _boot(recipe)
@@ -184,9 +161,7 @@ def test_verify_expect_exit_custom_code_passes():
     assert out["ok"] is True
 
 
-# --------------------------------------------------------------------------- #
 # mcp-server specifics
-# --------------------------------------------------------------------------- #
 def test_mcp_server_success_emits_reload_hint():
     out = _boot(mcp_recipe(detect={"command": TRUE}))
     assert out["ok"] is True
@@ -201,8 +176,7 @@ def test_cli_tool_success_has_no_reload_hint():
 
 
 def test_mcp_server_failed_verify_omits_reload_hint():
-    # The reload hint is gated on all_ok — a failed wiring must not tell the user
-    # to reload for a server that isn't actually there.
+    # The reload hint is gated on all_ok, so a failed wiring must not tell the user to reload for a server that is not there.
     out = _boot(mcp_recipe(detect={"command": TRUE}, verify=[{"command": FALSE}]))
     assert out["ok"] is False
     assert "next" not in out

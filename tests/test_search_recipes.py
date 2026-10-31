@@ -1,8 +1,4 @@
-"""Tool-surface tests for `search_recipes` and the enriched `list_recipes`.
-
-Driven through the in-memory FastMCP client, exactly as an agent would query the
-registry. Read-only — nothing installs or wires anything.
-"""
+"""Tool-surface tests for `search_recipes` and the enriched `list_recipes`, via the in-memory FastMCP client, read-only."""
 from __future__ import annotations
 
 from helpers import call_tool
@@ -10,9 +6,7 @@ from helpers import call_tool
 from server import CATEGORIES
 
 
-# --------------------------------------------------------------------------- #
 # list_recipes is now enriched with category + tags
-# --------------------------------------------------------------------------- #
 def test_list_recipes_includes_category_and_tags_for_every_recipe():
     recipes = call_tool("list_recipes", {})
     assert recipes
@@ -22,9 +16,7 @@ def test_list_recipes_includes_category_and_tags_for_every_recipe():
         assert all(isinstance(t, str) for t in r["tags"])
 
 
-# --------------------------------------------------------------------------- #
 # search_recipes — query relevance
-# --------------------------------------------------------------------------- #
 def _ids(results):
     return [r["id"] for r in results["results"]]
 
@@ -55,9 +47,7 @@ def test_search_results_carry_full_metadata():
         assert key in r
 
 
-# --------------------------------------------------------------------------- #
 # search_recipes — filters
-# --------------------------------------------------------------------------- #
 def test_category_filter_returns_only_that_category():
     out = call_tool("search_recipes", {"category": "kubernetes"})
     ids = _ids(out)
@@ -90,9 +80,7 @@ def test_limit_caps_result_count():
     assert out["count"] >= len(out["results"])
 
 
-# --------------------------------------------------------------------------- #
 # search_recipes — bad input
-# --------------------------------------------------------------------------- #
 def test_invalid_category_is_rejected():
     out = call_tool("search_recipes", {"category": "bogus"})
     assert "error" in out
