@@ -24,7 +24,6 @@ git worktree collision-free ports/databases).
 from __future__ import annotations
 
 import json
-import os
 import re
 import shlex
 import subprocess
@@ -1490,7 +1489,6 @@ def uninstall(
         return report
 
     # is it actually installed? if not, there's nothing to remove — just forget it.
-    det = recipe.get("detect", {})
     d, present = _run_detect(recipe, scope, project_dir)
     if not present:
         report["phases"]["detect"] = {"present": False, **d}
