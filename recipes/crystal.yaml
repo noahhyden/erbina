@@ -1,4 +1,3 @@
-# erbina recipe — crystal, a cli-tool. Ruby-like language, native speed.
 id: crystal
 kind: cli-tool
 title: "crystal — a language for humans and computers, with Ruby-like syntax and native speed"
@@ -7,12 +6,9 @@ description: >
   compiles to efficient native code with static type checking and a
   built-in concurrency model. https://github.com/crystal-lang/crystal
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "crystal --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id CrystalLang.Crystal --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "crystal --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "crystal --version"
   latest: { github: crystal-lang/crystal }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id CrystalLang.Crystal --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

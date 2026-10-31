@@ -1,4 +1,3 @@
-# erbina recipe — kubeconform, a cli-tool. Validate Kubernetes manifests.
 id: kubeconform
 kind: cli-tool
 title: "kubeconform — a fast Kubernetes manifest validation tool"
@@ -7,12 +6,9 @@ description: >
   resources against schemas, supporting CRDs and offline use in CI
   pipelines. https://github.com/yannh/kubeconform
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "kubeconform --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id YannHamon.kubeconform --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "kubeconform --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "kubeconform --version"
   latest: { github: yannh/kubeconform }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id YannHamon.kubeconform --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

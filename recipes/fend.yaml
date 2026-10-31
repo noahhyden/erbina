@@ -1,4 +1,3 @@
-# erbina recipe — fend, a cli-tool. Unit-aware precision calculator.
 id: fend
 kind: cli-tool
 title: "fend — an arbitrary-precision unit-aware calculator"
@@ -7,12 +6,9 @@ description: >
   units, currencies, number bases and functions from an interactive or
   one-shot CLI. https://github.com/printfn/fend
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "fend --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -25,17 +21,13 @@ install:
       when: "command -v cargo"
       run: "cargo install fend"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "fend --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "fend --version"
   latest: { github: printfn/fend }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -48,4 +40,3 @@ update:
       when: "command -v cargo"
       run: "cargo install fend"
 
-scope: user

@@ -1,4 +1,3 @@
-# erbina recipe — zellij, a cli-tool. Terminal multiplexer with layouts and plugins.
 id: zellij
 kind: cli-tool
 title: "zellij — a terminal workspace and multiplexer"
@@ -7,12 +6,9 @@ description: >
   layouts, and a plugin system, aimed at both new and power users.
   https://github.com/zellij-org/zellij
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "zellij --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -25,17 +21,13 @@ install:
       when: "command -v cargo"
       run: "cargo install zellij"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "zellij --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "zellij --version"
   latest: { github: zellij-org/zellij }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -48,4 +40,3 @@ update:
       when: "command -v cargo"
       run: "cargo install zellij"
 
-scope: user

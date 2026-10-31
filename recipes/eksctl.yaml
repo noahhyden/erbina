@@ -1,4 +1,3 @@
-# erbina recipe — eksctl, a cli-tool. Create and manage EKS clusters.
 id: eksctl
 kind: cli-tool
 title: "eksctl — the official CLI for Amazon EKS"
@@ -7,12 +6,9 @@ description: >
   Kubernetes clusters on AWS with a single command and sensible defaults.
   https://github.com/eksctl-io/eksctl
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "eksctl version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id eksctl.eksctl --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "eksctl version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "eksctl version"
   latest: { github: eksctl-io/eksctl }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id eksctl.eksctl --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

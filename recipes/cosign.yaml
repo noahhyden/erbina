@@ -1,4 +1,3 @@
-# erbina recipe — cosign, a cli-tool. Sign and verify container images.
 id: cosign
 kind: cli-tool
 title: "cosign — container signing, verification and storage in an OCI registry"
@@ -7,12 +6,9 @@ description: >
   storage of signatures in an OCI registry, a key building block for
   supply-chain security. https://github.com/sigstore/cosign
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "cosign version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id Sigstore.Cosign --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "cosign version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "cosign version"
   latest: { github: sigstore/cosign }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id Sigstore.Cosign --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

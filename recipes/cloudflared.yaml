@@ -1,4 +1,3 @@
-# erbina recipe — cloudflared, a cli-tool. Cloudflare Tunnel client.
 id: cloudflared
 kind: cli-tool
 title: "cloudflared — Cloudflare Tunnel client"
@@ -8,12 +7,9 @@ description: >
   exposing services without opening ports.
   https://github.com/cloudflare/cloudflared
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "cloudflared --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -23,17 +19,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id Cloudflare.cloudflared --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "cloudflared --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "cloudflared --version"
   latest: { github: cloudflare/cloudflared }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -43,4 +35,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id Cloudflare.cloudflared --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

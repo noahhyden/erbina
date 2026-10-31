@@ -1,4 +1,3 @@
-# erbina recipe — brotli, a cli-tool. Brotli lossless compression.
 id: brotli
 kind: cli-tool
 title: "brotli — a generic-purpose lossless compression algorithm"
@@ -7,12 +6,9 @@ description: >
   compresses data with a high ratio, widely used for compressing web
   assets. https://github.com/google/brotli
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "brotli --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id Google.Brotli --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "brotli --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "brotli --version"
   latest: { github: google/brotli }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id Google.Brotli --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user
