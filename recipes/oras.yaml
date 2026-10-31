@@ -1,4 +1,3 @@
-# erbina recipe — oras, a cli-tool. Push/pull arbitrary artifacts to OCI registries.
 id: oras
 kind: cli-tool
 title: "oras — OCI registry as storage"
@@ -7,12 +6,9 @@ description: >
   artifacts, not just container images, to and from OCI-compliant
   registries. https://github.com/oras-project/oras
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "oras version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id ORASProject.ORAS --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "oras version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "oras version"
   latest: { github: oras-project/oras }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id ORASProject.ORAS --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

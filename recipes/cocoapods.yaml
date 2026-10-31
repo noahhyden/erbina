@@ -1,4 +1,3 @@
-# erbina recipe — cocoapods, a cli-tool. Dependency manager for Cocoa (`pod`).
 id: cocoapods
 kind: cli-tool
 title: "cocoapods — the dependency manager for Swift and Objective-C Cocoa projects (`pod`)"
@@ -7,12 +6,9 @@ description: >
   projects, integrating third-party libraries into Xcode workspaces via a
   Podfile. https://github.com/CocoaPods/CocoaPods
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "pod --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "command -v gem"
       run: "gem install cocoapods"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "pod --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "pod --version"
   latest: { github: CocoaPods/CocoaPods }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "command -v gem"
       run: "gem update cocoapods"
 
-scope: user

@@ -1,4 +1,3 @@
-# erbina recipe — tree-sitter, a cli-tool. Incremental parser generator.
 id: tree-sitter
 kind: cli-tool
 title: "tree-sitter — an incremental parsing system for programming tools"
@@ -7,12 +6,9 @@ description: >
   that builds concrete syntax trees for source files and updates them
   efficiently on edits. https://github.com/tree-sitter/tree-sitter
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "tree-sitter --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "command -v cargo"
       run: "cargo install tree-sitter-cli"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "tree-sitter --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "tree-sitter --version"
   latest: { github: tree-sitter/tree-sitter }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,5 +34,4 @@ update:
       when: "command -v cargo"
       run: "cargo install tree-sitter-cli"
 
-scope: user
 category: devtools

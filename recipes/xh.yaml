@@ -1,4 +1,3 @@
-# erbina recipe — xh, a cli-tool. Fast HTTPie-like HTTP client.
 id: xh
 kind: cli-tool
 title: "xh — a friendly and fast tool for sending HTTP requests"
@@ -7,12 +6,9 @@ description: >
   the expressive HTTPie syntax in Rust for near-instant startup.
   https://github.com/ducaale/xh
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "xh --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -25,17 +21,13 @@ install:
       when: "command -v cargo"
       run: "cargo install xh"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "xh --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "xh --version"
   latest: { github: ducaale/xh }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -48,4 +40,3 @@ update:
       when: "command -v cargo"
       run: "cargo install xh"
 
-scope: user

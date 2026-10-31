@@ -1,4 +1,3 @@
-# erbina recipe — hugo, a cli-tool. Fast static site generator.
 id: hugo
 kind: cli-tool
 title: "hugo — the world's fastest framework for building websites"
@@ -7,12 +6,9 @@ description: >
   building sites from markdown content and templates in a fraction of a
   second. https://github.com/gohugoio/hugo
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "hugo version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id Hugo.Hugo.Deploy --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "hugo version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "hugo version"
   latest: { github: gohugoio/hugo }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id Hugo.Hugo.Deploy --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

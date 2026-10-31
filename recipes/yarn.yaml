@@ -1,4 +1,3 @@
-# erbina recipe — yarn, a cli-tool. JavaScript package manager.
 id: yarn
 kind: cli-tool
 title: "yarn — fast, reliable and secure dependency management for JavaScript"
@@ -7,12 +6,9 @@ description: >
   and secure dependency management, an alternative to npm with workspaces
   and plug'n'play. https://github.com/yarnpkg/berry
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "yarn --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -25,12 +21,9 @@ install:
       when: "command -v npm"
       run: "npm install -g yarn"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "yarn --version"
-    expect_exit: 0
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -43,4 +36,3 @@ update:
       when: "command -v npm"
       run: "npm update -g yarn"
 
-scope: user

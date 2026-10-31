@@ -1,4 +1,3 @@
-# erbina recipe — hcloud, a cli-tool. Manage Hetzner Cloud from the CLI.
 id: hcloud
 kind: cli-tool
 title: "hcloud — a command-line interface for Hetzner Cloud"
@@ -7,12 +6,9 @@ description: >
   managing servers, volumes, networks, firewalls and other resources.
   https://github.com/hetznercloud/cli
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "hcloud version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id HetznerCloud.CLI --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "hcloud version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "hcloud version"
   latest: { github: hetznercloud/cli }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id HetznerCloud.CLI --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

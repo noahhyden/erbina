@@ -1,4 +1,3 @@
-# erbina recipe — packer, a cli-tool. Build machine images from config.
 id: packer
 kind: cli-tool
 title: "packer — build automated machine images"
@@ -7,12 +6,9 @@ description: >
   multiple platforms (AMI, Docker, VMware) from a single source
   configuration. https://github.com/hashicorp/packer
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "packer version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id Hashicorp.Packer --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "packer version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "packer version"
   latest: { github: hashicorp/packer }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id Hashicorp.Packer --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

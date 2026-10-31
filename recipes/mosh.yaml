@@ -1,4 +1,3 @@
-# erbina recipe — mosh, a cli-tool. Roaming, low-latency remote shell.
 id: mosh
 kind: cli-tool
 title: "mosh — the mobile shell, a remote terminal application that supports roaming"
@@ -7,28 +6,21 @@ description: >
   intermittent connectivity, roaming and intelligent local echo over a UDP
   protocol. https://mosh.org/
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "mosh --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
       when: "command -v brew"
       run: "brew install mosh"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "mosh --version"
-    expect_exit: 0
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
       when: "command -v brew"
       run: "brew upgrade mosh"
 
-scope: user

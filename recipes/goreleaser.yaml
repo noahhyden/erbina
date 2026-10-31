@@ -1,4 +1,3 @@
-# erbina recipe — goreleaser, a cli-tool. Release automation for Go projects.
 id: goreleaser
 kind: cli-tool
 title: "goreleaser — deliver Go binaries as fast and easily as possible"
@@ -7,12 +6,9 @@ description: >
   (binaries, checksums, Homebrew taps, Docker images) from a single YAML
   configuration. https://github.com/goreleaser/goreleaser
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "goreleaser --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id goreleaser.goreleaser --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "goreleaser --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "goreleaser --version"
   latest: { github: goreleaser/goreleaser }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id goreleaser.goreleaser --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

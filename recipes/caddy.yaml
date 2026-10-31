@@ -1,4 +1,3 @@
-# erbina recipe — caddy, a cli-tool. Web server with automatic HTTPS.
 id: caddy
 kind: cli-tool
 title: "caddy — fast and extensible multi-platform web server with automatic HTTPS"
@@ -7,12 +6,9 @@ description: >
   Let's Encrypt, usable as a reverse proxy, static file server, and more.
   https://github.com/caddyserver/caddy
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "caddy version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id CaddyServer.Caddy --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "caddy version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "caddy version"
   latest: { github: caddyserver/caddy }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id CaddyServer.Caddy --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

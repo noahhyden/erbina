@@ -1,4 +1,3 @@
-# erbina recipe — commitlint, a cli-tool. Lint commit messages.
 id: commitlint
 kind: cli-tool
 title: "commitlint — lint commit messages against your commit convention"
@@ -7,33 +6,25 @@ description: >
   (such as Conventional Commits), commonly wired into a commit-msg git
   hook. https://github.com/conventional-changelog/commitlint
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "commitlint --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: npm
       when: "command -v npm"
       run: "npm install -g @commitlint/cli"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "commitlint --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "commitlint --version"
   latest: { github: conventional-changelog/commitlint }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: npm
       when: "command -v npm"
       run: "npm update -g @commitlint/cli"
 
-scope: user

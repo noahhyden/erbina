@@ -1,4 +1,3 @@
-# erbina recipe — k9s, a cli-tool. Terminal UI for Kubernetes.
 id: k9s
 kind: cli-tool
 title: "k9s — Kubernetes CLI to manage your clusters in style"
@@ -7,12 +6,9 @@ description: >
   making it easier to navigate, observe and manage deployed applications.
   https://github.com/derailed/k9s
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "k9s --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id Derailed.k9s --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "k9s --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "k9s --version"
   latest: { github: derailed/k9s }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id Derailed.k9s --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

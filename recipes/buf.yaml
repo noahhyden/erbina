@@ -1,4 +1,3 @@
-# erbina recipe — buf, a cli-tool. Modern Protobuf tooling.
 id: buf
 kind: cli-tool
 title: "buf — the best way to work with Protocol Buffers"
@@ -7,12 +6,9 @@ description: >
   detection, code generation and a schema registry, replacing fragile
   protoc invocations. https://github.com/bufbuild/buf
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "buf --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id bufbuild.buf --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "buf --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "buf --version"
   latest: { github: bufbuild/buf }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id bufbuild.buf --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

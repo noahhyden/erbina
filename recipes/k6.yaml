@@ -1,4 +1,3 @@
-# erbina recipe — k6, a cli-tool. Scriptable load testing in JS.
 id: k6
 kind: cli-tool
 title: "k6 — a modern load testing tool for engineering teams"
@@ -7,12 +6,9 @@ description: >
   write performance tests as JavaScript and run them from the CLI or in
   CI. https://github.com/grafana/k6
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "k6 version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id GrafanaLabs.k6 --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "k6 version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "k6 version"
   latest: { github: grafana/k6 }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id GrafanaLabs.k6 --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user
