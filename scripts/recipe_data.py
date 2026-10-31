@@ -1,20 +1,4 @@
-"""Curated tool metadata for scripts/gen_recipes.py.
-
-One dict per tool. Keys:
-  id       recipe id == filename stem (required)
-  bin      command name for detect/verify (default: id)
-  title    human title (required)
-  desc     one paragraph (required); url appended if `url` present
-  url      homepage/repo appended to description
-  detect   detect command (default: "<bin> --version")
-  verify   verify command (default: detect)
-  version_current  version.current command (default: verify)
-  gh       "owner/repo" -> emits version block with GitHub latest
-  brew/cargo/go/pipx/npm/gem/winget  package identifiers per manager (optional)
-
-Only attach `gh` when the version command prints a clean version token to stdout.
-Only set `brew`/etc. to package names known to be correct.
-"""
+"""Curated tool metadata for scripts/gen_recipes.py: one dict per tool (id and title required)."""
 from __future__ import annotations
 
 TOOLS: list[dict] = [
@@ -327,8 +311,7 @@ TOOLS: list[dict] = [
      "desc": "asciinema is a free tool for recording terminal sessions and sharing them as lightweight, text-based recordings instead of heavy video files.",
      "url": "https://github.com/asciinema/asciinema", "brew": "asciinema", "gh": "asciinema/asciinema"},
 
-    # ══ Batch 2 ═════════════════════════════════════════════════════════════
-    # ── more Rust CLI tools ─────────────────────────────────────────────────
+    # ══ Batch 2: more Rust CLI tools ══
     {"id": "atuin", "winget": "Atuinsh.Atuin", "title": "atuin — magical shell history",
      "desc": "Atuin replaces your shell history with a searchable, syncable SQLite database, adding context (exit code, duration, directory) and optional end-to-end-encrypted sync.",
      "url": "https://github.com/atuinsh/atuin", "brew": "atuin", "cargo": "atuin", "gh": "atuinsh/atuin"},
@@ -623,8 +606,7 @@ TOOLS: list[dict] = [
      "desc": "http-server is a simple, zero-configuration command-line static HTTP server, useful for serving a folder of files or a front-end build during development.",
      "url": "https://github.com/http-party/http-server", "npm": "http-server", "gh": "http-party/http-server"},
 
-    # ══ Batch 3 ═════════════════════════════════════════════════════════════
-    # ── more Rust CLI tools ─────────────────────────────────────────────────
+    # ══ Batch 3: more Rust CLI tools ══
     {"id": "choose", "title": "choose — a human-friendly and fast alternative to cut and (sometimes) awk",
      "desc": "choose is a human-friendly and fast alternative to cut (and sometimes awk) for selecting fields from lines by index or range with intuitive syntax.",
      "url": "https://github.com/theryangeary/choose", "cargo": "choose", "gh": "theryangeary/choose"},
@@ -897,8 +879,7 @@ TOOLS: list[dict] = [
      "url": "https://github.com/busyloop/lolcat", "brew": "lolcat", "gem": "lolcat", "gh": "busyloop/lolcat",
      "detect": "lolcat --version"},
 
-    # ══ Batch 4 ═════════════════════════════════════════════════════════════
-    # ── editors / shells ────────────────────────────────────────────────────
+    # ══ Batch 4: editors / shells ══
     {"id": "neovim", "winget": "Neovim.Neovim", "bin": "nvim", "title": "neovim — hyperextensible Vim-based text editor (`nvim`)",
      "desc": "Neovim is a hyperextensible Vim-based text editor with a built-in LSP client, Lua scripting and an async plugin architecture, focused on extensibility and usability.",
      "url": "https://github.com/neovim/neovim", "brew": "neovim", "gh": "neovim/neovim", "detect": "nvim --version"},
@@ -1182,8 +1163,7 @@ TOOLS: list[dict] = [
      "desc": "pkg-config is a helper tool used when compiling applications and libraries, providing the correct compiler and linker flags for installed libraries.",
      "url": "https://www.freedesktop.org/wiki/Software/pkg-config/", "brew": "pkg-config", "detect": "pkg-config --version"},
 
-    # ══ Batch 5 ═════════════════════════════════════════════════════════════
-    # ── Ruby / PHP / Perl / Haskell / OCaml / JVM ───────────────────────────
+    # ══ Batch 5: Ruby / PHP / Perl / Haskell / OCaml / JVM ══
     {"id": "rubocop", "title": "rubocop — a Ruby static code analyzer and formatter, based on the community style guide",
      "desc": "RuboCop is a Ruby static code analyzer (linter) and formatter based on the community Ruby style guide, catching offenses and auto-correcting many of them.",
      "url": "https://github.com/rubocop/rubocop", "brew": "rubocop", "gem": "rubocop", "gh": "rubocop/rubocop",
@@ -1720,16 +1700,7 @@ TOOLS: list[dict] = [
      "cargo": "television", "gh": "alexpasmantier/television", "category": "search"},
 ]
 
-# --------------------------------------------------------------------------- #
-# Curated category overrides
-# --------------------------------------------------------------------------- #
-# erbina's `_categorize` infers a taxonomy bucket from a recipe's text, but the
-# heuristic mislabels some tools (a linter that says "many languages" lands in
-# `languages`; a DigitalOcean CLI that mentions "Kubernetes clusters" lands in
-# `kubernetes`) or leaves them in `misc`. Author the correct bucket here — the
-# generator emits it as `category:` and the stored value wins over inference.
-# Kept in one reviewable place rather than scattered across the rows above.
-# (uv and tokei are hand-written recipes, not TOOLS rows — curated in their YAML.)
+# Curated category overrides: the generator emits these as `category:` and the stored value beats inference.
 _CATEGORY_OVERRIDES: dict[str, str] = {
     # linters / analyzers / text utilities the inference left in misc
     "cppcheck": "text", "hlint": "text", "pylint": "text", "shellharden": "text",
@@ -1753,13 +1724,11 @@ _CATEGORY_OVERRIDES: dict[str, str] = {
     "ghostscript": "media",
     # kubernetes over-capture corrections
     "colima": "containers", "doctl": "cloud",
-    # round 2 — git/media buckets over-captured these flagship tools because
-    # their blurbs mention "Git integration" / "color" / "graph" in passing.
+    # round 2: git/media buckets over-captured these flagship tools.
     "lsd": "files", "yazi": "files", "typos": "text", "icdiff": "text",
     "htop": "monitoring", "concurrently": "devtools", "webpack": "build",
     "mdcat": "docs",
-    # round 3 — systematic classifier gaps (version managers, docs generators,
-    # system monitors, JS/TS tooling). bottom + difftastic are hand-written.
+    # round 3: systematic classifier gaps (bottom + difftastic are hand-written).
     "pyenv": "languages", "rbenv": "languages", "jenv": "languages",
     "mise": "languages", "ts-node": "languages", "tsx": "languages",
     "tox": "build", "tailwindcss": "build", "cmake": "build", "task": "build",

@@ -1,14 +1,6 @@
 name: Ingest winget ids
 
-# On-demand harvester that proposes `winget` PackageIdentifiers for recipe rows
-# that lack Windows coverage. Unlike the brew ingester it installs nothing: it
-# downloads the winget *community source* index (the SQLite catalog the `winget`
-# CLI itself uses) and resolves ids against it, tiered by confidence — so it runs
-# on plain ubuntu with stdlib only (no winget, no Windows). The result is uploaded
-# as an artifact for a human to review and merge into scripts/recipe_data.py —
-# never committed automatically (a wrong id would install the wrong software).
-#
-# Manual only: new install methods should be reviewed before they ship.
+# Manual only: resolves winget ids against the community-source index and uploads them for review, never committed.
 
 on:
   workflow_dispatch:

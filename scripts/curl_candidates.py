@@ -1,36 +1,5 @@
 #!/usr/bin/env python3
-"""Propose official `curl | sh` installers for recipe rows with no Linux install.
-
-erbina's generator renders a `curl` install/update method the moment a
-scripts/recipe_data.py row carries a `curl` key (the official install-script URL;
-an optional `curl_shell` overrides the pipe shell for bash-only scripts). But
-most bulk-generated rows only have `brew`/`winget`, so on a plain Linux box with
-no Homebrew NOTHING installs -- every guard fails and bootstrap dead-ends. This
-maintainer helper closes that Linux gap for the mechanical subset: tools whose
-official installer we've vetted into KNOWN_INSTALLERS below.
-
-Unlike the winget harvester there is no authoritative catalog of install scripts,
-and a wrong installer runs the WRONG software -- so this is deliberately an
-allowlist, not a repo-probing guess. Each entry is a URL we've confirmed serves a
-real install script, plus the shell it needs. Every proposal is then corroborated
-against the row's `gh` owner and tiered:
-
-  high    the URL is served from the tool's own GitHub repo
-          (raw.githubusercontent.com/<owner>/<repo>/...), OR its registrable
-          domain matches the gh owner or repo (e.g. deno.land ~ denoland/deno).
-  medium  a plausible official domain that does NOT corroborate the gh row --
-          a human should eyeball it before trusting it.
-
-Only rows that are actually Linux-gapped (no cargo/go/pipx/npm/gem/curl method
-already) and lack a `curl` key are proposed, so it is idempotent against rows a
-previous run already backfilled. Stdlib only -- runs anywhere with python3.
-
-    python3 scripts/curl_candidates.py                    # HIGH-confidence proposals
-    python3 scripts/curl_candidates.py --min-confidence medium
-    python3 scripts/curl_candidates.py --apply            # stage keys for git review
-
-Nothing is committed -- review the diff/JSON, then commit and regenerate recipes.
-"""
+"""Propose official `curl | sh` installers for recipe rows with no Linux install."""
 from __future__ import annotations
 
 import re
@@ -38,15 +7,10 @@ import re
 from _harvest import (CONF_RANK, apply_keys, base_parser, load_tools, norm,  # noqa: F401
                       report, resolve_rows, stage)
 
-# Install methods that already work on a plain Linux box. brew/winget do NOT count
-# (Homebrew is rare on Linux; winget is Windows) -- a row carrying only those is
-# the gap this tool fills.
+# Install methods that work on plain Linux; brew/winget do NOT count, that gap is what this fills.
 LINUX_METHODS = ("cargo", "go", "pipx", "npm", "gem", "curl")
 
-# Curated allowlist of official install scripts, each vetted (HTTP 200 + shell
-# shebang) at seed time. `shell` is the interpreter the script requires -- it
-# becomes the recipe's `curl_shell` (default sh is omitted). Add an entry only
-# after confirming the URL is the project's OFFICIAL installer.
+# Allowlist of vetted official install scripts; `shell` becomes the recipe `curl_shell` (sh omitted).
 KNOWN_INSTALLERS: dict[str, dict[str, str]] = {
     "deno":          {"url": "https://deno.land/install.sh"},
     "chezmoi":       {"url": "https://get.chezmoi.io"},
@@ -72,10 +36,7 @@ def rows_needing_curl(tools: list[dict]) -> list[dict]:
 
 
 def _registrable_label(url: str) -> str:
-    """The second-level domain label of a URL's host (get.pulumi.com -> pulumi,
-    bun.sh -> bun, sh.rustup.rs -> rustup). A rough heuristic (no public-suffix
-    list), only ever used to *corroborate* -- a miss downgrades to medium, it
-    never fabricates a match."""
+    """The second-level domain label of a URL host (get.pulumi.com -> pulumi); corroboration only."""
     m = re.match(r"https?://([^/]+)", url or "")
     if not m:
         return ""
@@ -84,14 +45,7 @@ def _registrable_label(url: str) -> str:
 
 
 def corroborate(url: str, gh: str | None) -> str:
-    """`high` if the URL is provably first-party to the gh row, else `medium`.
-
-    First-party means: served out of the project's own GitHub repo
-    (raw.githubusercontent.com/<owner>/<repo>/...), or a vanity domain whose
-    registrable label equals (normalized) the gh owner or repo. Everything else
-    is medium -- plausible, but a human should confirm the domain is really the
-    project's before piping it to a shell.
-    """
+    """`high` if the URL is first-party to the gh row (own repo or matching vanity domain), else `medium`."""
     owner = repo = None
     if gh and "/" in gh:
         owner, repo = gh.split("/", 1)
@@ -128,6 +82,18 @@ def resolve_all(tools: list[dict], min_confidence: str = "high",
 
 
 CURL_KEYS = ("curl", "curl_shell")
+USAGE = """\
+usage examples:
+  python3 scripts/curl_candidates.py                    # HIGH-confidence proposals
+  python3 scripts/curl_candidates.py --min-confidence medium
+  python3 scripts/curl_candidates.py --apply            # stage keys for git review
+
+confidence tiers:
+  high    URL served from the tool's own GitHub repo, or its registrable domain matches the gh owner/repo
+  medium  plausible official domain that does not corroborate the gh row; eyeball it first
+
+Nothing is committed -- review the diff/JSON, then commit and regenerate recipes.
+"""
 
 
 def apply_proposals(source_text: str, proposals: list[dict]) -> tuple[str, list[str], list[str]]:
@@ -136,7 +102,7 @@ def apply_proposals(source_text: str, proposals: list[dict]) -> tuple[str, list[
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = base_parser("Propose curl installers for Linux-gapped recipe rows.", "curl_proposals.json")
+    ap = base_parser("Propose curl installers for Linux-gapped recipe rows.", "curl_proposals.json", epilog=USAGE)
     args = ap.parse_args(argv)
 
     tools = load_tools(args.recipe_data)
