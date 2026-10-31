@@ -3,23 +3,7 @@
 # requires-python = ">=3.10"
 # dependencies = ["fastmcp>=2.0", "pyyaml>=6.0", "packaging>=23"]
 # ///
-"""Lint every recipe in recipes/ against the SCHEMA.md contract.
-
-Run it before opening a recipe PR:
-
-    uv run --script lint_recipes.py            # lint recipes/
-    uv run --script lint_recipes.py path.yaml  # lint specific file(s)
-
-Exits 0 when every recipe is valid, non-zero (and prints each problem) otherwise.
-
-Two layers, both from server.py: `validate_recipe` is the schema contract, also
-enforced at recipe LOAD time (so anything that lints clean here, `bootstrap` will
-also accept), plus `lint_recipe_policy` — stricter curated-registry policy
-(non-empty title/description, guarded install methods) that runs only here, so a
-contributor's recipe PR fails fast without blocking programmatic/test recipes.
-(We depend on fastmcp only because importing server.py pulls it in at module top;
-importing does not start the server — `mcp.run()` is guarded by `__main__`.)
-"""
+"""Lint recipes/ (or the given files) against SCHEMA.md; exits non-zero on the first problem found. See AGENTS.d/080."""
 from __future__ import annotations
 
 import sys
@@ -31,12 +15,7 @@ from server import RECIPES_DIR, lint_recipe_policy, validate_recipe
 
 
 def lint_path(path: Path) -> list[str]:
-    """Return the list of problems for one recipe file (empty == valid).
-
-    Combines the schema contract (`validate_recipe`, also enforced at load time)
-    with the stricter curated-registry policy (`lint_recipe_policy`, linter-only:
-    non-empty title/description, guarded install methods).
-    """
+    """Problems for one recipe file, empty == valid: the schema contract plus the stricter curated-registry policy."""
     try:
         data = yaml.safe_load(path.read_text())
     except yaml.YAMLError as e:
