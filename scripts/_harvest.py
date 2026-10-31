@@ -73,8 +73,9 @@ def resolve_rows(rows: list[dict], resolve: Callable[[dict], dict | None],
     return out
 
 
-def base_parser(description: str, default_out: str) -> argparse.ArgumentParser:
-    ap = argparse.ArgumentParser(description=description)
+def base_parser(description: str, default_out: str, epilog: str = "") -> argparse.ArgumentParser:
+    ap = argparse.ArgumentParser(description=description, epilog=epilog,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--recipe-data", default=str(DEFAULT_RECIPE_DATA),
                     help="recipe_data.py to read TOOLS from (and edit with --apply)")
     ap.add_argument("--out", default=default_out, help="proposals JSON output")
