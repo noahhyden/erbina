@@ -3,24 +3,7 @@
 # requires-python = ">=3.10"
 # dependencies = ["fastmcp>=2.0", "pyyaml>=6.0", "packaging>=23"]
 # ///
-"""
-erbina — a Claude-Code-only MCP server that bootstraps a dev environment.
-
-Named after the Lusitanian goddess of boundaries and crossings: erbina is the
-threshold a tool crosses to become part of your environment. It is *only*
-reachable through an MCP client (an agent), by design — there is no manual
-entry point, so nobody can mistake it for something they run by hand.
-
-What it does, from one prompt:
-  - install + wire + verify CLI tools and other MCP servers from curated
-    recipes (detect -> install -> configure -> verify, idempotent), and
-  - audit where MCP servers are configured across Claude Code's local /
-    project / user scopes, so you have one place that knows what's installed
-    where.
-
-Proof-of-concept recipe #1: ataegina (a single-file bash CLI that gives each
-git worktree collision-free ports/databases).
-"""
+"""erbina — a Claude-Code-only MCP server (reachable only via an MCP client, never by hand) that installs, wires and verifies recipe tools and audits MCP scopes."""
 from __future__ import annotations
 
 import json
@@ -37,31 +20,19 @@ from packaging.version import InvalidVersion, Version
 
 HERE = Path(__file__).resolve().parent
 RECIPES_DIR = HERE / "recipes"
-# erbina's state manifest: what it installed/updated, versions, and pins. This is
-# the one place erbina is stateful. Overridable (tests point it at a temp dir).
+# erbina's state manifest (installs, versions, pins), its one stateful place; tests point STATE_DIR at a temp dir.
 STATE_DIR = Path.home() / ".erbina"
 VALID_SCOPES = ("local", "project", "user")
 VALID_KINDS = ("cli-tool", "mcp-server", "profile")
-# a profile is a meta-recipe: it installs nothing itself, it just `requires` a
-# curated set of other recipes (bootstrap resolves them). These per-tool
-# lifecycle keys are therefore meaningless on a profile and are rejected.
+# A profile installs nothing itself, only `requires` other recipes, so per-tool lifecycle keys are rejected on it.
 _PROFILE_FORBIDDEN_KEYS = ("detect", "install", "configure", "verify", "version", "update", "uninstall")
 
-# The closed set of top-level keys SCHEMA.md defines. `_path` is injected by the
-# loader AFTER validation, so it is not part of the recipe's authored contract.
+# The closed set of top-level keys SCHEMA.md defines (`_path` is injected after validation, so it is excluded).
 TOP_LEVEL_KEYS = frozenset(
     {"id", "kind", "title", "description", "detect", "install", "configure", "verify", "scope", "version", "update", "requires", "uninstall", "category"}
 )
 
-# --------------------------------------------------------------------------- #
-# recipe taxonomy — powers list_recipes / search_recipes queriability
-# --------------------------------------------------------------------------- #
-# A closed set of categories every recipe maps onto. `category`/`tags` are
-# OPTIONAL authored fields; when a recipe omits them, `_categorize` infers a
-# category (and a bag of search tags) from the recipe's own id/title/description,
-# so an agent can filter/search the registry without every YAML hand-labelling
-# itself. An authored `category` (validated against this set) always wins over
-# the inference; `kind: profile` / `kind: mcp-server` map to their own buckets.
+# recipe taxonomy: closed CATEGORIES, authored `category` wins, else `_categorize` infers it from id/title/description
 CATEGORIES = (
     "search", "files", "git", "http", "network", "kubernetes", "containers",
     "cloud", "data", "database", "monitoring", "editors", "shells", "terminal",
@@ -69,10 +40,7 @@ CATEGORIES = (
     "benchmarking", "compression", "devtools", "mcp-server", "profile", "misc",
 )
 
-# Ordered (category, keywords) rules — the FIRST category with a keyword hit wins,
-# so specific buckets precede generic ones. A keyword containing a space or hyphen
-# is matched as a substring of the normalized text; a bare word is matched against
-# the word-token set (so "git" matches the word git but not "gitignore"/"digit").
+# Ordered (category, keywords) rules, first hit wins; a spaced/hyphenated keyword is a substring match, a bare word a token match.
 _CATEGORY_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("kubernetes", ("kubernetes", "k8s", "kubectl", "kubectx", "kubens",
                     "kustomize", "kubeconfig", "cluster", "clusters", "helm")),
@@ -127,8 +95,7 @@ _CATEGORY_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("devtools", ("developer", "utility", "productivity")),
 )
 
-# A flat vocabulary of useful single-word search terms harvested from the rules
-# above; any that appear in a recipe's text become searchable `tags`.
+# Single-word search terms harvested from the rules above; any found in a recipe's text become its `tags`.
 _TAG_VOCAB = frozenset(
     kw for _cat, kws in _CATEGORY_RULES for kw in kws if " " not in kw and "-" not in kw
 )
@@ -138,12 +105,7 @@ _URL_RE = re.compile(r"https?://\S+")
 
 
 def _norm_text(recipe: dict[str, Any]) -> tuple[str, set[str]]:
-    """(lowercased raw text, word-token set) built from title + description.
-
-    Homepage URLs are stripped first — every curated description ends with one,
-    and its scheme/host ("https", "github", "io") would otherwise pollute both
-    the category inference and the tag bag.
-    """
+    """(lowercased raw text, word-token set) from title + description, with homepage URLs stripped so "https"/"github" don't pollute category and tags."""
     parts = [str(recipe.get("title") or ""), str(recipe.get("description") or "")]
     raw = _URL_RE.sub(" ", " ".join(parts).lower())
     tokens = set(re.findall(r"[a-z0-9]+", raw))
@@ -151,8 +113,7 @@ def _norm_text(recipe: dict[str, Any]) -> tuple[str, set[str]]:
 
 
 def _token_hit(kw: str, tokens: set[str]) -> bool:
-    """Plural-tolerant word match: `certificate` matches a `certificates` token
-    and vice-versa, so keyword lists don't have to enumerate both forms."""
+    """Plural-tolerant word match (`certificate` matches `certificates` and vice-versa)."""
     return kw in tokens or (kw + "s") in tokens or (kw.endswith("s") and kw[:-1] in tokens)
 
 
@@ -165,8 +126,7 @@ def _infer_category(raw: str, tokens: set[str], rid: str) -> str:
                     return category
             elif _token_hit(kw, tokens):
                 return category
-        # id-substring hints for the two buckets whose tools name themselves
-        # (lazygit/gitui → git; k9s/kubectx → kubernetes) rather than describing.
+        # id-substring hints for buckets whose tools name themselves (lazygit -> git, k9s -> kubernetes).
         if category == "git" and "git" in rid_l:
             return category
         if category == "kubernetes" and any(h in rid_l for h in ("kube", "k9s", "k3s", "k3d")):
@@ -175,14 +135,7 @@ def _infer_category(raw: str, tokens: set[str], rid: str) -> str:
 
 
 def _categorize(recipe: dict[str, Any]) -> tuple[str, list[str]]:
-    """Return (category, tags) for a recipe — the queriability metadata surfaced
-    by list_recipes/search_recipes. Total and crash-proof: a sparse or oddly
-    typed recipe dict still yields a valid taxonomy category and a tag list.
-
-    An authored `category` (valid taxonomy member) wins over inference for
-    cli-tools; `kind: profile`/`mcp-server` always map to their own bucket.
-    The recipe id is always a tag.
-    """
+    """Return (category, tags) for a recipe; total and crash-proof, an authored valid `category` wins for cli-tools, profile/mcp-server map to their own bucket, and the id is always a tag."""
     rid = str(recipe.get("id") or "")
     kind = recipe.get("kind")
     raw, tokens = _norm_text(recipe)
@@ -199,17 +152,12 @@ def _categorize(recipe: dict[str, Any]) -> tuple[str, list[str]]:
     tags.update(t for t in tokens if t in _TAG_VOCAB)
     tags.discard("")
     return category, sorted(tags)
-# Matches the first version-looking token in arbitrary command output, e.g.
-# "ataegina 0.1.0" -> "0.1.0", "v1.2.3 (build 4)" -> "1.2.3". A leading `v` is
-# stripped by _extract_version before parsing.
+# First version-looking token in command output ("v1.2.3 (build 4)" -> "1.2.3"); a leading `v` is stripped by _extract_version.
 _VERSION_RE = re.compile(r"v?(\d+\.\d+(?:\.\d+)?(?:[-.][0-9A-Za-z][0-9A-Za-z.-]*)?)")
-# The only placeholders `_subst` expands; any other ${...} token would pass through
-# into an executed command literally, so it is a recipe bug.
+# The only placeholders `_subst` expands (see AGENTS.d/101).
 KNOWN_PLACEHOLDERS = frozenset({"scope", "project_dir"})
 _PLACEHOLDER_RE = re.compile(r"\$\{([^}]*)\}")
-# A verify command starting with one of these only inspects the filesystem; it
-# doesn't prove the tool RUNS (erbina's thesis). Registry policy flags it.
-# (`claude mcp get <name>` — first token `claude` — is the honest mcp-server check.)
+# A verify starting with one of these only inspects the filesystem, so registry policy flags it (see AGENTS.d/102).
 _FILE_INSPECT_CMDS = frozenset({"test", "[", "ls", "cat", "stat", "head", "tail", "find"})
 
 mcp = FastMCP(
@@ -229,9 +177,7 @@ mcp = FastMCP(
 )
 
 
-# --------------------------------------------------------------------------- #
 # helpers
-# --------------------------------------------------------------------------- #
 def _run(cmd: str, cwd: str | None = None, timeout: int = 600) -> dict[str, Any]:
     """Run a shell command, capturing a trimmed result. Never raises."""
     try:
@@ -258,20 +204,14 @@ def _guard_ok(when: str | None) -> bool:
 
 
 def _subst(cmd: str | None, scope: str, project_dir: str | None) -> str:
-    """Expand recipe placeholders in a command string.
-
-    ${scope}        -> the resolved local|project|user scope (mcp-server wiring)
-    ${project_dir}  -> the supplied project dir (or '.' if none)
-    """
+    """Expand `${scope}` (resolved local|project|user) and `${project_dir}` (supplied dir or '.') in a command string."""
     if not cmd:
         return ""
     return cmd.replace("${scope}", scope).replace("${project_dir}", project_dir or ".")
 
 
 def _check_placeholders(text: Any, where: str, errors: list[str]) -> None:
-    """Flag any ${...} token that `_subst` would NOT expand (e.g. a typo'd
-    `${scopee}`), since it would otherwise pass through into an executed command
-    string literally."""
+    """Flag any `${...}` token (or unterminated `${`) that `_subst` would not expand, since it would reach an executed command literally."""
     if not isinstance(text, str):
         return
     for tok in _PLACEHOLDER_RE.findall(text):
@@ -280,10 +220,7 @@ def _check_placeholders(text: Any, where: str, errors: list[str]) -> None:
                 f"{where}: unknown placeholder '${{{tok}}}' "
                 f"(only {', '.join('${' + p + '}' for p in sorted(KNOWN_PLACEHOLDERS))} are substituted)"
             )
-    # A `${` with no matching `}` is neither expanded by _subst nor caught by the
-    # loop above, so it would reach an executed command literally. Every `${`
-    # must open a closed token, so more `${` than closed tokens ⇒ an unterminated
-    # placeholder (a missing-brace typo).
+    # An unterminated `${` is neither expanded nor caught above, so more `${` than closed tokens means a missing-brace typo.
     if text.count("${") > len(_PLACEHOLDER_RE.findall(text)):
         errors.append(f"{where}: unterminated placeholder — a '${{' has no closing '}}'")
 
@@ -292,15 +229,7 @@ _GITHUB_REPO_RE = re.compile(r"^[\w.-]+/[\w.-]+$")
 
 
 def _latest_command(latest: Any) -> str:
-    """Resolve a `version.latest` spec to a shell command that prints the latest
-    version.
-
-    A plain string is returned unchanged. The structured form
-    `{github: "owner/repo"}` expands to the releases-API `curl` piped through a
-    `grep` that isolates the `"tag_name"` line — the grep matters, so version
-    extraction reads the release tag and not some other number in the JSON (an id,
-    a date). Returns "" for anything malformed (validation rejects those upstream).
-    """
+    """Resolve a `version.latest` spec to a shell command printing the latest version: a string as-is, `{github: owner/repo}` to a releases-API curl grepped to the `"tag_name"` line, else ""."""
     if isinstance(latest, str):
         return latest
     if isinstance(latest, dict) and isinstance(latest.get("github"), str) and _GITHUB_REPO_RE.match(latest["github"]):
@@ -310,9 +239,7 @@ def _latest_command(latest: Any) -> str:
 
 
 def _release_notes_url(latest: Any) -> str | None:
-    """The GitHub releases page for a `{github: "owner/repo"}` version source, so
-    check_updates can point the user at the changelog before they apply an update.
-    None for a plain-string `latest` (erbina can't know where its notes live)."""
+    """The GitHub releases URL for a `{github: owner/repo}` version source, or None for a plain-string `latest`."""
     if isinstance(latest, dict) and isinstance(latest.get("github"), str) and _GITHUB_REPO_RE.match(latest["github"]):
         return f"https://github.com/{latest['github']}/releases"
     return None
@@ -322,18 +249,7 @@ _VERSION_LABEL_RE = re.compile(r"\bversion\b", re.IGNORECASE)
 
 
 def _extract_version(text: str | None) -> str | None:
-    """Pull the first version-looking token out of arbitrary command output.
-
-    e.g. "ataegina 0.1.0\\n" -> "0.1.0", "v1.2.3 (build 4)" -> "1.2.3". Returns
-    None when nothing looks like a version, so callers report "unknown" rather
-    than guess a comparison.
-
-    When the output *labels* its version (contains the word "version"), the token
-    AFTER the first such label wins — so a dotted BUILD DATE printed before it
-    ("Built 2024.01.15, tool version 2.3.4") doesn't get mistaken for the version.
-    Output with no label (a bare `v1.2.3` or `10.0` after a date) still takes the
-    first token — those are genuinely ambiguous without a label.
-    """
+    """First version-looking token in command output (None if none), preferring the token after a "version" label so a build date printed earlier isn't mistaken for it."""
     if not isinstance(text, str):
         return None
     label = _VERSION_LABEL_RE.search(text)
@@ -346,42 +262,18 @@ def _extract_version(text: str | None) -> str | None:
 
 
 def _release_core(token: str) -> str | None:
-    """The leading numeric release segment of a version token (`1.2.3-git…` ->
-    `1.2.3`), or None if the token doesn't start with a number. Used to salvage a
-    comparable version from a token that packaging rejects because of a dev/vcs
-    suffix (`-SNAPSHOT`, `-git20240101`, `-alpha.beta`)."""
+    """Leading numeric release segment of a version token (`1.2.3-git…` -> `1.2.3`), or None; salvages a comparable version from a dev/vcs suffix packaging rejects."""
     m = re.match(r"\d+(?:\.\d+)*", token)
     return m.group(0) if m else None
 
 
 def _version_text(res: dict[str, Any]) -> str:
-    """The stream of a version-command result that carries a version token.
-
-    Prefers stdout (the well-behaved convention) but falls back to stderr, since
-    many real tools print `--version`/`-V` there (graphviz's `dot -V`, anything
-    JVM-based, some GNU tools). Without this fallback their version: block would
-    silently yield update_available=null and check_updates becomes dead weight.
-    """
+    """The stream of a version-command result that carries a version token: stdout, else stderr (see AGENTS.d/105)."""
     return res["stdout"] if _extract_version(res["stdout"]) else res["stderr"]
 
 
 def _version_status(current_out: str | None, latest_out: str | None) -> dict[str, Any]:
-    """Compare two raw command outputs and report whether an update is available.
-
-    Extracts a version token from each and compares with `packaging`. The two
-    sides are treated ASYMMETRICALLY on purpose:
-
-    - `latest` must parse cleanly. A dev/vcs-suffixed `latest` (e.g.
-      `1.2.4-SNAPSHOT`) is NOT a release we can justify updating to, so it yields
-      `update_available: None` — erbina never claims an update it can't justify.
-    - `current` may carry such a suffix (real `--version` output often does), so
-      when it fails to parse we fall back to its numeric release core. That lets
-      `1.2.3-git20240101` compare as `1.2.3` against a clean `latest` instead of
-      silently hiding a real update.
-
-    `update_available` is None whenever a side can't be resolved to a comparable
-    version.
-    """
+    """Compare two raw command outputs with `packaging` and report update_available (None if either side is unresolvable); latest/current are treated asymmetrically (see AGENTS.d/100)."""
     cur, lat = _extract_version(current_out), _extract_version(latest_out)
     if cur is None or lat is None:
         return {
@@ -409,11 +301,7 @@ def _state_file() -> Path:
 
 
 def _read_state() -> dict[str, Any]:
-    """Read the erbina state manifest, tolerating a missing/malformed file.
-
-    Always returns a well-shaped {"version": 1, "tools": {...}} dict so callers
-    never have to guard — a corrupt file degrades to empty rather than raising.
-    """
+    """Read the state manifest as a well-shaped {"version": 1, "tools": {...}} dict, degrading a missing/corrupt file to empty."""
     p = _state_file()
     if not p.exists():
         return {"version": 1, "tools": {}}
@@ -427,8 +315,7 @@ def _read_state() -> dict[str, Any]:
 
 
 def _write_state(state: dict[str, Any]) -> None:
-    """Atomically persist the state manifest (temp file + os.replace), creating
-    STATE_DIR if needed, so a crash mid-write can't corrupt the file."""
+    """Atomically persist the state manifest (temp file + replace) so a crash mid-write can't corrupt it."""
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     p = _state_file()
     tmp = p.parent / (p.name + ".tmp")
@@ -437,12 +324,7 @@ def _write_state(state: dict[str, Any]) -> None:
 
 
 def _record_tool(recipe_id: str, **fields: Any) -> dict[str, Any]:
-    """Merge non-None fields into a tool's state record and persist it.
-
-    Always refreshes 'updated_at'; sets 'installed_at' the first time a tool is
-    recorded. Returns the updated record. A pin (see `pin`) is preserved because
-    we never overwrite fields not supplied here.
-    """
+    """Merge non-None fields into a tool's state record and persist it, refreshing 'updated_at' and preserving any pin."""
     state = _read_state()
     rec = state["tools"].get(recipe_id, {})
     now = datetime.now(timezone.utc).isoformat()
@@ -457,11 +339,7 @@ def _record_tool(recipe_id: str, **fields: Any) -> dict[str, Any]:
 
 
 def _forget_tool(recipe_id: str) -> bool:
-    """Drop a tool's record from the state manifest (after it's uninstalled).
-
-    Returns True if a record existed and was removed, False if there was nothing
-    to forget. Idempotent — forgetting an unknown tool is a no-op.
-    """
+    """Drop a tool's state record after uninstall; True if one was removed, idempotent no-op otherwise."""
     state = _read_state()
     if recipe_id not in state["tools"]:
         return False
@@ -476,13 +354,9 @@ def _is_pinned(recipe_id: str) -> bool:
 
 
 def _validate_methods(block: Any, name: str, *, required: bool, errors: list[str]) -> None:
-    """Validate a guarded-method block — {methods: [{id, run, when?}]} — shared by
-    `install` (required) and `update` (optional). Appends the same
-    messages the three blocks emitted individually before this was factored out.
-    """
+    """Validate a guarded-method block {methods: [{id, run, when?}]} shared by `install` (required) and `update`/`uninstall` (optional)."""
     if not isinstance(block, dict):
-        # None or wrong type. A required block is "missing or malformed"; an
-        # optional one that's present-but-wrong-type just needs to be a mapping.
+        # None or wrong type: required means missing/malformed, optional only needs to be a mapping.
         if required:
             errors.append(f"missing or malformed '{name}' (expected a mapping with 'methods')")
         elif block is not None:
@@ -507,22 +381,12 @@ def _validate_methods(block: Any, name: str, *, required: bool, errors: list[str
 
 
 def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
-    """Validate a parsed recipe dict against the SCHEMA.md contract.
-
-    Returns a list of human-readable error strings; an empty list means the
-    recipe is valid. This is the single source of truth shared by recipe LOADING
-    (`_load_recipe` raises if this is non-empty, so a malformed recipe is refused
-    rather than silently no-op'ing a phase) and the standalone `lint_recipes.py`.
-    """
+    """Validate a parsed recipe against the SCHEMA.md contract and return error strings (empty means valid); the single source of truth for `_load_recipe` and lint_recipes.py."""
     errors: list[str] = []
     if not isinstance(recipe, dict):
         return [f"recipe must be a YAML mapping, got {type(recipe).__name__}"]
 
-    # ignore the loader-injected internal key when checking the closed key set.
-    # Keys are coerced through str() before sorting/join: YAML permits non-string
-    # mapping keys (a file starting `2024: hi` parses to {2024: "hi"}), and a bare
-    # sorted()/join over mixed or non-string keys would raise — but this function
-    # must always RETURN errors, never crash its callers (_load_recipe, the linter).
+    # ignore the loader-injected `_path`; keys go through str() because YAML allows non-string keys and this must return errors, never crash.
     unknown = set(recipe) - TOP_LEVEL_KEYS - {"_path"}
     if unknown:
         errors.append(f"unknown top-level key(s): {', '.join(sorted(str(k) for k in unknown))}")
@@ -540,8 +404,7 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
         errors.append(f"'kind' must be one of {VALID_KINDS}, got {kind!r}")
     is_profile = kind == "profile"
 
-    # profile — a meta-recipe: it MUST declare a non-empty `requires` (the tools it
-    # bundles) and MUST NOT carry any per-tool lifecycle key (it installs nothing).
+    # a profile MUST declare a non-empty `requires` and MUST NOT carry any per-tool lifecycle key.
     if is_profile:
         if not recipe.get("requires"):
             errors.append("kind: profile must declare a non-empty 'requires' list (the recipes it bundles)")
@@ -551,8 +414,7 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
                 f"kind: profile installs nothing itself, so it must not have: {', '.join(present_forbidden)}"
             )
 
-    # detect — required (with a non-empty command) for an installing recipe; a
-    # profile has none (its presence is rejected just above).
+    # detect is required (non-empty command) for an installing recipe; a profile has none.
     if not is_profile:
         detect = recipe.get("detect")
         if not isinstance(detect, dict):
@@ -604,8 +466,7 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
                     errors.append(f"{tag}: missing non-empty 'command'")
                 _check_placeholders(v.get("command"), f"{tag}.command", errors)
 
-    # version — optional, but if present needs `current` + `latest` commands so
-    # check_updates can compare the installed version against what's available.
+    # version is optional, but needs `current` + `latest` commands so check_updates can compare them.
     version = recipe.get("version")
     if version is not None:
         if not isinstance(version, dict):
@@ -616,8 +477,7 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
             if not (isinstance(cur, str) and cur.strip()):
                 errors.append("'version.current' is required and must be a non-empty string")
             _check_placeholders(cur, "version.current", errors)
-            # latest is either a shell command string OR the structured
-            # {github: "owner/repo"} form (erbina resolves it to a releases-API call)
+    # latest is a shell command string or the structured {github: "owner/repo"} form.
             lat = version.get("latest")
             if isinstance(lat, dict):
                 repo = lat.get("github")
@@ -632,18 +492,13 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
             else:
                 errors.append("'version.latest' must be a non-empty string or a {github: \"owner/repo\"} mapping")
 
-    # update — optional. Same guarded-method shape as install; what the `update`
-    # tool runs to upgrade an already-installed tool.
+    # update is optional, same guarded-method shape as install; what the `update` tool runs.
     _validate_methods(recipe.get("update"), "update", required=False, errors=errors)
 
-    # uninstall — optional. Same guarded-method shape; what the `uninstall` tool
-    # runs to reverse an install (`brew uninstall`, `rm`, …).
+    # uninstall is optional, same guarded-method shape; what the `uninstall` tool runs to reverse an install.
     _validate_methods(recipe.get("uninstall"), "uninstall", required=False, errors=errors)
 
-    # requires — optional list of other recipe ids to bootstrap first. Existence
-    # of the referenced recipes (and freedom from cycles across the registry) is a
-    # registry-wide concern checked by the conformance suite, not here; this only
-    # validates the field's shape and forbids a self-reference (a trivial cycle).
+    # requires: only its shape and self-reference are checked here; existence and cycles are a registry-wide conformance check.
     requires = recipe.get("requires")
     if requires is not None:
         if not isinstance(requires, list) or not requires:
@@ -660,14 +515,12 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
     if scope is not None and scope not in VALID_SCOPES:
         errors.append(f"'scope' must be one of {VALID_SCOPES}, got {scope!r}")
 
-    # category — optional queriability label; if present must be a taxonomy member
-    # (list_recipes/search_recipes fall back to an inferred category when absent).
+    # category is optional; if present it must be a taxonomy member (else it is inferred).
     category = recipe.get("category")
     if category is not None and category not in CATEGORIES:
         errors.append(f"'category' must be one of {CATEGORIES}, got {category!r}")
 
-    # mcp-server: the configure wiring must be scope-aware (reference ${scope}),
-    # otherwise the same recipe can't target local/project/user.
+    # mcp-server wiring must reference ${scope} (see AGENTS.d/101).
     if kind == "mcp-server" and not any("${scope}" in r for r in cfg_runs):
         errors.append(
             "kind: mcp-server requires a configure step whose 'run' references ${scope} "
@@ -678,15 +531,7 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
 
 
 def lint_recipe_policy(recipe: Any) -> list[str]:
-    """Curated-registry POLICY — stricter than the schema (`validate_recipe`).
-
-    These run in the linter (`lint_recipes.py`) so a contributor's recipe PR fails
-    fast, but are intentionally NOT enforced at load time. The schema deliberately
-    allows, e.g., an unguarded install method or a title-less recipe for
-    programmatic/test use (the test harness builds minimal recipes); the shipped
-    registry is held to this higher bar. Returns human-readable problem strings;
-    empty means the recipe meets registry policy.
-    """
+    """Curated-registry policy stricter than the schema (run by lint_recipes.py, not at load time); returns problem strings, empty means the recipe meets policy."""
     problems: list[str] = []
     if not isinstance(recipe, dict):
         return problems  # structural errors are validate_recipe's job
@@ -695,8 +540,7 @@ def lint_recipe_policy(recipe: Any) -> list[str]:
         val = recipe.get(key)
         if not (isinstance(val, str) and val.strip()):
             problems.append(f"{key}: a curated recipe needs a non-empty '{key}'")
-    # every install method must be guarded, so it only runs where its package
-    # manager exists (never fire a package manager the machine lacks)
+    # every install method must be guarded so it only runs where its package manager exists.
     install = recipe.get("install")
     if isinstance(install, dict) and isinstance(install.get("methods"), list):
         for i, m in enumerate(install["methods"]):
@@ -705,8 +549,7 @@ def lint_recipe_policy(recipe: Any) -> list[str]:
                     f"install.methods[{i}] ({m.get('id')!r}): needs a `when:` guard "
                     "(curated policy — gate each method on its package manager)"
                 )
-    # verify honesty — a verify command should RUN the tool, not just inspect the
-    # filesystem (erbina's whole thesis is "verify by running, not by presence").
+    # verify honesty: a verify must RUN the tool, not just inspect the filesystem (see AGENTS.d/102).
     verify = recipe.get("verify")
     if isinstance(verify, list):
         for i, v in enumerate(verify):
@@ -752,8 +595,7 @@ def _recipe_ids() -> list[str]:
 
 
 def _pick_method(methods: list[dict[str, Any]] | None) -> dict[str, Any] | None:
-    """The first method whose `when:` guard passes (or has none). Shared by
-    install and update, which both use guarded, ordered method lists."""
+    """The first method whose `when:` guard passes (or has none), shared by install and update."""
     for m in methods or []:
         if _guard_ok(m.get("when")):
             return m
@@ -808,12 +650,7 @@ _ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
 
 def _resolve_project_root(project_dir: str | None) -> Path | None:
-    """Resolve `project_dir` to an absolute path, or None if it's unusable.
-
-    A pathological value — an embedded NUL byte (`ValueError` from `resolve()`) or
-    an over-long path component (`OSError`/ENAMETOOLONG) — must NOT crash the
-    read-only scope tools; they degrade to "no project scope" (None) instead.
-    """
+    """Resolve `project_dir` to an absolute path, or None if unusable (NUL byte, over-long component) so read-only scope tools degrade instead of crashing."""
     try:
         return Path(project_dir).resolve() if project_dir else Path.cwd()
     except (OSError, ValueError):
@@ -821,12 +658,7 @@ def _resolve_project_root(project_dir: str | None) -> Path | None:
 
 
 def _project_mcp_names(proj_root: Path | None) -> list[str]:
-    """Sorted MCP server names from `<proj_root>/.mcp.json`.
-
-    Tolerates every failure mode — no project root, a missing / unreadable /
-    oversized file (`.exists()` itself can raise ENAMETOOLONG), or malformed /
-    non-object JSON — by returning []. Reading config must never be fatal.
-    """
+    """Sorted MCP server names from `<proj_root>/.mcp.json`, returning [] on any failure (reading config is never fatal)."""
     if proj_root is None:
         return []
     mcp_json = proj_root / ".mcp.json"
@@ -857,10 +689,7 @@ def _scope_map(project_dir: str | None = None) -> dict[str, list[str]]:
 
 
 def _parse_mcp_list(project_dir: str | None = None) -> list[dict[str, Any]]:
-    """Run `claude mcp list` (the live health check) and parse per-server status.
-
-    Lines look like:  `name: <command> - ✔ Connected`  /  `... - ✘ Failed to connect`
-    """
+    """Run `claude mcp list` (the live health check) and parse per-server status from lines like `name: <command> - ✔ Connected`."""
     res = _run("claude mcp list", cwd=project_dir, timeout=120)
     servers: list[dict[str, Any]] = []
     for raw in res["stdout"].splitlines():
@@ -869,10 +698,7 @@ def _parse_mcp_list(project_dir: str | None = None) -> list[dict[str, Any]]:
             continue
         name, _, rest = line.partition(":")
         name, rest = name.strip(), rest.strip()
-        # Classify on the STATUS tail only (everything after the last ` - `), not
-        # the whole line: otherwise a command that merely contains "Failed to
-        # connect" (or "✘") would mislabel a healthy server as dead. See issue #3
-        # / tests/test_parse_mcp_list_edges.py.
+        # Classify on the status tail after the last ` - `, not the whole line (see AGENTS.d/103, issue #3).
         command, sep, status = rest.rpartition(" - ")
         if not sep:  # no ` - <status>` separator → treat the whole line as status
             command, status = "", rest
@@ -885,16 +711,9 @@ def _parse_mcp_list(project_dir: str | None = None) -> list[dict[str, Any]]:
     return servers
 
 
-# --------------------------------------------------------------------------- #
 # tools
-# --------------------------------------------------------------------------- #
 def _recipe_summary(rid: str, r: dict[str, Any]) -> dict[str, Any]:
-    """The compact, queriable view of a recipe: identity + taxonomy metadata.
-
-    `category` (a `CATEGORIES` member) and `tags` are authored when present and
-    inferred from the recipe's text otherwise, so an agent can filter/search the
-    registry without loading each recipe in full.
-    """
+    """Compact queriable view of a recipe: identity plus authored-or-inferred `category` and `tags`."""
     category, tags = _categorize(r)
     return {
         "id": rid,
@@ -908,13 +727,7 @@ def _recipe_summary(rid: str, r: dict[str, Any]) -> dict[str, Any]:
 
 @mcp.tool
 def list_recipes() -> list[dict[str, Any]]:
-    """List the curated recipes erbina can bootstrap.
-
-    Each entry carries id, kind, title, description, plus a `category` (one of the
-    fixed taxonomy buckets) and `tags` (search terms) so you can tell at a glance
-    what each recipe is for. To find a tool by keyword/category instead of scanning
-    the whole list, use `search_recipes`.
-    """
+    """List the curated recipes erbina can bootstrap (id, kind, title, description, `category`, `tags`); to find a tool by keyword or category use `search_recipes`."""
     out = []
     for rid in _recipe_ids():
         try:
@@ -926,12 +739,7 @@ def list_recipes() -> list[dict[str, Any]]:
 
 
 def _search_score(query: str, summary: dict[str, Any]) -> int:
-    """Relevance of a recipe to a lowercased query. Higher = better; 0 = no match.
-
-    Weighted so an id/title hit outranks a description hit, which outranks a tag
-    hit. An empty query scores every recipe equally (1) so filters still return
-    the full set in stable id order.
-    """
+    """Relevance of a recipe to a lowercased query (id/title hit > description hit > tag hit; 0 = no match; an empty query scores every recipe 1)."""
     if not query:
         return 1
     score = 0
@@ -961,16 +769,7 @@ def search_recipes(
     kind: str | None = None,
     limit: int = 50,
 ) -> dict[str, Any]:
-    """Find recipes by keyword and/or filter, so you don't have to scan `list_recipes`.
-
-    `query` is matched (case-insensitively) against each recipe's id, title,
-    description and tags, and results are ranked by relevance (id/title hits beat
-    description hits beat tag hits). `category` restricts to one taxonomy bucket
-    (e.g. "kubernetes", "search", "http" — see `CATEGORIES`); `kind` restricts to
-    cli-tool|mcp-server|profile. With no query and no filters this returns every
-    recipe (like `list_recipes`) in id order. `limit` caps the returned page;
-    `count` is the total number of matches before truncation.
-    """
+    """Find recipes by case-insensitive `query` (id/title/description/tags, ranked by relevance) and/or `category` (see CATEGORIES) / `kind` (cli-tool|mcp-server|profile) filters; `limit` caps the page, `count` is the total matches."""
     if category is not None and category not in CATEGORIES:
         return {"error": f"category must be one of {list(CATEGORIES)}"}
     if kind is not None and kind not in VALID_KINDS:
@@ -1009,13 +808,7 @@ def search_recipes(
 
 @mcp.tool
 def list_categories() -> dict[str, Any]:
-    """A domain map of the registry: every category that has recipes, with how
-    many and a few example ids. Call this to see what erbina COVERS at a glance
-    (e.g. "kubernetes: 26, languages: 40, git: 29"), then drill into one with
-    `search_recipes(category=...)`. Categories partition the registry — each
-    recipe has exactly one — so the counts sum to the total recipe count. Sorted
-    by count (descending), then category name.
-    """
+    """A domain map of the registry: every category with its recipe count and a few example ids (sorted by count desc), to see what erbina covers before drilling in with `search_recipes(category=...)`."""
     buckets: dict[str, list[str]] = {}
     for rid in _recipe_ids():
         try:
@@ -1035,11 +828,7 @@ def list_categories() -> dict[str, Any]:
 
 @mcp.tool
 def inspect_recipe(recipe_id: str, scope: str = "user", project_dir: str | None = None) -> dict[str, Any]:
-    """
-    Show EXACTLY what bootstrapping a recipe would run, without executing anything.
-    Call this and show the user before running `bootstrap`. `scope` is one of
-    local|project|user (only meaningful for kind: mcp-server recipes).
-    """
+    """Show EXACTLY what bootstrapping a recipe would run, without executing anything; call this and show the user before `bootstrap`; `scope` is local|project|user (only meaningful for kind: mcp-server)."""
     if scope not in VALID_SCOPES:
         return {"error": f"scope must be one of {VALID_SCOPES}"}
     recipe = _load_recipe(recipe_id)
@@ -1061,21 +850,7 @@ def bootstrap(
     project_dir: str | None = None,
     force_configure: bool = False,
 ) -> dict[str, Any]:
-    """
-    Install + configure + verify a recipe, idempotently.
-
-    If the recipe declares `requires: [<id>, …]`, each prerequisite is bootstrapped
-    first (idempotently, depth-first; a shared prereq runs once; a cyclic one is
-    skipped) and a failed prerequisite aborts before this recipe installs. Then
-    phases: detect (skip install if already present) -> install (first method whose
-    `when:` guard passes) -> configure (tool-specific wiring; skipped if already
-    present unless force_configure) -> verify (commands that must exit 0).
-
-    Set dry_run=true to get the full plan (including `requires`) without executing.
-    `scope` (local|project|user) targets where an mcp-server recipe is wired.
-    `project_dir` is the working dir for configure steps (e.g. where
-    `ataegina init` runs).
-    """
+    """Install + configure + verify a recipe idempotently: `requires` prerequisites first (depth-first, a failed one aborts), then detect (skip install if present) -> install (first method whose `when:` guard passes) -> configure (skipped if present unless force_configure) -> verify (must exit 0); dry_run=true returns the full plan without executing, `scope` (local|project|user) targets mcp-server wiring, `project_dir` is the cwd for configure steps."""
     return _bootstrap_recipe(recipe_id, scope, dry_run, project_dir, force_configure, set(), ())
 
 
@@ -1088,12 +863,7 @@ def _bootstrap_recipe(
     seen: set[str],
     path: tuple[str, ...],
 ) -> dict[str, Any]:
-    """Core of `bootstrap`, recursive over `requires`.
-
-    `path` is the ancestor chain of the current recipe (a back-edge into it is a
-    cyclic prerequisite); `seen` is every recipe already handled in this top-level
-    call (a cross-edge to one is a diamond — bootstrap it only once).
-    """
+    """Core of `bootstrap`, recursive over `requires`: `path` is the ancestor chain (a back-edge is a cycle), `seen` is every recipe handled this call (a cross-edge is a diamond, bootstrapped once)."""
     if scope not in VALID_SCOPES:
         return {"error": f"scope must be one of {VALID_SCOPES}"}
     try:
@@ -1137,8 +907,7 @@ def _bootstrap_recipe(
                 return report
         report["requires"] = req_reports
 
-    # A profile installs nothing itself — its `requires` (all resolved OK above,
-    # or we'd have short-circuited) ARE the work. Report done.
+    # A profile installs nothing itself; its `requires` (all resolved OK above) ARE the work.
     if recipe.get("kind") == "profile":
         report["ok"] = True
         report["note"] = f"Profile '{recipe_id}' bootstrapped its {len(requires)} bundled recipe(s)."
@@ -1198,9 +967,7 @@ def _bootstrap_recipe(
             if not ok:
                 configure_failed = True
         report["phases"]["configure"] = {"steps": results}
-        # A required (non-optional) configure step is a prerequisite for verify to
-        # be meaningful — if one fails, short-circuit like a failed install rather
-        # than reporting ok on the strength of an unrelated verify.
+        # A failed required configure step makes verify meaningless, so short-circuit like a failed install.
         if configure_failed:
             report["ok"] = False
             return report
@@ -1229,15 +996,7 @@ def _bootstrap_recipe(
 
 @mcp.tool
 def check_updates(recipe_id: str | None = None, project_dir: str | None = None) -> dict[str, Any]:
-    """
-    Report whether installed tools have newer versions available — read-only.
-
-    For each recipe that declares a `version:` block (with `current` + `latest`
-    commands), erbina confirms the tool is installed (via `detect`), then runs the
-    two version commands and compares them. Pass a `recipe_id` to check one tool,
-    or omit it to check every recipe that supports update checks. Nothing is
-    installed or changed; to apply an update, re-run `bootstrap`.
-    """
+    """Report whether installed tools have newer versions available, read-only: for recipes with a `version:` block it confirms the tool is installed (detect) then compares the `current`/`latest` commands, for one `recipe_id` or all; to apply an update re-run `update`."""
     ids = [recipe_id] if recipe_id else _recipe_ids()
     checked: list[dict[str, Any]] = []
     for rid in ids:
@@ -1274,8 +1033,7 @@ def check_updates(recipe_id: str | None = None, project_dir: str | None = None) 
         cur = _run(_subst(ver["current"], scope, project_dir), cwd=v_cwd, timeout=30)
         lat = _run(_subst(_latest_command(ver["latest"]), scope, project_dir), cwd=v_cwd, timeout=60)
         entry.update(_version_status(_version_text(cur), lat["stdout"]))
-        # for a github-sourced recipe, point the user at the release notes so the
-        # decision to apply an update is informed (the changelog is one click away).
+        # for a github-sourced recipe, link the release notes so the update decision is informed.
         notes = _release_notes_url(ver["latest"])
         if notes:
             entry["release_notes"] = notes
@@ -1341,15 +1099,7 @@ def update(
     project_dir: str | None = None,
     force: bool = False,
 ) -> dict[str, Any]:
-    """
-    Update an already-installed tool, then re-run its `verify` as a safety net.
-
-    Runs the recipe's `update:` methods — the first whose `when:` guard
-    passes — then re-runs `verify`. If verify fails, the update is reported failed
-    and flagged (the tool may be broken). Set dry_run=true to see the exact
-    command without executing. Only updates a tool that is already installed; run
-    `bootstrap` first otherwise. A pinned tool is refused unless force=true.
-    """
+    """Update an already-installed tool (run `bootstrap` first otherwise): run the first `update:` method whose `when:` guard passes then re-run `verify`, flagging the tool as possibly broken if verify fails; dry_run=true shows the command without executing, a pinned tool is refused unless force=true."""
     if scope not in VALID_SCOPES:
         return {"error": f"scope must be one of {VALID_SCOPES}"}
     recipe = _load_recipe(recipe_id)
@@ -1453,16 +1203,7 @@ def uninstall(
     dry_run: bool = False,
     project_dir: str | None = None,
 ) -> dict[str, Any]:
-    """
-    Reverse a cli-tool install: run the recipe's `uninstall:` methods, confirm the
-    tool is actually gone (re-run detect), and forget it in the state manifest.
-
-    Destructive — like bootstrap, show the user the command and confirm first; set
-    dry_run=true to see the exact command without running it. Only recipes that
-    declare an `uninstall:` block can be removed (erbina never guesses how to delete
-    a tool). For mcp-server recipes use `remove_mcp` instead. A tool that is already
-    absent is reported so (and any stale state record is cleaned up).
-    """
+    """Reverse a cli-tool install via the recipe's `uninstall:` methods, confirm it is gone (re-run detect) and forget it in state; Destructive — show the user the command and confirm first, dry_run=true shows it without running, only recipes with an `uninstall:` block qualify, and mcp-server recipes use `remove_mcp` instead."""
     if scope not in VALID_SCOPES:
         return {"error": f"scope must be one of {VALID_SCOPES}"}
     recipe = _load_recipe(recipe_id)
@@ -1528,14 +1269,7 @@ def uninstall(
 
 @mcp.tool
 def pin(recipe_id: str, pinned: bool = True) -> dict[str, Any]:
-    """
-    Pin (or unpin) a tool so automatic updates skip it.
-
-    A pinned tool is flagged by `check_updates` and excluded from its
-    `updates_available` list, and `update` refuses it unless called with
-    force=true. Call `pin(recipe_id, pinned=false)` to unpin. Pinning is recorded
-    in the state manifest and does not install or change the tool.
-    """
+    """Pin (or unpin with pinned=false) a tool so `check_updates` excludes it from `updates_available` and `update` refuses it unless force=true; recorded in state, installs and changes nothing."""
     if recipe_id not in _recipe_ids():
         return {"error": f"no recipe '{recipe_id}'. Available: {', '.join(_recipe_ids()) or '(none)'}"}
     state = _read_state()
@@ -1557,12 +1291,7 @@ def pin(recipe_id: str, pinned: bool = True) -> dict[str, Any]:
 
 @mcp.tool
 def audit_scopes(project_dir: str | None = None) -> dict[str, Any]:
-    """
-    Show where MCP servers are configured across Claude Code's scopes — one place
-    that knows what's installed where. Reads user scope (~/.claude.json top-level),
-    local scope (~/.claude.json per-project), and project scope (.mcp.json in
-    project_dir or CWD). Read-only.
-    """
+    """Show where MCP servers are configured across Claude Code's scopes (user in ~/.claude.json, local per-project in ~/.claude.json, project in .mcp.json under project_dir or CWD), read-only."""
     cj = _claude_json()
     proj_root = _resolve_project_root(project_dir)
     root_str = str(proj_root) if proj_root is not None else f"{project_dir!r} (could not be resolved)"
@@ -1597,12 +1326,7 @@ def audit_scopes(project_dir: str | None = None) -> dict[str, Any]:
 
 @mcp.tool
 def find_dead_mcps(project_dir: str | None = None) -> dict[str, Any]:
-    """
-    Health-check every configured MCP server (via `claude mcp list`) and report
-    which ones fail to connect — stale/dead servers that are candidates for
-    removal. Each result is annotated with the scope(s) it lives in, so removal
-    knows where to delete it. Read-only.
-    """
+    """Health-check every configured MCP server via `claude mcp list` and report those that fail to connect, annotated with the scope(s) they live in so removal knows where to delete; read-only."""
     servers = _parse_mcp_list(project_dir)
     smap = _scope_map(project_dir)
     for s in servers:
@@ -1623,14 +1347,7 @@ def find_dead_mcps(project_dir: str | None = None) -> dict[str, Any]:
 
 @mcp.tool
 def doctor(project_dir: str | None = None) -> dict[str, Any]:
-    """
-    Health-check the CLI tools erbina has installed (from its state manifest):
-    re-run each recorded tool's `detect` (is it still present?) and, when present,
-    its `verify` (does it still run?), classifying each as healthy / missing /
-    broken. Read-only — it runs only the recipe's own non-destructive
-    detect/verify commands. This is the CLI-tool counterpart to `find_dead_mcps`
-    (which health-checks MCP servers); mcp-server records are deferred to it.
-    """
+    """Health-check the CLI tools erbina installed (from its state manifest) by re-running each recorded tool's `detect` then `verify`, classifying healthy/missing/broken; read-only (runs only the recipe's own detect/verify), the CLI-tool counterpart to `find_dead_mcps`."""
     recorded = _read_state()["tools"]
     healthy: list[str] = []
     problems: list[dict[str, Any]] = []
@@ -1675,14 +1392,7 @@ def doctor(project_dir: str | None = None) -> dict[str, Any]:
 
 @mcp.tool
 def remove_mcp(name: str, scope: str | None = None, dry_run: bool = False) -> dict[str, Any]:
-    """
-    Remove a configured MCP server by name (e.g. a dead one surfaced by
-    `find_dead_mcps`). If `scope` is omitted, erbina resolves which scope holds
-    it; pass it explicitly if the same name exists in more than one scope.
-
-    Destructive — run `find_dead_mcps` and confirm with the user first. Set
-    dry_run=true to see the exact `claude mcp remove` command without running it.
-    """
+    """Remove a configured MCP server by name (e.g. one surfaced by `find_dead_mcps`), resolving its scope if `scope` is omitted; Destructive — run `find_dead_mcps` and confirm with the user first, dry_run=true shows the `claude mcp remove` command without running it."""
     if scope is None:
         scopes = _scope_map().get(name, [])
         if not scopes:
