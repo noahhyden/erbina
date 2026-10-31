@@ -26,8 +26,7 @@ verify:
   - command: "eza --version"
     expect_exit: 0
 
-# 4. VERSION — `eza --version` prints a banner line then "v0.20.4 [+git]"; erbina
-# extracts the first version token (the banner has no X.Y number). Tags: "v0.20.4".
+# `eza --version` prints a banner line before the version token.
 version:
   current: "eza --version"
   latest: { github: eza-community/eza }

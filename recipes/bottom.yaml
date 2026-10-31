@@ -12,8 +12,7 @@ detect:
   command: "btm --version"
   expect_exit: 0
 
-# 2. INSTALL — prefer brew; fall back to cargo. Formula and crate are `bottom`
-# (the binary they install is `btm`).
+# Formula and crate are `bottom`; the binary is `btm`.
 install:
   methods:
     - id: homebrew
@@ -31,8 +30,7 @@ verify:
   - command: "btm --version"
     expect_exit: 0
 
-# 4. VERSION — `btm --version` prints "btm 0.10.2"; ClementTsang/bottom tags
-# look like "0.10.2" (no v prefix). erbina extracts + compares the token.
+# Tags have no v prefix (0.10.2).
 version:
   current: "btm --version"
   latest: { github: ClementTsang/bottom }

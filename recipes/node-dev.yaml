@@ -1,6 +1,4 @@
 # erbina recipe — node-dev, a profile (meta-recipe).
-# Installs nothing itself; `requires` a curated Node/JS-development toolchain,
-# which bootstrap resolves in order.
 id: node-dev
 kind: profile
 title: "node-dev — a curated Node.js / JavaScript development toolchain"

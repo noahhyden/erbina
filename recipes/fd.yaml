@@ -12,8 +12,7 @@ detect:
   command: "fd --version"
   expect_exit: 0
 
-# 2. INSTALL — prefer brew; fall back to cargo. NOTE: the crate is `fd-find`
-# (it installs the `fd` binary), NOT `fd`.
+# The cargo crate is `fd-find`, not `fd`.
 install:
   methods:
     - id: homebrew
@@ -31,8 +30,6 @@ verify:
   - command: "fd --version"
     expect_exit: 0
 
-# 4. VERSION — `fd --version` prints "fd 10.1.0"; latest is the GitHub tag
-# (sharkdp/fd tags look like "v10.1.0"). erbina extracts + compares the token.
 version:
   current: "fd --version"
   latest: { github: sharkdp/fd }

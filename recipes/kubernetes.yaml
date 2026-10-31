@@ -1,6 +1,4 @@
 # erbina recipe — kubernetes, a profile (meta-recipe).
-# Installs nothing itself; `requires` a curated set of Kubernetes CLIs, which
-# bootstrap resolves in order.
 id: kubernetes
 kind: profile
 title: "kubernetes — a curated Kubernetes command-line toolkit"

@@ -1,6 +1,4 @@
 # erbina recipe — uv, a cli-tool. An extremely fast Python package/project manager.
-# (erbina itself runs under uv, so on any machine running erbina this recipe will
-# typically detect uv as already present — it's here for completeness + updates.)
 id: uv
 kind: cli-tool
 title: "uv — an extremely fast Python package and project manager"
@@ -37,8 +35,7 @@ version:
   current: "uv --version"
   latest: { github: astral-sh/uv }
 
-# 5. UPDATE — brew upgrade if brew-managed; otherwise uv can update itself
-# (only works for standalone-installer installs, which is why brew is tried first).
+# Self-update only works for standalone-installer installs, so brew goes first.
 update:
   methods:
     - id: homebrew
@@ -52,6 +49,5 @@ update:
       run: "uv self update"
 
 scope: user
-# uv describes itself as a script runner / drop-in, so inference misses the
-# packaging bucket; author it (see SCHEMA.md "Categories").
+# uv calls itself a script runner, so inference misses packaging; category is authored.
 category: packaging

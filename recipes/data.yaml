@@ -1,6 +1,4 @@
 # erbina recipe — data, a profile (meta-recipe).
-# Installs nothing itself; `requires` a curated set of data-wrangling CLIs, which
-# bootstrap resolves in order.
 id: data
 kind: profile
 title: "data — a curated set of command-line data-wrangling tools"

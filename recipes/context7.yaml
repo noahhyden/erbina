@@ -1,6 +1,4 @@
 # erbina recipe — the Context7 MCP server (kind: mcp-server).
-# Upstash's Context7: a Node/npx server (like memory); the work is the scope-aware
-# wiring. ${scope} is substituted from `bootstrap`.
 id: context7
 kind: mcp-server
 title: "context7 — MCP server for up-to-date library docs & code examples"

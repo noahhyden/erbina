@@ -1,6 +1,4 @@
 # erbina recipe — security, a profile (meta-recipe).
-# Installs nothing itself; `requires` a curated set of security scanners, which
-# bootstrap resolves in order.
 id: security
 kind: profile
 title: "security — a curated set of security & supply-chain scanners"

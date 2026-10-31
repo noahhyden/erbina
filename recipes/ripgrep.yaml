@@ -29,9 +29,6 @@ verify:
   - command: "rg --version"
     expect_exit: 0
 
-# 4. VERSION — powers check_updates. `rg --version` prints "ripgrep 14.1.1"; the
-# latest line prints the GitHub release tag. erbina extracts the version token
-# from each and compares.
 version:
   current: "rg --version"
   latest: { github: BurntSushi/ripgrep }

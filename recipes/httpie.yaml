@@ -41,10 +41,7 @@ update:
       when: "command -v pipx"
       run: "pipx install httpie"
 
-# 6. UNINSTALL — reverse the install with the SAME manager that owns it. pipx must
-# come before the rm fallback: `rm`-ing the `http` shim leaves the pipx venv behind,
-# so a later `pipx install httpie` no-ops ("already installed") and never relinks the
-# shim — a broken reinstall. `pipx uninstall` removes the venv AND the shim cleanly.
+# pipx uninstall must precede rm: rm leaves the pipx venv, so a reinstall no-ops.
 uninstall:
   methods:
     - id: homebrew

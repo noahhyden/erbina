@@ -12,8 +12,7 @@ detect:
   command: "tldr --version"
   expect_exit: 0
 
-# 2. INSTALL — prefer brew; fall back to cargo. Formula and crate are `tealdeer`
-# (the binary they install is `tldr`).
+# Formula and crate are `tealdeer`; the binary is `tldr`.
 install:
   methods:
     - id: homebrew
@@ -28,8 +27,6 @@ verify:
   - command: "tldr --version"
     expect_exit: 0
 
-# 4. VERSION — `tldr --version` prints "tealdeer 1.7.0"; dbrgn/tealdeer tags are
-# "v1.7.0". erbina extracts + compares the token.
 version:
   current: "tldr --version"
   latest: { github: dbrgn/tealdeer }

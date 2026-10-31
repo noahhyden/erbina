@@ -1,7 +1,4 @@
 # erbina recipe — the Playwright MCP server (kind: mcp-server).
-# Microsoft's official Playwright MCP: a Node/npx server (like memory); the work
-# is the scope-aware wiring. ${scope} is substituted from `bootstrap`. (The id is
-# `playwright-mcp` because `playwright` is the cli-tool recipe.)
 id: playwright-mcp
 kind: mcp-server
 title: "playwright-mcp — MCP server for browser automation (Microsoft Playwright)"

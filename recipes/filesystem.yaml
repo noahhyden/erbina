@@ -1,7 +1,4 @@
 # erbina recipe — the official MCP "filesystem" server (kind: mcp-server).
-# A Node/npx server (like memory): the work is the scope-aware wiring. It takes
-# the directory it may access as an argument — ${project_dir} is substituted from
-# `bootstrap`, so the server is scoped to the project it's wired into.
 id: filesystem
 kind: mcp-server
 title: "filesystem — official MCP server for scoped local file access"

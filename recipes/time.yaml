@@ -1,6 +1,4 @@
 # erbina recipe — the official MCP "time" server (kind: mcp-server).
-# Mirrors fetch.yaml: uvx fetches on first run, so wiring it into a Claude Code
-# scope is the work. ${scope} is substituted from `bootstrap`.
 id: time
 kind: mcp-server
 title: "time — official MCP server for time & timezone conversions"

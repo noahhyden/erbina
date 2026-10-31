@@ -1,6 +1,4 @@
 # erbina recipe — python-dev, a profile (meta-recipe).
-# Installs nothing itself; `requires` a curated Python-development toolchain,
-# which bootstrap resolves in order.
 id: python-dev
 kind: profile
 title: "python-dev — a curated Python development toolchain"

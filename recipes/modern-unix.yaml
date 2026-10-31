@@ -1,7 +1,4 @@
 # erbina recipe — modern-unix, a profile (meta-recipe).
-# A profile installs nothing itself; it just `requires` a curated set of recipes,
-# which bootstrap resolves in order. Bootstrapping this one sets up a "modern
-# Unix" CLI in a single prompt.
 id: modern-unix
 kind: profile
 title: "modern-unix — a curated set of modern CLI replacements"
