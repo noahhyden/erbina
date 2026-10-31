@@ -29,33 +29,20 @@ Nothing is committed -- review the diff/JSON, then commit and regenerate recipes
 """
 from __future__ import annotations
 
-import argparse
-import importlib.util
-import json
-import re
 import shutil
 import sqlite3
 import tempfile
 import urllib.request
 import zipfile
-from collections import Counter
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_RECIPE_DATA = REPO_ROOT / "scripts" / "recipe_data.py"
+from _harvest import (CONF_RANK, apply_keys, base_parser, load_tools, norm,  # noqa: F401
+                      report, resolve_rows, stage)
 
 # The winget community source ships as a signed MSIX (a zip) whose Public/index.db
 # is a SQLite catalog of every package. This is the CDN URL `winget` fetches.
 WINGET_SOURCE_URL = "https://cdn.winget.microsoft.com/cache/source2.msix"
 INDEX_MEMBER = "Public/index.db"
-
-CONF_RANK = {"high": 3, "medium": 2, "low": 1}
-
-
-def norm(s: str | None) -> str:
-    """Casefold to bare alphanumerics for comparing names/publishers/owners."""
-    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
-
 
 def rows_missing_winget(tools: list[dict]) -> list[dict]:
     """Rows without a *truthy* winget key (blank/None count as missing)."""
@@ -196,64 +183,18 @@ def resolve(tool: dict, index: WingetIndex) -> dict | None:
 def resolve_all(tools: list[dict], index: WingetIndex, min_confidence: str = "high",
                 ids: set[str] | None = None) -> list[dict]:
     """Resolve every winget-less row at or above `min_confidence`, sorted by id."""
-    threshold = CONF_RANK[min_confidence]
-    out: list[dict] = []
-    for tool in rows_missing_winget(tools):
-        if ids is not None and tool["id"] not in ids:
-            continue
-        p = resolve(tool, index)
-        if p and CONF_RANK[p["confidence"]] >= threshold:
-            out.append(p)
-    out.sort(key=lambda p: p["id"])
-    return out
-
-
-# --------------------------------------------------------------------------- #
-# staging: insert `winget` keys into recipe_data.py source text (pure)
-# --------------------------------------------------------------------------- #
-_ROW = re.compile(r"\{[^{}]*\}")  # a TOOLS row is a brace-balanced dict with no nesting
-
-
-def _id_token(rid: str) -> re.Pattern[str]:
-    # anchored on the exact id so `fd` never matches the `fdupes` row.
-    return re.compile(r'"id":\s*"' + re.escape(rid) + r'"')
+    return resolve_rows(rows_missing_winget(tools), lambda t: resolve(t, index),
+                        min_confidence, ids)
 
 
 def apply_proposals(source_text: str, proposals: list[dict]) -> tuple[str, list[str], list[str]]:
-    """Insert `"winget": "<id>"` after each row's id. Returns (new_text, applied
-    ids, missing ids). Idempotent: a row that already has a winget key is left
-    untouched."""
-    text = source_text
-    applied: list[str] = []
-    missing: list[str] = []
-    for p in proposals:
-        rid, wid = p["id"], p["winget"]
-        token = _id_token(rid)
-        row_match = next((m for m in _ROW.finditer(text) if token.search(m.group())), None)
-        if row_match is None:
-            missing.append(rid)
-            continue
-        row = row_match.group()
-        if '"winget"' in row:  # already staged -> idempotent
-            continue
-        at = token.search(row).end()
-        new_row = row[:at] + f', "winget": "{wid}"' + row[at:]
-        text = text[:row_match.start()] + new_row + text[row_match.end():]
-        applied.append(rid)
-    return text, applied, missing
+    """Stage `winget` after each row's id; see _harvest.apply_keys."""
+    return apply_keys(source_text, proposals, ("winget",))
 
 
 # --------------------------------------------------------------------------- #
 # I/O + CLI
 # --------------------------------------------------------------------------- #
-def load_tools(recipe_data_path: str | Path) -> list[dict]:
-    """Import TOOLS from a recipe_data.py file at an arbitrary path."""
-    spec = importlib.util.spec_from_file_location("_erbina_recipe_data", recipe_data_path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.TOOLS
-
-
 def fetch_source_msix(url: str, dest_dir: str | Path) -> Path:  # pragma: no cover - network I/O
     dest = Path(dest_dir) / "winget-source.msix"
     with urllib.request.urlopen(url, timeout=180) as r, open(dest, "wb") as f:  # noqa: S310
@@ -262,16 +203,9 @@ def fetch_source_msix(url: str, dest_dir: str | Path) -> Path:  # pragma: no cov
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="Resolve winget PackageIdentifiers for recipe rows.")
-    ap.add_argument("--recipe-data", default=str(DEFAULT_RECIPE_DATA),
-                    help="recipe_data.py to read TOOLS from (and edit with --apply)")
-    ap.add_argument("--out", default="winget_proposals.json", help="proposals JSON output")
-    ap.add_argument("--min-confidence", choices=list(CONF_RANK), default="high")
+    ap = base_parser("Resolve winget PackageIdentifiers for recipe rows.", "winget_proposals.json")
     ap.add_argument("--msix", help="use this local source MSIX instead of downloading")
     ap.add_argument("--source-url", default=WINGET_SOURCE_URL)
-    ap.add_argument("--apply", action="store_true",
-                    help="stage resolved winget keys into --recipe-data in place")
-    ap.add_argument("ids", nargs="*", help="restrict to these recipe ids (default: all)")
     args = ap.parse_args(argv)
 
     tools = load_tools(args.recipe_data)
@@ -285,18 +219,13 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         index.close()
 
-    Path(args.out).write_text(json.dumps(proposals, indent=2) + "\n")
-    by_conf = Counter(p["confidence"] for p in proposals)
+    by_conf = report(proposals, args.out)
     print(f"resolved {len(proposals)} winget id(s) "
           f"(high={by_conf['high']} medium={by_conf['medium']} low={by_conf['low']}) "
           f"-> {args.out}")
 
     if args.apply:
-        rd = Path(args.recipe_data)
-        new_text, applied, missing = apply_proposals(rd.read_text(), proposals)
-        rd.write_text(new_text)
-        note = f"; {len(missing)} id(s) not found: {missing}" if missing else ""
-        print(f"applied {len(applied)} winget key(s) into {rd}{note}")
+        stage(args.recipe_data, proposals, ("winget",))
     return 0
 
 
