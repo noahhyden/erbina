@@ -1,4 +1,3 @@
-# erbina recipe — glab, a cli-tool. GitLab from the command line.
 id: glab
 kind: cli-tool
 title: "glab — an open-source GitLab CLI tool"
@@ -7,12 +6,9 @@ description: >
   pipelines and repositories to your terminal, next to your code.
   https://gitlab.com/gitlab-org/cli
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "glab --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,12 +18,9 @@ install:
       when: "winget --version"
       run: "winget install -e --id GLab.GLab --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "glab --version"
-    expect_exit: 0
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -37,4 +30,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id GLab.GLab --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

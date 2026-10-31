@@ -1,4 +1,3 @@
-# erbina recipe — bandwhich, a cli-tool. Per-process network bandwidth monitor.
 id: bandwhich
 kind: cli-tool
 title: "bandwhich — terminal bandwidth utilization tool"
@@ -7,12 +6,9 @@ description: >
   process, connection and remote host in a live terminal view.
   https://github.com/imsnif/bandwhich
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "bandwhich --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "command -v cargo"
       run: "cargo install bandwhich"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "bandwhich --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "bandwhich --version"
   latest: { github: imsnif/bandwhich }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "command -v cargo"
       run: "cargo install bandwhich"
 
-scope: user

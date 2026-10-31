@@ -1,4 +1,3 @@
-# erbina recipe — trunk, a cli-tool. Bundler for Rust WASM web apps.
 id: trunk
 kind: cli-tool
 title: "trunk — build, bundle and ship your Rust WASM application to the web"
@@ -7,12 +6,9 @@ description: >
   and ships your app with zero-config asset pipelines and a built-in dev
   server. https://github.com/trunk-rs/trunk
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "trunk --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "command -v cargo"
       run: "cargo install trunk"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "trunk --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "trunk --version"
   latest: { github: trunk-rs/trunk }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "command -v cargo"
       run: "cargo install trunk"
 
-scope: user

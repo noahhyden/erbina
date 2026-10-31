@@ -1,4 +1,3 @@
-# erbina recipe — kube-linter, a cli-tool. Lint Kubernetes YAML and Helm charts.
 id: kube-linter
 kind: cli-tool
 title: "kube-linter — a static analysis tool that checks Kubernetes YAML and Helm charts"
@@ -7,12 +6,9 @@ description: >
   and Helm charts to ensure they follow best practices for production
   readiness and security. https://github.com/stackrox/kube-linter
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "kube-linter version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id stackrox.kube-linter --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "kube-linter version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "kube-linter version"
   latest: { github: stackrox/kube-linter }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id stackrox.kube-linter --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

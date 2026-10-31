@@ -1,4 +1,3 @@
-# erbina recipe — gdu, a cli-tool. Fast console disk-usage analyzer.
 id: gdu
 kind: cli-tool
 title: "gdu — a fast disk usage analyzer with a console interface written in Go"
@@ -7,12 +6,9 @@ description: >
   primarily for SSDs where it uses parallel processing to scan directories
   quickly. https://github.com/dundee/gdu
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "gdu --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id dundee.gdu --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "gdu --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "gdu --version"
   latest: { github: dundee/gdu }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id dundee.gdu --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

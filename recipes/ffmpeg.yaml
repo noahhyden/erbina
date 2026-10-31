@@ -1,4 +1,3 @@
-# erbina recipe — ffmpeg, a cli-tool. Audio/video transcoder.
 id: ffmpeg
 kind: cli-tool
 title: "ffmpeg — a complete solution to record, convert and stream audio and video"
@@ -7,12 +6,9 @@ description: >
   stream audio and video, the de facto standard for media processing on
   the CLI. https://ffmpeg.org/
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "ffmpeg -version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,12 +18,9 @@ install:
       when: "winget --version"
       run: "winget install -e --id Gyan.FFmpeg --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "ffmpeg -version"
-    expect_exit: 0
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -37,4 +30,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id Gyan.FFmpeg --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

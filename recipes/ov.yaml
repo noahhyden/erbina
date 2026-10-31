@@ -1,4 +1,3 @@
-# erbina recipe — ov, a cli-tool. Feature-rich terminal pager.
 id: ov
 kind: cli-tool
 title: "ov — a feature-rich terminal pager"
@@ -7,12 +6,9 @@ description: >
   truncate lines, jump by section, and view CSV/JSON with column
   alignment. https://github.com/noborus/ov
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "ov --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id noborus.ov --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "ov --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "ov --version"
   latest: { github: noborus/ov }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id noborus.ov --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

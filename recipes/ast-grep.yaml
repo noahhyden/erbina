@@ -1,4 +1,3 @@
-# erbina recipe — ast-grep, a cli-tool. Structural code search & rewrite.
 id: ast-grep
 kind: cli-tool
 title: "ast-grep — a fast and polyglot tool for code structural search, lint and rewriting"
@@ -7,12 +6,9 @@ description: >
   and rewriting based on abstract syntax trees, matching code patterns not
   text. https://github.com/ast-grep/ast-grep
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "ast-grep --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -25,17 +21,13 @@ install:
       when: "command -v cargo"
       run: "cargo install ast-grep"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "ast-grep --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "ast-grep --version"
   latest: { github: ast-grep/ast-grep }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -48,4 +40,3 @@ update:
       when: "command -v cargo"
       run: "cargo install ast-grep"
 
-scope: user

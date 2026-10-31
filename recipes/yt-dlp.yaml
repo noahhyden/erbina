@@ -1,4 +1,3 @@
-# erbina recipe — yt-dlp, a cli-tool. Download audio/video from the web.
 id: yt-dlp
 kind: cli-tool
 title: "yt-dlp — a feature-rich command-line audio/video downloader"
@@ -7,12 +6,9 @@ description: >
   support for thousands of sites, a maintained fork of youtube-dl.
   https://github.com/yt-dlp/yt-dlp
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "yt-dlp --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -25,17 +21,13 @@ install:
       when: "command -v pipx"
       run: "pipx install yt-dlp"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "yt-dlp --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "yt-dlp --version"
   latest: { github: yt-dlp/yt-dlp }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -48,4 +40,3 @@ update:
       when: "command -v pipx"
       run: "pipx upgrade yt-dlp"
 
-scope: user

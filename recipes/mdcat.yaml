@@ -1,4 +1,3 @@
-# erbina recipe — mdcat, a cli-tool. Render markdown in the terminal.
 id: mdcat
 kind: cli-tool
 title: "mdcat — cat for markdown"
@@ -7,12 +6,9 @@ description: >
   inline links and (in supported terminals) inline images, a cat for
   markdown. https://github.com/swsnr/mdcat
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "mdcat --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "command -v cargo"
       run: "cargo install mdcat"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "mdcat --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "mdcat --version"
   latest: { github: swsnr/mdcat }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,5 +34,4 @@ update:
       when: "command -v cargo"
       run: "cargo install mdcat"
 
-scope: user
 category: docs

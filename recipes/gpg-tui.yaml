@@ -1,4 +1,3 @@
-# erbina recipe — gpg-tui, a cli-tool. Manage GPG keys in a TUI.
 id: gpg-tui
 kind: cli-tool
 title: "gpg-tui — a terminal user interface for GnuPG"
@@ -7,12 +6,9 @@ description: >
   (list, import, export, sign, delete) interactively without memorizing
   gpg flags. https://github.com/orhun/gpg-tui
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "gpg-tui --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "command -v cargo"
       run: "cargo install gpg-tui"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "gpg-tui --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "gpg-tui --version"
   latest: { github: orhun/gpg-tui }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "command -v cargo"
       run: "cargo install gpg-tui"
 
-scope: user
