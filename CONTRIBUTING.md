@@ -81,7 +81,24 @@ runs use shell builtins, so they're deterministic and side-effect-free). Run it
 ```sh
 uv run --with pytest --with fastmcp --with pyyaml --with packaging pytest tests/ -v
 uv run --script lint_recipes.py
+python3 .github/scripts/check_one_line_comments.py
+python3 .github/scripts/check_agents_rule_length.py
 ```
+
+## Comments
+
+Explanation in code is capped at **one line**. A module, class or function gets a
+one-line docstring or none, and a run of standalone `#` comments is one line —
+`check_one_line_comments.py` enforces this across `.py` and `.yaml` against
+[`one-line-comment-baseline.json`](.github/one-line-comment-baseline.json), which
+may only *shrink*. A line that genuinely needs a tooling pragma (`noqa`, a PEP 723
+`/// script` header) is exempt.
+
+Anything longer belongs in a rule under [`.github/AGENTS.d/`](.github/AGENTS.d/):
+one `## heading` plus **one body line of at most 255 characters**, enforced by
+`check_agents_rule_length.py`. A rule states the trap and its consequence — the
+measurements and the rationale essay go in a doc or the PR description, not into
+an agent's always-loaded context.
 
 **Two tiers of validation.** The offline suite above proves the *orchestration* is
 correct but never runs a real package manager, so it can't catch a renamed brew
