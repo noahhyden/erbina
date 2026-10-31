@@ -6,15 +6,12 @@ from __future__ import annotations
 import argparse
 import ast
 import io
-import json
 import re
 import subprocess
-import sys
 import tokenize
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-BASELINE_PATH = REPO_ROOT / ".github" / "one-line-comment-baseline.json"
 
 SCANNED_SUFFIXES = (".py", ".yml", ".yaml")
 SKIP_PREFIXES: tuple[str, ...] = ()
@@ -180,21 +177,18 @@ def all_source_paths() -> list[str]:
     return [p for p in out.split("\n") if p]
 
 
-def _regressions(counts: dict[str, int], baseline: dict[str, int], found: dict) -> list[str]:
-    """Lines describing every path whose count exceeds its baselined allowance."""
+def _report(found: dict[str, list[tuple[int, str]]]) -> list[str]:
+    """Lines naming every file with a violation and its first few offenders."""
     out: list[str] = []
-    for path, n in sorted(counts.items()):
-        allowed = baseline.get(path, 0)
-        if n > allowed:
-            out.append(f"  {path}: {n} > {allowed} allowed")
-            for lineno, why in found[path][:4]:
-                out.append(f"      {path}:{lineno}  {why}")
+    for path, hits in sorted(found.items()):
+        out.append(f"  {path}: {len(hits)} violation(s)")
+        for lineno, why in hits[:4]:
+            out.append(f"      {path}:{lineno}  {why}")
     return out
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--write-baseline", action="store_true")
     ap.add_argument("files", nargs="*")
     args = ap.parse_args()
 
@@ -204,52 +198,24 @@ def main() -> int:
         print("one-line-comments: no scannable file matched - refusing to pass vacuously")
         return 1
     found = scan(paths)
-    counts = {p: len(v) for p, v in found.items()}
-
-    if args.write_baseline:
-        BASELINE_PATH.write_text(
-            json.dumps({"files": dict(sorted(counts.items()))}, indent=2) + "\n",
-            encoding="utf-8",
-        )
-        print(
-            f"one-line-comments: baseline written - {len(counts)} file(s), "
-            f"{sum(counts.values())} violation(s) grandfathered."
-        )
-        return 0
-
-    if not BASELINE_PATH.exists():
-        print(f"one-line-comments: missing baseline at {BASELINE_PATH}.", file=sys.stderr)
-        print("Generate it once with: --write-baseline", file=sys.stderr)
-        return 2
-
-    baseline = json.loads(BASELINE_PATH.read_text(encoding="utf-8")).get("files", {})
-    regressions = _regressions(counts, baseline, found)
-
     py_scanned = len([p for p in scanned if p.endswith(".py")])
     yaml_scanned = len(scanned) - py_scanned
-    if regressions:
+
+    if found:
         print("one-line-comments: explanation in code is capped at ONE line.\n")
-        print("\n".join(regressions))
+        print("\n".join(_report(found)))
         print(
             "\nA module, class or function gets a one-line docstring or none, and a run of\n"
             "standalone comments is one line. Move the rest into a .github/AGENTS.d/ rule.\n"
-            "The baseline grandfathers what exists and may only SHRINK - it is never a\n"
-            "place to park a new violation.\n"
-            f"\nScanned {py_scanned} python file(s), {yaml_scanned} yaml file(s). "
-            f"Baseline: {BASELINE_PATH.relative_to(REPO_ROOT)}"
+            "An `@mcp.tool` docstring is exempt - it is the description the model reads.\n"
+            f"\nScanned {py_scanned} python file(s), {yaml_scanned} yaml file(s)."
         )
         return 1
 
-    total, baseline_total = sum(counts.values()), sum(baseline.values())
     print(
         f"one-line-comments: OK - {py_scanned} python + {yaml_scanned} yaml file(s) scanned, "
-        f"{total} baselined violation(s) remaining (baseline {baseline_total})."
+        "zero violations."
     )
-    if total < baseline_total:
-        print(
-            "  A count went DOWN. Refresh the baseline so it cannot creep back: "
-            "python3 .github/scripts/check_one_line_comments.py --write-baseline"
-        )
     return 0
 
 

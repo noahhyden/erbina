@@ -89,10 +89,10 @@ python3 .github/scripts/check_agents_rule_length.py
 
 Explanation in code is capped at **one line**. A module, class or function gets a
 one-line docstring or none, and a run of standalone `#` comments is one line —
-`check_one_line_comments.py` enforces this across `.py` and `.yaml` against
-[`one-line-comment-baseline.json`](.github/one-line-comment-baseline.json), which
-may only *shrink*. A line that genuinely needs a tooling pragma (`noqa`, a PEP 723
-`/// script` header) is exempt.
+`check_one_line_comments.py` enforces this across `.py` and `.yaml`, and the repo
+sits at zero — there is no baseline to park a new one in. A run that genuinely
+needs a tooling pragma (`noqa`, a PEP 723 `/// script` header) is exempt, as is an
+`@mcp.tool` docstring, which is the description the model reads at call time.
 
 Anything longer belongs in a rule under [`.github/AGENTS.d/`](.github/AGENTS.d/):
 one `## heading` plus **one body line of at most 255 characters**, enforced by
