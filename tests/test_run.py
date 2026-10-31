@@ -1,10 +1,4 @@
-"""Tests for `_run`, the subprocess wrapper every phase goes through.
-
-`_run` must NEVER raise (it reports failures as data) and must bound both time
-and output size, so a misbehaving recipe command can't hang or flood the agent.
-Commands here are POSIX shell builtins / tiny utilities — deterministic and
-side-effect free.
-"""
+"""`_run`, the subprocess wrapper every phase uses, must never raise (failures are data) and must bound time and output; commands are shell builtins (AGENTS.d/141)."""
 from __future__ import annotations
 
 import server
@@ -58,9 +52,7 @@ def test_run_respects_cwd(tmp_path):
 
 
 def test_run_never_raises_when_subprocess_itself_errors(tmp_path):
-    # A nonexistent cwd makes subprocess.run RAISE (FileNotFoundError /
-    # NotADirectoryError) before the shell even starts -- distinct from a
-    # shell-level nonzero exit. _run must catch it and report exit 1, never raise.
+    # A nonexistent cwd makes subprocess.run RAISE (FileNotFoundError/NotADirectoryError) before the shell starts; _run must catch it and report exit 1.
     missing = str(tmp_path / "does" / "not" / "exist")
     res = server._run("true", cwd=missing)
     assert isinstance(res, dict)

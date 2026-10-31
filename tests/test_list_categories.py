@@ -1,7 +1,4 @@
-"""Tool-surface tests for `list_categories` — the registry's domain map.
-
-Driven through the in-memory FastMCP client. Read-only.
-"""
+"""Tool-surface tests for `list_categories`, the registry's domain map, via the in-memory FastMCP client, read-only."""
 from __future__ import annotations
 
 from helpers import call_tool

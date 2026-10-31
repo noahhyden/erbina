@@ -1,12 +1,4 @@
-"""Red-team the shipped recipes' version blocks and install plans.
-
-The risk with a `version:` block is that a tool's real `--version` / release-tag
-output doesn't yield a parseable token — then check_updates silently returns
-update_available=null and the feature is dead weight. These tests feed
-REPRESENTATIVE real-world outputs through erbina's extraction/compare and assert
-a definite result, and lock the install/verify commands so a recipe typo is
-caught.
-"""
+"""Red-team shipped version blocks: real-world `--version`/tag output must yield a parseable token or check_updates silently returns update_available=null."""
 from __future__ import annotations
 
 import pytest
@@ -18,14 +10,12 @@ from helpers import call_tool
 VERSION_SAMPLES = [
     ("ripgrep", "ripgrep 14.1.1\nfeatures:+pcre2\nsimd(compile):+SSE2", '  "tag_name": "14.1.1",', "14.1.1", "14.1.1"),
     ("fd", "fd 10.1.0", '  "tag_name": "v10.1.0",', "10.1.0", "10.1.0"),
-    # jq prints "jq-1.7.1" and tags "jq-1.7.1" — the leading "jq-" must not fool
-    # extraction (there's no digit in "jq", so the first token is the version).
+    # jq prints and tags "jq-1.7.1"; the leading "jq-" has no digit, so the first token is the version.
     ("jq", "jq-1.7.1", '  "tag_name": "jq-1.7.1",', "1.7.1", "1.7.1"),
     ("bat", "bat 0.24.0", '  "tag_name": "v0.24.0",', "0.24.0", "0.24.0"),
     ("delta", "delta 0.18.2", '  "tag_name": "0.18.2",', "0.18.2", "0.18.2"),
     ("zoxide", "zoxide 0.9.6", '  "tag_name": "v0.9.6",', "0.9.6", "0.9.6"),
-    # eza prints a banner line (no version) then "v0.20.4 [+git]" — extraction
-    # must skip the banner and find the token on the second line.
+    # eza prints a version-less banner then "v0.20.4 [+git]"; extraction must skip the banner line.
     ("eza", "eza - A modern, maintained replacement for ls\nv0.20.4 [+git]", '  "tag_name": "v0.20.4",', "0.20.4", "0.20.4"),
     ("uv", "uv 0.5.11 (abc1234 2024-11-27)", '  "tag_name": "0.5.11",', "0.5.11", "0.5.11"),
     ("hyperfine", "hyperfine 1.18.0", '  "tag_name": "v1.18.0",', "1.18.0", "1.18.0"),
@@ -37,8 +27,7 @@ VERSION_SAMPLES = [
     ("tealdeer", "tealdeer 1.7.0", '  "tag_name": "v1.7.0",', "1.7.0", "1.7.0"),
     ("procs", "procs 0.14.5", '  "tag_name": "v0.14.5",', "0.14.5", "0.14.5"),
     ("ataegina", "ataegina 0.1.0", '  "tag_name": "v0.2.0",', "0.1.0", "0.2.0"),
-    # gh prints a two-line banner with a trailing URL + an ISO date; extraction
-    # must take the version and ignore both (dates use '-', so no dotted token).
+    # gh prints a two-line banner with a URL and an ISO date; dates use '-', so no dotted token competes with the version.
     ("gh", "gh version 2.62.0 (2024-11-27)\nhttps://github.com/cli/cli/releases/tag/v2.62.0",
      '  "tag_name": "v2.63.0",', "2.62.0", "2.63.0"),
     # lazygit embeds the version among commit=/build date=/os= fields.
@@ -66,8 +55,7 @@ def test_recipe_version_comparison_is_definite(rid, cur_out, lat_out, exp_cur, e
 
 
 def test_every_versioned_recipe_extracts_a_version():
-    # a version: block must yield a token from its binary's `<bin> X.Y.Z` output
-    # (the binary is the first token of version.current)
+    # A version: block must yield a token from its binary's `<bin> X.Y.Z` output (the binary is the first token of version.current).
     for rid in server._recipe_ids():
         v = server._load_recipe(rid).get("version")
         if v:
@@ -75,9 +63,7 @@ def test_every_versioned_recipe_extracts_a_version():
             assert server._extract_version(f"{binary} 1.0.0") == "1.0.0", f"{rid}: {binary}"
 
 
-# --------------------------------------------------------------------------- #
 # install/verify plan shape for the new cli-tool recipes (catch command typos)
-# --------------------------------------------------------------------------- #
 @pytest.mark.parametrize("rid,detect_cmd,methods,verify_cmd", [
     ("ripgrep", "rg --version", {"homebrew": "brew install ripgrep", "cargo": "cargo install ripgrep"}, "rg --version"),
     ("fd", "fd --version", {"homebrew": "brew install fd", "cargo": "cargo install fd-find"}, "fd --version"),
@@ -102,18 +88,14 @@ def test_cli_recipe_plan_commands(rid, detect_cmd, methods, verify_cmd):
     plan = call_tool("inspect_recipe", {"recipe_id": rid})["will_run"]
     assert plan["detect"] == detect_cmd
     got = {m["id"]: m["run"] for m in plan["install"]["all_methods"]}
-    # the brew/cargo commands must match exactly (catch a typo); a cross-platform
-    # `winget` method may additionally be present (its id is locked separately).
+    # The brew/cargo commands must match exactly to catch a typo; a cross-platform `winget` method may also exist (its id is locked separately).
     for mid, run in methods.items():
         assert got.get(mid) == run, f"{rid}.{mid}: {got.get(mid)!r}"
     assert set(got) - set(methods) <= {"winget"}, f"{rid}: unexpected methods {set(got) - set(methods)}"
     assert verify_cmd in plan["verify"]
 
 
-# --------------------------------------------------------------------------- #
-# Windows: the winget package IDs (typo-prone) are locked here and proven for
-# real by the `windows` job in the real-bootstrap workflow.
-# --------------------------------------------------------------------------- #
+# Windows: typo-prone winget package IDs are locked here and proven by the `windows` job in the real-bootstrap workflow.
 WINGET_IDS = {
     "ripgrep": "BurntSushi.ripgrep.MSVC", "fd": "sharkdp.fd", "bat": "sharkdp.bat",
     "jq": "jqlang.jq", "gh": "GitHub.cli", "delta": "dandavison.delta",
@@ -135,12 +117,7 @@ def test_winget_method_is_guarded_and_carries_the_id(rid, wid):
 
 
 def test_every_winget_recipe_is_covered():
-    # Every recipe with a winget method must have its (typo-prone) id pinned by a
-    # source of truth: the hand-curated flagship map above (locked here and proven
-    # for real by the windows real-bootstrap job), OR scripts/recipe_data.py for the
-    # bulk-generated recipes (whose Windows support is best-effort — see the README
-    # disclaimer). This catches a hand-written recipe that grows a winget method
-    # without being locked, and a flagship that silently loses its winget method.
+    # Every winget method needs its id pinned by the flagship map above or scripts/recipe_data.py (bulk, best-effort), so an unlocked one or a lost flagship method is caught.
     from recipe_data import TOOLS
 
     generated = {t["id"] for t in TOOLS if t.get("winget")}
@@ -154,11 +131,7 @@ def test_every_winget_recipe_is_covered():
     assert not orphans, f"winget recipe not pinned in WINGET_IDS or recipe_data.py: {orphans}"
 
 
-# --------------------------------------------------------------------------- #
-# mcp-server wiring: lock the exact `claude mcp add` command per recipe + scope
-# so a wrong runner/package or missing scope substitution is caught. `runner` is
-# everything after `-- ` (uvx for Python servers, npx for Node ones).
-# --------------------------------------------------------------------------- #
+# mcp-server wiring: lock the exact `claude mcp add` command per recipe and scope; `runner` is everything after `-- ` (uvx for Python, npx for Node).
 @pytest.mark.parametrize("rid,runner", [
     ("fetch", "uvx mcp-server-fetch"),
     ("git", "uvx mcp-server-git"),

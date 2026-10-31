@@ -1,9 +1,4 @@
-"""Behavioral tests for the `update` tool (auto-update phase 2).
-
-Driven through the in-memory client against prototype recipes built from shell
-builtins, so a live update is deterministic and side-effect free. A few tests use
-a version file under tmp_path to exercise the before/after version reporting.
-"""
+"""Behavioral tests for the `update` tool (auto-update phase 2) on shell-builtin prototypes; a tmp_path version file exercises before/after reporting."""
 from __future__ import annotations
 
 from helpers import call_tool
@@ -24,9 +19,7 @@ def _with_update(rid="t", run=TRUE, detect=TRUE, verify=TRUE):
     )
 
 
-# --------------------------------------------------------------------------- #
 # consent surface / dry-run
-# --------------------------------------------------------------------------- #
 def test_dry_run_returns_plan_and_runs_nothing():
     out = _upd(_with_update(), dry_run=True)
     assert out["dry_run"] is True
@@ -42,18 +35,14 @@ def test_bad_scope_rejected_before_work():
     assert "scope must be one of" in out["error"]
 
 
-# --------------------------------------------------------------------------- #
 # no update path declared
-# --------------------------------------------------------------------------- #
 def test_no_update_path_is_an_error():
     out = _upd(cli_recipe("t"))  # no update block
     assert "error" in out
     assert "no safe way to update" in out["error"]
 
 
-# --------------------------------------------------------------------------- #
 # must be installed
-# --------------------------------------------------------------------------- #
 def test_not_installed_refuses_update():
     out = _upd(_with_update(detect=FALSE))
     assert out["ok"] is False
@@ -61,9 +50,7 @@ def test_not_installed_refuses_update():
     assert "update" not in out["phases"]  # never ran the update command
 
 
-# --------------------------------------------------------------------------- #
 # happy path + verify safety net
-# --------------------------------------------------------------------------- #
 def test_successful_update_runs_and_reverifies():
     out = _upd(_with_update(run=TRUE, verify=TRUE))
     assert out["phases"]["update"]["status"] == "ok"
@@ -116,9 +103,7 @@ def test_update_picks_first_eligible_method():
     assert out["phases"]["update"]["method"] == "first"
 
 
-# --------------------------------------------------------------------------- #
 # version before/after reporting (uses a version file under tmp_path)
-# --------------------------------------------------------------------------- #
 def test_reports_version_before_and_after(tmp_path):
     vfile = tmp_path / "v"
     vfile.write_text("1.0.0")
@@ -133,8 +118,7 @@ def test_reports_version_before_and_after(tmp_path):
     assert out["version"]["before"] == "1.0.0"
     assert out["version"]["after"] == "2.0.0"
     assert out["ok"] is True
-    # versions DIFFER, so the "already at X — no-op" note must NOT appear
-    # (mutation guard: the note condition is before AND after AND before==after)
+    # Versions DIFFER, so the 'already at X' no-op note must NOT appear (mutation guard: before AND after AND before==after).
     assert "no-op" not in out.get("note", "")
 
 

@@ -1,7 +1,4 @@
-"""Behavioral tests for `kind: profile` — a meta-recipe that installs nothing
-itself and just bundles a curated set of other recipes via `requires`. Bootstrap
-resolves the bundle (reusing the requires machinery) and reports done.
-"""
+"""Behavioral tests for `kind: profile`, a meta-recipe that installs nothing itself and bundles other recipes via `requires`."""
 from __future__ import annotations
 
 import pytest
@@ -16,9 +13,7 @@ def _boot(*recipes, target, **kwargs):
         return call_tool("bootstrap", {"recipe_id": target, **kwargs})
 
 
-# --------------------------------------------------------------------------- #
 # validation
-# --------------------------------------------------------------------------- #
 def test_valid_profile_validates_clean():
     assert server.validate_recipe(profile_recipe("p", requires=["a", "b"]), stem="p") == []
 
@@ -53,9 +48,7 @@ def test_profile_kind_is_accepted_in_the_enum():
     assert "profile" in server.VALID_KINDS
 
 
-# --------------------------------------------------------------------------- #
 # bootstrap resolves the bundle
-# --------------------------------------------------------------------------- #
 def test_bootstrapping_a_profile_bootstraps_its_members():
     p = profile_recipe("p", requires=["a", "b"])
     a = cli_recipe("a", detect={"command": FALSE})  # both absent -> installed

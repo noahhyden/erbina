@@ -1,11 +1,4 @@
-"""Tests for the curated-registry policy layer (server.lint_recipe_policy) and
-its wiring into lint_recipes.py.
-
-The design under test: `validate_recipe` is the schema (also enforced at load
-time, so the test harness can build minimal recipes), while `lint_recipe_policy`
-is a stricter contributor-facing layer the LINTER runs — non-empty title +
-description, and a `when:` guard on every install method.
-"""
+"""Tests for server.lint_recipe_policy, the contributor-facing layer the LINTER runs on top of the load-time schema."""
 from __future__ import annotations
 
 import pytest
@@ -16,8 +9,7 @@ from prototype import cli_recipe
 
 
 def _valid_policy_recipe():
-    # cli_recipe already has title/description; give its install method a guard so
-    # it satisfies policy too (the factory default is intentionally unguarded).
+    # cli_recipe already has title/description; give its install method a guard so it satisfies policy (the factory default is unguarded).
     return cli_recipe("t", install={"methods": [{"id": "m", "when": "command -v brew", "run": "true"}]})
 
 
@@ -48,8 +40,7 @@ def test_unguarded_install_method_flagged():
 
 @pytest.mark.parametrize("when", ["", "   ", "\t", None])
 def test_blank_or_missing_when_guard_flagged(when):
-    # a whitespace-only `when` is as good as no guard (mutation guard: the check
-    # strips the guard string before testing it for emptiness).
+    # A whitespace-only `when` is as good as no guard (mutation guard: the check strips it before the emptiness test).
     method = {"id": "m", "run": "true"}
     if when is not None:
         method["when"] = when
@@ -61,9 +52,7 @@ def test_policy_ignores_non_mapping():
     assert server.lint_recipe_policy("not a dict") == []
 
 
-# --------------------------------------------------------------------------- #
 # verify honesty
-# --------------------------------------------------------------------------- #
 @pytest.mark.parametrize("verify_cmd", [
     "test -f /usr/local/bin/foo",
     "[ -x /usr/local/bin/foo ]",
@@ -100,9 +89,7 @@ def test_verify_honesty_flags_the_right_index():
 
 
 def test_verify_honesty_survives_unbalanced_quotes_and_still_flags():
-    # a verify command with an unbalanced quote makes shlex.split raise; the check
-    # must NOT crash — it falls back to a rough split and still catches the
-    # file-inspecting first word (`find`).
+    # An unbalanced quote makes shlex.split raise; the check must not crash and falls back to a rough split that still catches `find`.
     r = _valid_policy_recipe()
     r["verify"] = [{"command": 'find "unterminated /usr/bin/foo'}]
     problems = server.lint_recipe_policy(r)
@@ -118,21 +105,15 @@ def test_verify_honesty_survives_unbalanced_quotes_on_an_honest_cmd():
 
 @pytest.mark.parametrize("bad_entry", [{"command": "   "}, {"command": ""}, {}, "notadict", None])
 def test_verify_honesty_skips_empty_or_non_dict_entries(bad_entry):
-    # an empty/blank command or a non-mapping verify entry contributes no
-    # filesystem-honesty problem (and never raises) — that's a schema concern,
-    # handled elsewhere.
+    # A blank command or non-mapping verify entry is a schema concern, so it adds no filesystem-honesty problem and never raises.
     r = _valid_policy_recipe()
     r["verify"] = [bad_entry]
     assert not any("filesystem" in p for p in server.lint_recipe_policy(r))
 
 
-# --------------------------------------------------------------------------- #
-# the separation: a recipe can be schema-valid (load-time OK) yet fail policy,
-# and the LINTER (lint_path) must catch it.
-# --------------------------------------------------------------------------- #
+# Schema-valid (load-time OK) yet policy-failing recipes must be caught by the LINTER (lint_path).
 def test_schema_valid_but_policyless_recipe_loads_but_fails_linter(tmp_path):
-    # schema-valid: has detect/install/verify/kind/id — but NO title/description
-    # and an unguarded install method.
+    # Schema-valid but NO title/description and an unguarded install method.
     (tmp_path / "policyless.yaml").write_text(
         "id: policyless\n"
         "kind: cli-tool\n"

@@ -1,6 +1,4 @@
-"""Edge behavior of the read-only tool surface: list_recipes resilience and the
-inspect_recipe / bootstrap(dry_run) plan-parity contract.
-"""
+"""Edge behavior of the read-only tool surface: list_recipes resilience and inspect_recipe / bootstrap(dry_run) plan parity."""
 from __future__ import annotations
 
 import pytest
@@ -9,10 +7,7 @@ from helpers import call_tool
 from prototype import cli_recipe, mcp_recipe, registry
 
 
-# --------------------------------------------------------------------------- #
-# list_recipes must not blow up on a malformed recipe sitting in the dir — it
-# skips it and still returns the valid ones.
-# --------------------------------------------------------------------------- #
+# list_recipes must skip a malformed recipe in the dir and still return the valid ones.
 def test_list_recipes_skips_a_malformed_recipe():
     with registry(cli_recipe("good")) as tmp:
         # a second file that fails validation (bad kind, no detect/install/verify)
@@ -28,10 +23,7 @@ def test_list_recipes_tolerates_unparseable_yaml():
     assert "good" in ids
 
 
-# --------------------------------------------------------------------------- #
-# plan parity: inspect_recipe.will_run and bootstrap(dry_run).plan must be the
-# SAME plan — both are the consent surface and must never diverge.
-# --------------------------------------------------------------------------- #
+# Plan parity: inspect_recipe.will_run and bootstrap(dry_run).plan are both the consent surface and must be the SAME plan.
 @pytest.mark.parametrize("recipe_id,scope", [
     ("ataegina", "user"),
     ("fetch", "project"),

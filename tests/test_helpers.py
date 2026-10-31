@@ -1,6 +1,4 @@
-"""Unit tests for the server's pure-ish helpers: _subst, _load_recipe traversal
-guard, and the deliberately brittle _parse_mcp_list (documents issue #3).
-"""
+"""Unit tests for `_subst`, the `_load_recipe` traversal guard, and the deliberately brittle `_parse_mcp_list` (issue #3)."""
 from __future__ import annotations
 
 import pytest
@@ -8,9 +6,7 @@ import pytest
 import server
 
 
-# --------------------------------------------------------------------------- #
 # _subst
-# --------------------------------------------------------------------------- #
 def test_subst_expands_scope():
     out = server._subst("claude mcp add x --scope ${scope}", "project", None)
     assert out == "claude mcp add x --scope project"
@@ -38,13 +34,10 @@ def test_subst_none_command_returns_empty_string():
     assert server._subst(None, "user", None) == ""
 
 
-# --------------------------------------------------------------------------- #
 # _load_recipe path-traversal guard (helper level)
-# --------------------------------------------------------------------------- #
 @pytest.mark.parametrize("bad_id", ["../server", "../../etc/passwd", "/etc/passwd", "..%2f..%2fetc"])
 def test_load_recipe_rejects_traversal(bad_id):
-    # Path(recipe_id).name strips any directory component, so a traversal id
-    # collapses to a basename that has no matching <name>.yaml -> FileNotFoundError.
+    # Path(recipe_id).name drops directory parts, so a traversal id becomes a basename with no <name>.yaml -> FileNotFoundError.
     with pytest.raises(FileNotFoundError) as exc:
         server._load_recipe(bad_id)
     # The error names the missing recipe, not a system file's contents.
@@ -57,12 +50,7 @@ def test_load_recipe_loads_real_recipe():
     assert r["kind"] == "cli-tool"
 
 
-# --------------------------------------------------------------------------- #
-# _parse_mcp_list — the brittle parser (issue #3). We drive it by monkeypatching
-# server._run so no real `claude mcp list` (or any subprocess) is invoked.
-# --------------------------------------------------------------------------- #
-# A realistic multi-line `claude mcp list` capture: a header line, one healthy
-# server, one failed server, ANSI colour codes, and a trailing blank line.
+# _parse_mcp_list (issue #3) is driven by monkeypatching server._run; the capture has a header, one healthy and one failed server, ANSI codes, a trailing blank.
 SAMPLE_MCP_LIST = (
     "Checking MCP server health...\n"
     "\n"

@@ -1,11 +1,4 @@
-"""Live-bootstrap coverage of needs_project_dir propagation across every phase
-(detect / configure / verify) and the phase-gating rules.
-
-We prove *where* a phase runs by using a marker file that exists only inside the
-supplied project_dir: a command like `test -f <marker>` passes iff it executed
-in project_dir. The marker name is deliberately improbable so a bare-CWD run
-never finds it by accident.
-"""
+"""Live-bootstrap coverage of needs_project_dir across detect/configure/verify, proven by an improbable marker file that exists only inside project_dir."""
 from __future__ import annotations
 
 from helpers import call_tool
@@ -20,9 +13,7 @@ def _boot(recipe, **kwargs):
         return call_tool("bootstrap", {"recipe_id": recipe["id"], **kwargs})
 
 
-# --------------------------------------------------------------------------- #
 # detect
-# --------------------------------------------------------------------------- #
 def test_detect_runs_inside_project_dir(tmp_path):
     (tmp_path / MARKER).write_text("x")
     recipe = cli_recipe(detect={"command": MARKER_CMD, "needs_project_dir": True})
@@ -31,17 +22,14 @@ def test_detect_runs_inside_project_dir(tmp_path):
 
 
 def test_detect_without_needs_project_dir_ignores_project_dir(tmp_path):
-    # marker present in project_dir, but detect is NOT flagged -> runs in CWD,
-    # does not see the marker.
+    # Marker is in project_dir but detect is NOT flagged, so it runs in CWD and does not see it.
     (tmp_path / MARKER).write_text("x")
     recipe = cli_recipe(detect={"command": MARKER_CMD})  # no needs_project_dir
     out = _boot(recipe, project_dir=str(tmp_path))
     assert out["phases"]["detect"]["present"] is False
 
 
-# --------------------------------------------------------------------------- #
 # configure
-# --------------------------------------------------------------------------- #
 def test_configure_step_runs_inside_project_dir(tmp_path):
     (tmp_path / MARKER).write_text("x")
     recipe = cli_recipe(
@@ -62,9 +50,7 @@ def test_optional_configure_failure_is_ok(tmp_path):
     assert out["ok"] is True
 
 
-# --------------------------------------------------------------------------- #
 # verify
-# --------------------------------------------------------------------------- #
 def test_verify_runs_inside_project_dir(tmp_path):
     (tmp_path / MARKER).write_text("x")
     recipe = cli_recipe(
@@ -76,12 +62,7 @@ def test_verify_runs_inside_project_dir(tmp_path):
     assert out["ok"] is True
 
 
-# --------------------------------------------------------------------------- #
-# CANDIDATE FINDING #3 (documented, not yet fixed): configure vs verify handle a
-# missing project_dir ASYMMETRICALLY, and a non-optional configure failure does
-# NOT gate `ok`. These characterization tests pin CURRENT behavior so a future
-# fix is a deliberate, visible change (they are named CURRENT_ on purpose).
-# --------------------------------------------------------------------------- #
+# Candidate finding #3: configure and verify handle a missing project_dir asymmetrically; these CURRENT_ tests pin today's behavior so a fix is a visible change.
 def test_CURRENT_configure_needing_project_dir_is_skipped_without_one():
     recipe = cli_recipe(
         detect={"command": FALSE},
@@ -92,8 +73,7 @@ def test_CURRENT_configure_needing_project_dir_is_skipped_without_one():
 
 
 def test_CURRENT_verify_needing_project_dir_runs_in_cwd_not_skipped():
-    # Asymmetry vs configure: verify does NOT skip when project_dir is absent; it
-    # runs in CWD (where the marker is absent) and thus fails.
+    # Asymmetry vs configure: verify does NOT skip without project_dir, runs in CWD, misses the marker, and fails.
     recipe = cli_recipe(
         detect={"command": TRUE},
         verify=[{"command": MARKER_CMD, "needs_project_dir": True}],
@@ -104,10 +84,7 @@ def test_CURRENT_verify_needing_project_dir_runs_in_cwd_not_skipped():
 
 
 def test_nonoptional_configure_failure_gates_ok():
-    # Regression for finding #3(2), FIXED in iteration 7: a REQUIRED
-    # (optional=false) configure step that fails now gates report.ok and
-    # short-circuits before verify (mirroring a failed install), rather than
-    # reporting ok=True on the strength of an unrelated passing verify.
+    # Finding #3(2) (fixed): a REQUIRED configure step that fails gates report.ok and short-circuits before verify, like a failed install.
     recipe = cli_recipe(
         detect={"command": FALSE},
         configure={"steps": [{"run": FALSE}]},  # non-optional, fails
@@ -120,8 +97,7 @@ def test_nonoptional_configure_failure_gates_ok():
 
 
 def test_configure_failure_still_lets_optional_step_pass_through():
-    # Only NON-optional failures gate ok — an optional failing step alongside a
-    # passing required step must not fail the bootstrap.
+    # Only NON-optional failures gate ok; an optional failing step beside a passing required one must not fail the bootstrap.
     recipe = cli_recipe(
         detect={"command": FALSE},
         configure={"steps": [{"run": TRUE}, {"run": FALSE, "optional": True}]},

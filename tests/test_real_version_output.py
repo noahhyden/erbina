@@ -1,23 +1,11 @@
-"""Extend the version surface to REAL tools: feed `_extract_version` authentic
-`--version` output from the kinds of CLIs erbina's recipes install, and assert it
-pulls the right token. This is the "extend to real tools" arm of the behavioral
-loop — it guards the extraction regex against a regression that would silently
-break `check_updates` for a whole class of tools.
-
-It also pins a KNOWN limitation (candidate finding #5): "first version-looking
-token wins", so a dotted date/number appearing BEFORE the real version is
-misextracted. No current recipe triggers it (their outputs are single clean
-lines), so it's characterized here, not fixed.
-"""
+"""Feed `_extract_version` real `--version` output so a regex regression cannot silently break check_updates; pins the known "first token wins" limit (finding #5)."""
 from __future__ import annotations
 
 import pytest
 
 import server
 
-# Authentic (or authentically-shaped) `--version` / `--help` version lines for
-# real tools erbina installs, plus a few common runtimes. The value is the token
-# a human reads as "the version".
+# Authentic (or authentically-shaped) version lines for tools erbina installs; the value is the token a human reads as the version.
 REAL_OUTPUTS = [
     ("git version 2.43.0", "2.43.0"),
     ("jq-1.7.1", "1.7.1"),                                  # jq: dash, no space
@@ -44,10 +32,7 @@ REAL_OUTPUTS = [
     ("GNU bash, version 5.2.21(1)-release", "5.2.21"),
     ("curl 8.5.0 (x86_64-pc-linux-gnu) libcurl/8.5.0", "8.5.0"),
     ("OpenSSL 3.0.13 30 Jan 2024", "3.0.13"),
-    # Go/cobra `<bin> version` subcommand output — a whole FAMILY in the registry
-    # (helm, consul, vault, nomad, caddy, k6, pulumi, opentofu, hugo, …). Their
-    # real output is multi-line with a Revision/BuildDate/GoVersion tail; the
-    # extractor must take the leading release token and ignore the rest.
+    # Go/cobra `<bin> version` output (helm, consul, vault, nomad, caddy, k6, ...) is multi-line with a Revision/BuildDate/GoVersion tail; take the leading release token.
     ("Consul v1.17.0\nRevision e6d0525c\nBuild Date 2023-11-03", "1.17.0"),
     ("Vault v1.15.4 ('4c5e5c3'), built 2024-01-01", "1.15.4"),
     ("Nomad v1.7.2\nBuildDate 2023-12-13", "1.7.2"),
@@ -56,8 +41,7 @@ REAL_OUTPUTS = [
     ("OpenTofu v1.6.1\non linux_amd64", "1.6.1"),           # opentofu (tofu)
     ("v2.7.6 h1:abcd", "2.7.6"),                            # caddy: vX.Y.Z + h1: hash
     ("0.11.0", "0.11.0"),                                   # zig: bare version, no prefix
-    # helm's Go-struct dump: the word "version" (version.BuildInfo) precedes the
-    # token, so the label rule must land on v3.14.0 and not GoVersion's go1.21.5.
+    # helm dumps a Go struct where "version" (version.BuildInfo) precedes the token, so the label rule must pick v3.14.0 not GoVersion go1.21.5.
     ('version.BuildInfo{Version:"v3.14.0", GitCommit:"e8858f8", GoVersion:"go1.21.5"}', "3.14.0"),
     # kubectl/argocd `version --client`: "Client Version:" label, then vX.Y.Z.
     ("Client Version: v1.29.2\nKustomize Version: v5.0.4", "1.29.2"),
@@ -71,11 +55,7 @@ def test_extract_version_handles_real_tool_output(output, expected):
     assert server._extract_version(output) == expected
 
 
-# --------------------------------------------------------------------------- #
-# FINDING #5 (mostly fixed): "first version-looking token wins" used to let a
-# dotted build-date BEFORE the version be grabbed. `_extract_version` now prefers
-# the token AFTER an explicit "version" label, which covers the common case.
-# --------------------------------------------------------------------------- #
+# Finding #5 (mostly fixed): a dotted build date BEFORE the version used to win; `_extract_version` now prefers the token after an explicit "version" label.
 def test_labeled_version_beats_a_leading_dotted_date():
     # the fix: a "version" label pulls extraction past the build date
     assert server._extract_version("Built 2024.01.15, tool version 2.3.4") == "2.3.4"
@@ -90,12 +70,7 @@ def test_labeled_version_extraction(output, extracted):
     assert server._extract_version(output) == extracted
 
 
-# RESIDUAL of #5 (documented, still ambiguous): output with NO "version" label —
-# a bare `v1.2.3` or `10.0` printed after a dotted date — is genuinely
-# indistinguishable from a calver (`2024.01.05` IS a real version), so extraction
-# still takes the first token. No recipe's real output triggers this (dates in
-# real `--version` output use '-', not '.'; confirmed by the live real-bootstrap
-# run), so it stays a pinned characterization rather than a risky heuristic.
+# Residual of #5: with NO "version" label a bare token after a dotted date is indistinguishable from calver (`2024.01.05` IS a version), and real output dates use '-' not '.', so it stays pinned.
 @pytest.mark.parametrize("output,extracted", [
     ("compiled 2023.12.31 v1.0.0", "2023.12.31"),   # unlabeled -> first token
     ("release 10.0 build 2.3.4", "10.0"),

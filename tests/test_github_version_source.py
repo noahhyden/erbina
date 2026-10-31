@@ -1,9 +1,4 @@
-"""Tests for the structured `version.latest: {github: "owner/repo"}` source.
-
-erbina resolves the mapping into the same releases-API `curl | grep '"tag_name"'`
-command recipes used to hand-roll, so `check_updates` extraction/comparison is
-unchanged — this just removes boilerplate and a class of copy-paste typos.
-"""
+"""The structured `version.latest: {github: "owner/repo"}` source resolves to the same releases-API `curl | grep tag_name` command recipes hand-rolled."""
 from __future__ import annotations
 
 import pytest
@@ -13,9 +8,7 @@ from helpers import call_tool
 from prototype import TRUE, cli_recipe, registry
 
 
-# --------------------------------------------------------------------------- #
 # _latest_command resolver
-# --------------------------------------------------------------------------- #
 def test_string_latest_is_returned_unchanged():
     assert server._latest_command("rg --version") == "rg --version"
 
@@ -41,9 +34,7 @@ def test_malformed_latest_resolves_to_empty(bad):
     assert server._latest_command(bad) == ""
 
 
-# --------------------------------------------------------------------------- #
 # validation
-# --------------------------------------------------------------------------- #
 def test_github_latest_validates_clean():
     r = cli_recipe("t", version={"current": "t --version", "latest": {"github": "owner/repo"}})
     assert server.validate_recipe(r, stem="t") == []
@@ -77,9 +68,7 @@ def test_current_still_required_as_a_string():
     assert any("version.current" in e for e in errs)
 
 
-# --------------------------------------------------------------------------- #
 # check_updates end-to-end through the github source (network mocked)
-# --------------------------------------------------------------------------- #
 def test_release_notes_url_for_github_source():
     assert server._release_notes_url({"github": "BurntSushi/ripgrep"}) == \
         "https://github.com/BurntSushi/ripgrep/releases"
