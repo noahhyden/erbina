@@ -1,24 +1,5 @@
 #!/usr/bin/env python3
-"""Install-and-probe recipe ingester — the honest way to grow the registry.
-
-erbina's contract is "prove the tool RUNS", and recipe metadata alone can't tell
-a CLI from a library (Homebrew's most-installed formulae are ~60% codecs/libs),
-nor a tool's real binary name or version flag. So this does the only reliable
-thing: for each candidate it INSTALLS via the given manager, discovers the actual
-binary the install produced, probes which version/help flag exits 0, and emits a
-recipe row ONLY for candidates that genuinely run. Libraries (no runnable binary)
-are skipped automatically.
-
-Emits rows in the scripts/recipe_data.py TOOLS shape (id/bin/title/desc/url +
-manager key + validated detect/verify). Run on macOS to mine `brew` at scale;
-runs anywhere for cargo/go/pipx/npm.
-
-    scripts/ingest_validated.py --manager pipx --out rows.json ruff black mypy
-    scripts/ingest_validated.py --manager npm  --out rows.json turbo madge depcheck
-    scripts/ingest_validated.py --manager brew --out rows.json --keep <formula>...
-
-Nothing is committed — review rows.json, then merge into scripts/recipe_data.py.
-"""
+"""Install-and-probe recipe ingester: emits a recipe row only for candidates that genuinely run."""
 from __future__ import annotations
 
 import argparse
@@ -39,8 +20,7 @@ def _fetch_json(url: str) -> dict:
 
 
 def enrich(manager: str, spec: str) -> dict:
-    """Pull a real description + homepage from the ecosystem's registry API, so
-    ingested recipes get a meaningful gallery blurb (not '<bin> command-line tool')."""
+    """Pull a real description + homepage from the ecosystem registry API for the gallery blurb."""
     if manager == "pipx":
         info = _fetch_json(f"https://pypi.org/pypi/{spec}/json").get("info", {})
         urls = info.get("project_urls") or {}
@@ -51,9 +31,20 @@ def enrich(manager: str, spec: str) -> dict:
         return {"desc": c.get("description") or "", "url": c.get("repository") or c.get("homepage") or ""}
     return {}
 
+USAGE = """\
+usage examples:
+  scripts/ingest_validated.py --manager pipx --out rows.json ruff black mypy
+  scripts/ingest_validated.py --manager npm  --out rows.json turbo madge depcheck
+  scripts/ingest_validated.py --manager brew --out rows.json --keep <formula>...
+
+Each candidate is INSTALLED, its real binary discovered, and a version/help flag
+probed; a row is emitted only if it runs (libraries are skipped). Rows use the
+scripts/recipe_data.py TOOLS shape. Nothing is committed -- review rows.json,
+then merge into scripts/recipe_data.py.
+"""
 REPO = Path(__file__).resolve().parent.parent
 RECIPES = REPO / "recipes"
-# flag probe order: the first that exits 0 becomes the recipe's detect/verify.
+# flag probe order: the first that exits 0 becomes detect/verify.
 FLAGS = ["--version", "version", "-V", "-v", "--help"]
 
 
@@ -66,8 +57,7 @@ def existing_ids() -> set[str]:
 
 
 def existing_bins() -> set[str]:
-    """Binaries already covered — the first token of each recipe's detect command
-    (so a tool present under a different id, like trippy's `trip`, is still caught)."""
+    """Binaries already covered: first token of each recipe detect command (catches trippy -> `trip`)."""
     bins: set[str] = set()
     for p in RECIPES.glob("*.yaml"):
         for line in p.read_text().splitlines():
@@ -84,9 +74,7 @@ def slug(name: str) -> str:
     return name.lstrip("@").replace("/", "-").replace("_", "-").lower()
 
 
-# --------------------------------------------------------------------------- #
 # per-manager: install, then report the binary name(s) the install produced.
-# --------------------------------------------------------------------------- #
 def _bins_in(dir_: Path) -> set[str]:
     return {p.name for p in dir_.iterdir() if p.is_file() and os.access(p, os.X_OK)} if dir_.is_dir() else set()
 
@@ -115,8 +103,7 @@ def install_and_find_bins(manager: str, spec: str) -> tuple[list[str], dict]:
     if manager == "cargo":
         if run(["cargo", "install", spec], timeout=900).returncode != 0:
             return [], meta
-        # authoritative: `cargo install --list` groups each crate with its bins,
-        # e.g. "trippy v0.12.0:\n    trip". A bindir diff is racy and mis-attributes.
+        # `cargo install --list` groups each crate with its bins; a bindir diff is racy.
         crate = spec.rsplit("@", 1)[0]
         out, cur, bins = run(["cargo", "install", "--list"], timeout=60).stdout, None, []
         for line in out.splitlines():
@@ -126,8 +113,7 @@ def install_and_find_bins(manager: str, spec: str) -> tuple[list[str], dict]:
                 bins.append(line.strip())
         return bins, meta
     if manager == "go":
-        # go installs a main package's binary as the last path element into GOBIN;
-        # verify it actually landed (don't guess a name that wasn't produced).
+        # go installs the binary into GOBIN; verify it landed rather than guess a name.
         gobin = Path(os.environ.get("GOBIN") or (Path.home() / "go/bin"))
         before = _bins_in(gobin)
         if run(["go", "install", f"{spec}@latest"], timeout=900).returncode != 0:
@@ -155,7 +141,8 @@ def probe_flag(binary: str) -> str | None:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Install-and-probe recipe ingester.")
+    ap = argparse.ArgumentParser(description="Install-and-probe recipe ingester.", epilog=USAGE,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--manager", required=True, choices=["brew", "cargo", "go", "pipx", "npm"])
     ap.add_argument("--out", required=True, help="JSON file to write validated rows to")
     ap.add_argument("--keep", action="store_true", help="don't uninstall after validating")
@@ -176,8 +163,7 @@ def main() -> int:
             print("  no runnable binary produced — skip (library or install failed)")
             skipped.append((spec, "no-binary"))
             continue
-        # a package can ship several binaries (mprocs installs `dekit` + `mprocs`);
-        # prefer the one whose name matches the package, else the first.
+        # a package can ship several binaries; prefer the one matching the package name.
         base = slug(spec.rsplit("@", 1)[0].split("/")[-1])
         binary = next((b for b in bins if slug(b) == base), bins[0])
         flag = probe_flag(binary)
@@ -186,8 +172,7 @@ def main() -> int:
             skipped.append((spec, "no-verify"))
             continue
         rid = slug(binary)
-        # dedup by BOTH id and binary — a tool can already exist under a different
-        # id (trippy's recipe id is `trippy` but its binary is `trip`).
+        # dedup by BOTH id and binary: a tool can exist under a different id.
         if rid in have or binary in have_bins:
             print(f"  '{binary}' already covered by an existing recipe — skip")
             skipped.append((spec, "dup"))

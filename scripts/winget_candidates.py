@@ -1,32 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve winget PackageIdentifiers for recipe rows that lack Windows coverage.
-
-erbina's generator already renders a `winget` install/update method the moment a
-scripts/recipe_data.py row carries a `winget` key -- but almost no rows do, so the
-bulk-generated recipes are brew/cargo/go-only and install nothing on Windows.
-This maintainer helper closes that gap: it downloads the winget *community source*
-index (the same pre-built SQLite catalog the `winget` CLI itself uses), and for
-each row missing a `winget` key it resolves a PackageIdentifier, tiered by how
-much the match can be trusted:
-
-  high    the id is the row's `gh` owner/repo exactly, OR a command/moniker match
-          whose publisher equals the GitHub owner (strong corroboration).
-  medium  a UNIQUE command (installed-executable) match, but no gh corroboration.
-  low     a moniker-only match (weakest -- monikers collide across unrelated apps).
-
-Only stdlib is used, so it runs anywhere with plain python3 (no winget, no
-Windows, no uv needed). The default emits winget_proposals.json for review -- the
-same "propose, a human merges" idiom as the brew ingester. `--apply` additionally
-stages the resolved keys into scripts/recipe_data.py in place, so a maintainer
-reviews the change as a git diff before committing.
-
-    python3 scripts/winget_candidates.py                    # HIGH-confidence proposals
-    python3 scripts/winget_candidates.py --min-confidence medium
-    python3 scripts/winget_candidates.py --apply            # stage keys for git review
-    python3 scripts/winget_candidates.py --msix ./source.msix   # offline, cached index
-
-Nothing is committed -- review the diff/JSON, then commit and regenerate recipes.
-"""
+"""Resolve winget PackageIdentifiers for recipe rows that lack Windows coverage."""
 from __future__ import annotations
 
 import shutil
@@ -39,8 +12,7 @@ from pathlib import Path
 from _harvest import (CONF_RANK, apply_keys, base_parser, load_tools, norm,  # noqa: F401
                       report, resolve_rows, stage)
 
-# The winget community source ships as a signed MSIX (a zip) whose Public/index.db
-# is a SQLite catalog of every package. This is the CDN URL `winget` fetches.
+# The winget community source is a signed MSIX (zip) holding a SQLite catalog; this is its CDN URL.
 WINGET_SOURCE_URL = "https://cdn.winget.microsoft.com/cache/source2.msix"
 INDEX_MEMBER = "Public/index.db"
 
@@ -49,15 +21,9 @@ def rows_missing_winget(tools: list[dict]) -> list[dict]:
     return [t for t in tools if not t.get("winget")]
 
 
-# --------------------------------------------------------------------------- #
 # the winget community-source index (SQLite inside the MSIX)
-# --------------------------------------------------------------------------- #
 class WingetIndex:
-    """Thin query layer over the winget source SQLite catalog.
-
-    Rows are returned as (PackageIdentifier, PackageName, Moniker) tuples. Lookups
-    are case-insensitive because winget identifiers are matched case-insensitively.
-    """
+    """Case-insensitive query layer over the winget SQLite catalog; rows are (id, name, moniker)."""
 
     def __init__(self, conn: sqlite3.Connection, _tmpdir: str | None = None) -> None:
         self.conn = conn
@@ -74,8 +40,7 @@ class WingetIndex:
         return cls(sqlite3.connect(dbpath), _tmpdir=tmpdir)
 
     def by_command(self, command: str) -> list[tuple]:
-        """Packages that install an executable named `command` (the strongest CLI
-        signal -- winget indexes the actual commands a package provides)."""
+        """Packages that install an executable named `command` (the strongest CLI signal)."""
         return self.conn.execute(
             "SELECT p.id, p.name, p.moniker FROM commands2 c "
             "JOIN commands2_map m ON m.command = c.rowid "
@@ -102,9 +67,7 @@ class WingetIndex:
             shutil.rmtree(self._tmpdir, ignore_errors=True)
 
 
-# --------------------------------------------------------------------------- #
 # resolver: tool row + index -> a confidence-tiered proposal (pure)
-# --------------------------------------------------------------------------- #
 def _publisher(package_id: str) -> str:
     """The publisher portion of a PackageIdentifier (`BurntSushi.ripgrep` -> BurntSushi)."""
     return package_id.split(".", 1)[0]
@@ -118,12 +81,7 @@ def _uniq_by_id(rows: list[tuple]) -> list[tuple]:
 
 
 def _pick(rows: list[tuple], owner: str | None) -> tuple[tuple, bool] | None:
-    """Pick one row from a query result. Returns (row, publisher_corroborated) or
-    None when the match is absent or ambiguously unresolvable.
-
-    A single hit resolves (corroborated iff its publisher == the gh owner). Several
-    hits resolve only if the gh owner disambiguates to exactly one -- otherwise the
-    tie is left for a human (None)."""
+    """Pick (row, publisher_corroborated); several hits resolve only if the gh owner picks exactly one, else None."""
     if not rows:
         return None
     if len(rows) == 1:
@@ -136,12 +94,7 @@ def _pick(rows: list[tuple], owner: str | None) -> tuple[tuple, bool] | None:
 
 
 def resolve(tool: dict, index: WingetIndex) -> dict | None:
-    """Resolve one tool row to a winget proposal, or None if nothing trustworthy.
-
-    Precedence: gh-derived exact id > command match > moniker match. A wrong id
-    installs the WRONG software, so each weaker tier only fires when the stronger
-    ones miss, and publisher corroboration promotes a match to `high`.
-    """
+    """Resolve one row to a winget proposal (gh exact id > command > moniker), or None."""
     rid = tool["id"]
     binary = tool.get("bin", rid)
     gh = tool.get("gh")
@@ -192,9 +145,7 @@ def apply_proposals(source_text: str, proposals: list[dict]) -> tuple[str, list[
     return apply_keys(source_text, proposals, ("winget",))
 
 
-# --------------------------------------------------------------------------- #
 # I/O + CLI
-# --------------------------------------------------------------------------- #
 def fetch_source_msix(url: str, dest_dir: str | Path) -> Path:  # pragma: no cover - network I/O
     dest = Path(dest_dir) / "winget-source.msix"
     with urllib.request.urlopen(url, timeout=180) as r, open(dest, "wb") as f:  # noqa: S310
@@ -202,8 +153,25 @@ def fetch_source_msix(url: str, dest_dir: str | Path) -> Path:  # pragma: no cov
     return dest
 
 
+USAGE = """\
+usage examples:
+  python3 scripts/winget_candidates.py                    # HIGH-confidence proposals
+  python3 scripts/winget_candidates.py --min-confidence medium
+  python3 scripts/winget_candidates.py --apply            # stage keys for git review
+  python3 scripts/winget_candidates.py --msix ./source.msix   # offline, cached index
+
+confidence tiers:
+  high    id is the row's gh owner/repo exactly, or a command/moniker match whose publisher equals the gh owner
+  medium  a UNIQUE command (installed-executable) match, but no gh corroboration
+  low     a moniker-only match (weakest; monikers collide across unrelated apps)
+
+Reads the winget community-source index (the SQLite catalog the winget CLI uses); stdlib only.
+Nothing is committed -- review the diff/JSON, then commit and regenerate recipes.
+"""
+
+
 def main(argv: list[str] | None = None) -> int:
-    ap = base_parser("Resolve winget PackageIdentifiers for recipe rows.", "winget_proposals.json")
+    ap = base_parser("Resolve winget PackageIdentifiers for recipe rows.", "winget_proposals.json", epilog=USAGE)
     ap.add_argument("--msix", help="use this local source MSIX instead of downloading")
     ap.add_argument("--source-url", default=WINGET_SOURCE_URL)
     args = ap.parse_args(argv)

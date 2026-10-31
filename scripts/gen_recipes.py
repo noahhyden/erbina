@@ -1,16 +1,5 @@
 #!/usr/bin/env python3
-"""Generate curated cli-tool recipes from a compact data table.
-
-Not part of the shipped server — a maintainer helper that emits well-formed
-recipes/<id>.yaml files matching the SCHEMA.md contract and the curated-registry
-policy (guarded install methods, honest verify, github version shorthand). Run:
-
-    python3 scripts/gen_recipes.py
-
-It refuses to clobber an existing recipe file (so hand-tuned recipes are safe),
-and every file it writes is designed to pass `lint_recipes.py` and the
-conformance suite. Feed it more rows in TOOLS to grow the registry.
-"""
+"""Generate curated cli-tool recipes from the scripts/recipe_data.py table."""
 from __future__ import annotations
 
 import textwrap
@@ -19,8 +8,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RECIPES_DIR = REPO_ROOT / "recipes"
 
-# Guard commands per package manager (curated policy: every method is guarded so
-# it only fires where its manager exists — safe to list many on one recipe).
+# Guard per package manager: every method only fires where its manager exists.
 GUARDS = {
     "brew": "command -v brew",
     "winget": "winget --version",
@@ -39,10 +27,7 @@ WINGET_TAIL = (
 )
 
 
-# (key, method id, install template, update template), in preference order.
-# curl|sh is the last-resort fallback (the tool's official install script): after
-# every package manager -- including winget, since Windows also ships `curl` -- so
-# it only fires when nothing more managed matches. Re-running it upgrades.
+# (key, method id, install, update) in preference order; curl|sh is the last-resort fallback.
 MANAGERS = (
     ("brew", "homebrew", "brew install {}", "brew upgrade {}"),
     ("winget", "winget", f"winget install -e --id {{}} {WINGET_TAIL}", f"winget upgrade -e --id {{}} {WINGET_TAIL}"),
@@ -113,9 +98,7 @@ def render(t: dict) -> str:
         lines.append(f'      when: "{guard}"')
         lines.append(f'      run: "{run}"')
     lines.append("")
-    # optional queriability metadata (see SCHEMA.md) — only emitted when a row
-    # authors it, so rows without it render byte-identically to the pre-taxonomy
-    # files. `category` overrides erbina's inferred bucket.
+    # optional queriability metadata (SCHEMA.md): emitted only when a row authors it.
     if t.get("category"):
         lines.append(f"category: {t['category']}")
     lines.append("")
@@ -127,11 +110,7 @@ def main(argv: list[str] | None = None) -> int:
 
     from recipe_data import TOOLS  # local import so the table lives in its own file
 
-    # By default the generator never clobbers an existing recipe (so hand-tuned
-    # files are safe). `--rewrite` re-renders every TOOLS row and overwrites a
-    # file whose content has DRIFTED from its row — the safe way to backfill a new
-    # field (e.g. `category:`) into already-generated recipes: rows unchanged since
-    # generation render byte-identically and are left untouched.
+    # never clobbers an existing recipe; --rewrite overwrites only files that drifted from their row.
     rewrite = "--rewrite" in (argv if argv is not None else sys.argv[1:])
 
     written, updated, skipped = 0, 0, 0

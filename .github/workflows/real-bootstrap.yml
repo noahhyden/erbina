@@ -1,14 +1,6 @@
 name: Real bootstrap smoke
 
-# The pytest suite is deterministic and OFFLINE — it proves the orchestration is
-# correct but never runs a real package manager, so a renamed brew formula, a dead
-# install URL, a wrong `go install` path, or a bad MCP-server package name would
-# pass CI yet break a real bootstrap. This workflow closes that gap: it bootstraps
-# recipes FOR REAL on runners that actually have the package managers.
-#
-# It is deliberately NOT wired to push/pull_request — real installs are slow and
-# occasionally flaky (upstream/network), so this must never gate a PR. It runs on
-# a weekly schedule and on manual dispatch, and fails loudly when a recipe rots.
+# Weekly and manual only, never a PR gate: bootstraps recipes FOR REAL on runners that have the package managers.
 
 on:
   workflow_dispatch:
@@ -18,17 +10,14 @@ on:
         required: false
         default: ""
   schedule:
-    # Saturdays 06:00 UTC — deliberately NOT Monday: run it going into the weekend
-    # so recipe rot surfaces with days of slack to fix before people rely on the
-    # tool during the work week, rather than the morning they need it to work.
+    # Saturdays 06:00 UTC, so recipe rot surfaces before the work week.
     - cron: "0 6 * * 6"
 
 permissions:
   contents: read
 
 jobs:
-  # macOS runners ship brew preinstalled, so the `homebrew` install method fires
-  # first for every cli-tool — this validates ALL of the brew FORMULA NAMES.
+  # macOS ships brew, so the `homebrew` method fires first and validates every brew formula name.
   macos:
     runs-on: macos-latest
     steps:
@@ -45,11 +34,7 @@ jobs:
           echo "bootstrapping: $RECIPES"
           uv run --with fastmcp --with pyyaml --with packaging scripts/smoke_bootstrap.py $RECIPES
 
-  # Windows runners ship winget, so the `winget` install method fires (brew/cargo
-  # guards fail cleanly in cmd.exe). Validate every winget PACKAGE ID exists
-  # (`winget show`, fast + reliable), then bootstrap a stable subset for real
-  # end-to-end (with winget's shim dir pre-added to PATH so a just-installed tool
-  # is found by detect/verify in the same run).
+  # Windows ships winget: validate every package id (`winget show`), then bootstrap a stable subset for real.
   windows:
     runs-on: windows-latest
     defaults:
@@ -77,9 +62,7 @@ jobs:
           $env:PATH = "$env:LOCALAPPDATA\Microsoft\WinGet\Links;$env:PATH"
           uv run --with fastmcp --with pyyaml --with packaging scripts/smoke_bootstrap.py ripgrep jq zoxide
 
-  # Ubuntu has Go and Rust (cargo) preinstalled but no brew, so the NON-brew
-  # fallback methods fire — validates the `go install` / `cargo install` / `pipx`
-  # paths. Kept to a fast subset (cargo builds from source).
+  # Ubuntu has Go and cargo but no brew, so the go/cargo/pipx fallback methods fire; fast subset only.
   ubuntu-fallbacks:
     runs-on: ubuntu-latest
     steps:
@@ -101,13 +84,7 @@ jobs:
           echo "bootstrapping: $RECIPES"
           uv run --with fastmcp --with pyyaml --with packaging scripts/smoke_bootstrap.py $RECIPES
 
-  # Round-trip: bootstrap -> uninstall -> REINSTALL, failing unless the reinstall
-  # is ok. This is the arm that catches a package manager whose teardown leaves
-  # install state behind (a pipx venv, a cargo .crates2.json record) so the
-  # reinstall silently no-ops and never relinks/rebuilds the binary. The rest of
-  # this workflow only ever installs once, so it can't see that class of bug.
-  # Limited to recipes that ship an `uninstall:` block and install via a manager
-  # present on Ubuntu (pipx/cargo/go).
+  # Round-trip: bootstrap -> uninstall -> REINSTALL, catching managers whose teardown leaves install state behind.
   roundtrip:
     runs-on: ubuntu-latest
     steps:
@@ -130,8 +107,7 @@ jobs:
           uv run --with fastmcp --with pyyaml --with packaging \
             scripts/smoke_bootstrap.py --roundtrip httpie difftastic lazygit
 
-  # Exercise gh's `webi` fallback specifically: GitHub runners ship gh preinstalled
-  # (and have no brew), so we remove it first to force the curl|sh method to fire.
+  # Exercise gh's `webi` fallback: remove the preinstalled gh to force the curl|sh method.
   gh-webi:
     runs-on: ubuntu-latest
     steps:
@@ -151,10 +127,7 @@ jobs:
           set -euo pipefail
           uv run --with fastmcp --with pyyaml --with packaging scripts/smoke_bootstrap.py gh
 
-  # MCP-server recipes wire via `claude mcp add` — the `claude` CLI isn't on CI, so
-  # a stub records add/get (validates the wiring end to end with the REAL recipes'
-  # commands), and separately every server PACKAGE name is resolved for real
-  # (PyPI for uvx, npm for npx) — the actual real-world risk.
+  # MCP-server recipes: a stub `claude` records add/get, and every server package name is resolved for real.
   mcp-servers:
     runs-on: ubuntu-latest
     steps:
