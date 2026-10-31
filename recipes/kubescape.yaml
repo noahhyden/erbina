@@ -1,4 +1,3 @@
-# erbina recipe — kubescape, a cli-tool. Scan Kubernetes for security risks.
 id: kubescape
 kind: cli-tool
 title: "kubescape — a Kubernetes security platform for scanning clusters, YAML files and Helm charts"
@@ -8,12 +7,9 @@ description: >
   misconfigurations and vulnerabilities.
   https://github.com/kubescape/kubescape
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "kubescape version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -23,17 +19,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id kubescape.kubescape --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "kubescape version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "kubescape version"
   latest: { github: kubescape/kubescape }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -43,4 +35,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id kubescape.kubescape --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

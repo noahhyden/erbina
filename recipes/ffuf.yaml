@@ -1,4 +1,3 @@
-# erbina recipe — ffuf, a cli-tool. Fast web fuzzer.
 id: ffuf
 kind: cli-tool
 title: "ffuf — fast web fuzzer written in Go"
@@ -7,12 +6,9 @@ description: >
   parameter fuzzing and virtual-host discovery, widely used in web
   security testing. https://github.com/ffuf/ffuf
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "ffuf -V"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id ffuf.ffuf --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "ffuf -V"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "ffuf -V"
   latest: { github: ffuf/ffuf }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id ffuf.ffuf --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

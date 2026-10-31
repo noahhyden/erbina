@@ -34,13 +34,14 @@ jobs:
         run: uvx ruff@0.15.20 check .
       - name: Byte-compile the server
         run: python3 -m py_compile server.py
-      - name: Lint the recipes (if the linter is present)
-        run: |
-          if [ -f lint_recipes.py ]; then
-            uv run --script lint_recipes.py
-          else
-            echo "lint_recipes.py not present on this ref; skipping recipe lint"
-          fi
+      - name: Lint the recipes
+        run: uv run --script lint_recipes.py
+      - name: An AGENTS.d rule is one line of 255 characters
+        run: python3 .github/scripts/check_agents_rule_length.py
+      - name: Explanation in code is capped at one line
+        run: python3 .github/scripts/check_one_line_comments.py
+      - name: Self-check the comment guard
+        run: uv run --with pytest python -m pytest .github/scripts/test_check_one_line_comments.py -q
 
   # ---------------------------------------------------------------------------
   # Test: the pytest suite on Linux and macOS. It drives an in-memory FastMCP
@@ -72,17 +73,9 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
       - name: Import + tool registration under Python 3.10
-        run: |
-          uv run --python 3.10 --with fastmcp --with pyyaml --with packaging python - <<'PY'
-          import asyncio, server
-          from fastmcp import Client
-          async def main():
-              async with Client(server.mcp) as c:
-                  names = sorted(t.name for t in await c.list_tools())
-              assert len(names) == 13, names
-              print("ok: 13 tools register under", __import__("sys").version.split()[0])
-          asyncio.run(main())
-          PY
+        run: >
+          uv run --python 3.10 --with pytest --with fastmcp --with pyyaml --with packaging
+          python -m pytest tests/test_import.py tests/test_tools.py -q
 
   # ---------------------------------------------------------------------------
   # Release verification: the recipes must lint clean, server.json (the MCP
@@ -98,19 +91,10 @@ jobs:
           fetch-depth: 0  # need tags for the version<->tag check
       - name: Install uv
         uses: astral-sh/setup-uv@v5
-      - name: Recipes lint clean (if the linter is present)
+      - name: Recipes lint clean
+        run: uv run --script lint_recipes.py
+      - name: server.json is valid
         run: |
-          if [ -f lint_recipes.py ]; then
-            uv run --script lint_recipes.py
-          else
-            echo "lint_recipes.py not present on this ref; skipping"
-          fi
-      - name: server.json is valid (if present)
-        run: |
-          if [ ! -f server.json ]; then
-            echo "server.json not present on this ref; skipping"
-            exit 0
-          fi
           python3 - <<'PY'
           import json, re, sys
           d = json.load(open("server.json"))

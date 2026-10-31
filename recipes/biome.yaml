@@ -1,4 +1,3 @@
-# erbina recipe — biome, a cli-tool. Fast formatter + linter for the web.
 id: biome
 kind: cli-tool
 title: "biome — a performant toolchain for web projects: format, lint and more"
@@ -7,12 +6,9 @@ description: >
   JavaScript, TypeScript, JSON and CSS, a fast Rust-based alternative to
   Prettier and ESLint. https://github.com/biomejs/biome
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "biome --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -25,17 +21,13 @@ install:
       when: "command -v npm"
       run: "npm install -g @biomejs/biome"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "biome --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "biome --version"
   latest: { github: biomejs/biome }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -48,4 +40,3 @@ update:
       when: "command -v npm"
       run: "npm update -g @biomejs/biome"
 
-scope: user

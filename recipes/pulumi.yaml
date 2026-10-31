@@ -1,4 +1,3 @@
-# erbina recipe — pulumi, a cli-tool. IaC in general-purpose languages.
 id: pulumi
 kind: cli-tool
 title: "pulumi — infrastructure as code in your favorite language"
@@ -7,12 +6,9 @@ description: >
   resources using familiar languages like TypeScript, Python, Go and C#.
   https://github.com/pulumi/pulumi
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "pulumi version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id Pulumi.Pulumi --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "pulumi version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "pulumi version"
   latest: { github: pulumi/pulumi }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id Pulumi.Pulumi --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

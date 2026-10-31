@@ -7,6 +7,8 @@ into all of these checks.
 """
 from __future__ import annotations
 
+import graphlib
+
 import pytest
 
 import server
@@ -61,23 +63,10 @@ def test_requires_graph_has_no_cycles():
     # build the whole requires DAG and assert it's acyclic (a cycle would make
     # bootstrap's cycle-guard kick in, but the registry should never ship one).
     graph = {rid: (server._load_recipe(rid).get("requires") or []) for rid in RECIPE_IDS}
-    WHITE, GREY, BLACK = 0, 1, 2
-    color = dict.fromkeys(graph, WHITE)
-
-    def visit(node, stack):
-        color[node] = GREY
-        for dep in graph.get(node, []):
-            if dep not in graph:
-                continue  # dangling dep is caught by the per-recipe test above
-            if color[dep] == GREY:
-                raise AssertionError(f"requires cycle: {' -> '.join(stack + [dep])}")
-            if color[dep] == WHITE:
-                visit(dep, stack + [dep])
-        color[node] = BLACK
-
-    for rid in graph:
-        if color[rid] == WHITE:
-            visit(rid, [rid])
+    try:
+        graphlib.TopologicalSorter(graph).prepare()
+    except graphlib.CycleError as e:
+        pytest.fail(f"requires cycle: {' -> '.join(map(str, e.args[1]))}")
 
 
 @pytest.mark.parametrize("rid", RECIPE_IDS)

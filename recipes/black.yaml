@@ -1,4 +1,3 @@
-# erbina recipe — black, a cli-tool. Opinionated Python formatter.
 id: black
 kind: cli-tool
 title: "black — the uncompromising Python code formatter"
@@ -7,12 +6,9 @@ description: >
   to cede control over the minutiae of formatting for fast, consistent
   output. https://github.com/psf/black
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "black --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: winget
@@ -22,17 +18,13 @@ install:
       when: "command -v pipx"
       run: "pipx install black"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "black --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "black --version"
   latest: { github: psf/black }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: winget
@@ -42,4 +34,3 @@ update:
       when: "command -v pipx"
       run: "pipx upgrade black"
 
-scope: user

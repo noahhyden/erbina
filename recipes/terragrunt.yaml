@@ -1,4 +1,3 @@
-# erbina recipe — terragrunt, a cli-tool. DRY wrapper around Terraform.
 id: terragrunt
 kind: cli-tool
 title: "terragrunt — a thin wrapper for Terraform for keeping configurations DRY"
@@ -7,12 +6,9 @@ description: >
   tools for keeping configurations DRY, working with multiple modules, and
   more. https://github.com/gruntwork-io/terragrunt
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "terragrunt --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id Gruntwork.Terragrunt --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "terragrunt --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "terragrunt --version"
   latest: { github: gruntwork-io/terragrunt }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id Gruntwork.Terragrunt --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user

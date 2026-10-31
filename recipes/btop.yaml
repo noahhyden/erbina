@@ -1,4 +1,3 @@
-# erbina recipe — btop, a cli-tool. Colorful resource monitor.
 id: btop
 kind: cli-tool
 title: "btop — a monitor of resources"
@@ -7,12 +6,9 @@ description: >
   memory, disks, network and processes with a responsive, mouse-driven
   TUI. https://github.com/aristocratos/btop
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "btop --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id aristocratos.btop4win --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "btop --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "btop --version"
   latest: { github: aristocratos/btop }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,5 +34,4 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id aristocratos.btop4win --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user
 category: monitoring

@@ -28,7 +28,6 @@ recipes with an `uninstall:` block reverse themselves afterward.
 from __future__ import annotations
 
 import argparse
-import asyncio
 import json
 import sys
 import tempfile
@@ -37,30 +36,21 @@ from pathlib import Path
 # make `import server` work from anywhere (repo root is this file's parent's parent)
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(REPO_ROOT / "tests"))
 
 import server  # noqa: E402
-from fastmcp import Client  # noqa: E402
-
-
-async def _call(name: str, args: dict) -> dict:
-    async with Client(server.mcp) as client:
-        res = await client.call_tool(name, args)
-        for attr in ("data", "structured_content"):
-            val = getattr(res, attr, None)
-            if val is not None:
-                return val
-        return {}
+from helpers import call_tool  # noqa: E402
 
 
 def _bootstrap(rid: str, scope: str = "user", project_dir: str | None = None) -> dict:
     args: dict = {"recipe_id": rid, "scope": scope}
     if project_dir is not None:
         args["project_dir"] = project_dir
-    return asyncio.run(_call("bootstrap", args))
+    return call_tool("bootstrap", args)
 
 
 def _uninstall(rid: str) -> dict:
-    return asyncio.run(_call("uninstall", {"recipe_id": rid}))
+    return call_tool("uninstall", {"recipe_id": rid})
 
 
 def _print_phases(report: dict) -> bool:

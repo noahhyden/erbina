@@ -1,4 +1,3 @@
-# erbina recipe — lsd, a cli-tool. ls with icons and colors.
 id: lsd
 kind: cli-tool
 title: "lsd — the next-gen ls command"
@@ -7,12 +6,9 @@ description: >
   tree-view and more formatting options for a friendlier directory
   listing. https://github.com/lsd-rs/lsd
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "lsd --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -25,17 +21,13 @@ install:
       when: "command -v cargo"
       run: "cargo install lsd"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "lsd --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "lsd --version"
   latest: { github: lsd-rs/lsd }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -48,5 +40,4 @@ update:
       when: "command -v cargo"
       run: "cargo install lsd"
 
-scope: user
 category: files

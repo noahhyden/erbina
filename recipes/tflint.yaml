@@ -1,4 +1,3 @@
-# erbina recipe — tflint, a cli-tool. Linter for Terraform.
 id: tflint
 kind: cli-tool
 title: "tflint — a pluggable Terraform linter"
@@ -7,12 +6,9 @@ description: >
   warns about deprecated syntax, and enforces best-practice conventions.
   https://github.com/terraform-linters/tflint
 
-# 1. DETECT — already installed? Exits 0 when present.
 detect:
   command: "tflint --version"
-  expect_exit: 0
 
-# 2. INSTALL — first passing guard wins.
 install:
   methods:
     - id: homebrew
@@ -22,17 +18,13 @@ install:
       when: "winget --version"
       run: "winget install -e --id TerraformLinters.tflint --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-# 3. VERIFY — prove it actually runs.
 verify:
   - command: "tflint --version"
-    expect_exit: 0
 
-# 4. VERSION — powers check_updates (installed vs latest GitHub tag).
 version:
   current: "tflint --version"
   latest: { github: terraform-linters/tflint }
 
-# 5. UPDATE — how `update` upgrades an installed copy.
 update:
   methods:
     - id: homebrew
@@ -42,4 +34,3 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id TerraformLinters.tflint --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
-scope: user
