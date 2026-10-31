@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-"""Emit a ranked list of Homebrew formulae to feed scripts/ingest_validated.py.
-
-Pulls Homebrew's install-analytics (popularity = a quality signal) and formula
-metadata, then prints the most-installed formulae that AREN'T already recipes,
-skipping keg-only libraries and obvious non-CLIs. The list is only a starting
-point: the ingester still installs and probes each one, so any library that slips
-through here produces no runnable binary and is dropped there.
-
-    scripts/brew_candidates.py --limit 60 --offset 0
-"""
+"""Emit a ranked list of Homebrew formulae to feed scripts/ingest_validated.py."""
 from __future__ import annotations
 
 import argparse
@@ -31,7 +22,9 @@ def _get(url: str) -> object:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser()
+    ap = argparse.ArgumentParser(
+        description="Emit a ranked list of Homebrew formulae to feed scripts/ingest_validated.py.",
+        epilog="example: scripts/brew_candidates.py --limit 60 --offset 0")
     ap.add_argument("--limit", type=int, default=60)
     ap.add_argument("--offset", type=int, default=0)
     args = ap.parse_args()
