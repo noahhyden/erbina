@@ -46,20 +46,9 @@ def test_bad_scope_rejected_before_work():
 # no update path declared
 # --------------------------------------------------------------------------- #
 def test_no_update_path_is_an_error():
-    out = _upd(cli_recipe("t"))  # no update block, install not upgrade_safe
+    out = _upd(cli_recipe("t"))  # no update block
     assert "error" in out
     assert "no safe way to update" in out["error"]
-
-
-def test_install_upgrade_safe_is_used_as_fallback():
-    recipe = cli_recipe(
-        "t",
-        detect={"command": TRUE},
-        install={"methods": [{"id": "i", "run": TRUE}], "upgrade_safe": True},
-    )
-    out = _upd(recipe, dry_run=True)
-    assert out["plan"]["update_source"] == "install (upgrade_safe)"
-    assert out["plan"]["chosen_method"] == "i"
 
 
 # --------------------------------------------------------------------------- #

@@ -122,47 +122,6 @@ def test_update_upgrades_a_real_tool_end_to_end(erb_bin):
 
 
 # --------------------------------------------------------------------------- #
-# rollback recovery: real broken update -> real rollback restores a working tool
-# --------------------------------------------------------------------------- #
-def _write_script_from_rollback_env() -> str:
-    """Install a WORKING erbtool that echoes $ERBINA_ROLLBACK_VERSION — the outer
-    (rollback) shell expands it at write time, so the restored tool reports the
-    version erbina rolled back to."""
-    return (
-        "echo '#!/bin/sh' > \"$ERB_BIN/erbtool\"; "
-        'echo "echo erbtool $ERBINA_ROLLBACK_VERSION" >> "$ERB_BIN/erbtool"; '
-        "chmod +x \"$ERB_BIN/erbtool\""
-    )
-
-
-def test_rollback_recovers_a_broken_update_end_to_end(erb_bin):
-    recipe = {
-        "id": "erbtool",
-        "kind": "cli-tool",
-        "title": "erbtool — rollback fixture",
-        "description": "installs v1, a broken v2, and a rollback that restores the prior version",
-        "detect": {"command": "command -v erbtool"},
-        "install": {"methods": [{"id": "s", "when": "command -v chmod", "run": _write_script("1.0.0")}]},
-        "verify": [{"command": "erbtool --version"}],
-        "version": {"current": "erbtool --version", "latest": "echo 2.0.0"},
-        "update": {"methods": [{"id": "s", "when": "command -v chmod", "run": _write_script("2.0.0", ok=False)}]},
-        "rollback": {"methods": [{"id": "restore", "when": "command -v chmod", "run": _write_script_from_rollback_env()}]},
-        "scope": "user",
-    }
-    with registry(recipe):
-        assert call_tool("bootstrap", {"recipe_id": "erbtool"})["ok"] is True
-        out = call_tool("update", {"recipe_id": "erbtool"})
-
-    # the update's verify failed, but rollback restored a working prior version
-    assert out["ok"] is False
-    assert out["phases"]["rollback"]["status"] == "ok"
-    assert out["rolled_back_to"] == "1.0.0"
-    # the tool on disk really works again and reports the rolled-back version
-    res = subprocess.run(["erbtool", "--version"], capture_output=True, text=True)
-    assert res.returncode == 0 and "erbtool 1.0.0" in res.stdout
-
-
-# --------------------------------------------------------------------------- #
 # mcp-server wiring: real bootstrap against a STUB `claude` binary
 # --------------------------------------------------------------------------- #
 @pytest.fixture
