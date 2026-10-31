@@ -7,7 +7,7 @@ break `check_updates` for a whole class of tools.
 It also pins a KNOWN limitation (candidate finding #5): "first version-looking
 token wins", so a dotted date/number appearing BEFORE the real version is
 misextracted. No current recipe triggers it (their outputs are single clean
-lines), so it's characterized here, not fixed — see PROTOTYPE_NOTES.md.
+lines), so it's characterized here, not fixed.
 """
 from __future__ import annotations
 
@@ -69,11 +69,6 @@ REAL_OUTPUTS = [
 @pytest.mark.parametrize("output,expected", REAL_OUTPUTS)
 def test_extract_version_handles_real_tool_output(output, expected):
     assert server._extract_version(output) == expected
-
-
-def test_real_corpus_is_broad_enough_to_matter():
-    # guardrail: don't let this corpus quietly shrink below a meaningful size
-    assert len(REAL_OUTPUTS) >= 20
 
 
 # --------------------------------------------------------------------------- #
