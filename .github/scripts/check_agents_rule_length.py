@@ -17,13 +17,19 @@ MAX_CHARS = 255
 
 
 def rule_files(argv: list[str]) -> list[str]:
-    """Rule paths from argv, or every tracked rule file when argv is empty."""
+    """Rule paths from argv, else every rule file git knows about, tracked or not."""
     if argv:
         return [a for a in argv if RULE_RE.search(a)]
-    out = subprocess.run(
-        ["git", "ls-files"], cwd=REPO, capture_output=True, text=True, check=True
+    # --others --exclude-standard too: a rule added but not yet `git add`ed is exactly the one a contributor is about to get wrong, and scanning only tracked files reports OK on a file it never read.
+    out = _git("ls-files") + _git("ls-files", "--others", "--exclude-standard")
+    return sorted({f for f in out if RULE_RE.search(f)})
+
+
+def _git(*args: str) -> list[str]:
+    """Whitespace-split stdout of a git command run at the repo root."""
+    return subprocess.run(
+        ["git", *args], cwd=REPO, capture_output=True, text=True, check=True
     ).stdout.split()
-    return [f for f in out if RULE_RE.search(f)]
 
 
 def body_of(text: str) -> str:
