@@ -33,17 +33,10 @@ Nothing is committed -- review the diff/JSON, then commit and regenerate recipes
 """
 from __future__ import annotations
 
-import argparse
-import importlib.util
-import json
 import re
-from collections import Counter
-from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_RECIPE_DATA = REPO_ROOT / "scripts" / "recipe_data.py"
-
-CONF_RANK = {"high": 3, "medium": 2, "low": 1}
+from _harvest import (CONF_RANK, apply_keys, base_parser, load_tools, norm,  # noqa: F401
+                      report, resolve_rows, stage)
 
 # Install methods that already work on a plain Linux box. brew/winget do NOT count
 # (Homebrew is rare on Linux; winget is Windows) -- a row carrying only those is
@@ -66,11 +59,6 @@ KNOWN_INSTALLERS: dict[str, dict[str, str]] = {
     "direnv":        {"url": "https://direnv.net/install.sh", "shell": "bash"},
     "volta":         {"url": "https://get.volta.sh", "shell": "bash"},
 }
-
-
-def norm(s: str | None) -> str:
-    """Casefold to bare alphanumerics for comparing domains/owners/repos."""
-    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
 
 
 def is_linux_gapped(tool: dict) -> bool:
@@ -136,94 +124,32 @@ def resolve(tool: dict) -> dict | None:
 def resolve_all(tools: list[dict], min_confidence: str = "high",
                 ids: set[str] | None = None) -> list[dict]:
     """Resolve every Linux-gapped, curl-less row at or above `min_confidence`."""
-    threshold = CONF_RANK[min_confidence]
-    out: list[dict] = []
-    for tool in rows_needing_curl(tools):
-        if ids is not None and tool["id"] not in ids:
-            continue
-        p = resolve(tool)
-        if p and CONF_RANK[p["confidence"]] >= threshold:
-            out.append(p)
-    out.sort(key=lambda p: p["id"])
-    return out
+    return resolve_rows(rows_needing_curl(tools), resolve, min_confidence, ids)
 
 
-# --------------------------------------------------------------------------- #
-# staging: insert `curl` (+ optional `curl_shell`) into recipe_data.py (pure)
-# --------------------------------------------------------------------------- #
-_ROW = re.compile(r"\{[^{}]*\}")  # a TOOLS row is a brace-balanced dict with no nesting
-
-
-def _id_token(rid: str) -> re.Pattern[str]:
-    # anchored on the exact id so `k3d` never matches a `k3د...`-style longer id.
-    return re.compile(r'"id":\s*"' + re.escape(rid) + r'"')
+CURL_KEYS = ("curl", "curl_shell")
 
 
 def apply_proposals(source_text: str, proposals: list[dict]) -> tuple[str, list[str], list[str]]:
-    """Insert `"curl": "<url>"` (and `"curl_shell": "<shell>"` when present) after
-    each row's id. Returns (new_text, applied ids, missing ids). Idempotent: a row
-    that already has a curl key is left untouched."""
-    text = source_text
-    applied: list[str] = []
-    missing: list[str] = []
-    for p in proposals:
-        rid = p["id"]
-        token = _id_token(rid)
-        row_match = next((m for m in _ROW.finditer(text) if token.search(m.group())), None)
-        if row_match is None:
-            missing.append(rid)
-            continue
-        row = row_match.group()
-        if '"curl"' in row:  # already staged -> idempotent
-            continue
-        insert = f', "curl": "{p["curl"]}"'
-        if p.get("curl_shell"):
-            insert += f', "curl_shell": "{p["curl_shell"]}"'
-        at = token.search(row).end()
-        new_row = row[:at] + insert + row[at:]
-        text = text[:row_match.start()] + new_row + text[row_match.end():]
-        applied.append(rid)
-    return text, applied, missing
-
-
-# --------------------------------------------------------------------------- #
-# I/O + CLI
-# --------------------------------------------------------------------------- #
-def load_tools(recipe_data_path: str | Path) -> list[dict]:
-    """Import TOOLS from a recipe_data.py file at an arbitrary path."""
-    spec = importlib.util.spec_from_file_location("_erbina_recipe_data", recipe_data_path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.TOOLS
+    """Stage `curl` (+ optional `curl_shell`) after each row's id; see _harvest.apply_keys."""
+    return apply_keys(source_text, proposals, CURL_KEYS)
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="Propose curl installers for Linux-gapped recipe rows.")
-    ap.add_argument("--recipe-data", default=str(DEFAULT_RECIPE_DATA),
-                    help="recipe_data.py to read TOOLS from (and edit with --apply)")
-    ap.add_argument("--out", default="curl_proposals.json", help="proposals JSON output")
-    ap.add_argument("--min-confidence", choices=list(CONF_RANK), default="high")
-    ap.add_argument("--apply", action="store_true",
-                    help="stage resolved curl keys into --recipe-data in place")
-    ap.add_argument("ids", nargs="*", help="restrict to these recipe ids (default: all)")
+    ap = base_parser("Propose curl installers for Linux-gapped recipe rows.", "curl_proposals.json")
     args = ap.parse_args(argv)
 
     tools = load_tools(args.recipe_data)
     proposals = resolve_all(tools, args.min_confidence, set(args.ids) or None)
 
-    Path(args.out).write_text(json.dumps(proposals, indent=2) + "\n")
-    by_conf = Counter(p["confidence"] for p in proposals)
+    by_conf = report(proposals, args.out)
     gapped = len(rows_needing_curl(tools))
     print(f"resolved {len(proposals)} curl installer(s) "
           f"(high={by_conf['high']} medium={by_conf['medium']}) "
           f"of {gapped} Linux-gapped row(s) -> {args.out}")
 
     if args.apply:
-        rd = Path(args.recipe_data)
-        new_text, applied, missing = apply_proposals(rd.read_text(), proposals)
-        rd.write_text(new_text)
-        note = f"; {len(missing)} id(s) not found: {missing}" if missing else ""
-        print(f"applied {len(applied)} curl key(s) into {rd}{note}")
+        stage(args.recipe_data, proposals, CURL_KEYS)
     return 0
 
 
