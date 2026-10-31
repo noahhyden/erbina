@@ -1,16 +1,4 @@
-"""Unit tests for the recipe taxonomy: `server._categorize` and the optional
-stored `category` schema fields.
-
-`_categorize` is the computed FALLBACK that gives every recipe a category and a
-set of search tags even when the YAML doesn't author them. It must:
-  * always return a category from the closed `CATEGORIES` taxonomy,
-  * never crash on a sparse/odd recipe dict (it feeds list_recipes/search_recipes,
-    which must not blow up on one weird file),
-  * classify obvious, unambiguous tools correctly.
-
-The schema half asserts that stored `category` is validated (closed
-taxonomy, list-of-strings) and that a stored value WINS over the computed one.
-"""
+"""`server._categorize` must always return a CATEGORIES member without crashing on sparse recipes, and a stored `category` must validate and win."""
 from __future__ import annotations
 
 import server
@@ -21,9 +9,7 @@ def _cat(recipe_id: str) -> str:
     return _categorize(server._load_recipe(recipe_id))[0]
 
 
-# --------------------------------------------------------------------------- #
 # _categorize — always-valid, total function
-# --------------------------------------------------------------------------- #
 def test_every_shipped_recipe_gets_a_valid_category_and_tag_list():
     for rid in server._recipe_ids():
         recipe = server._load_recipe(rid)
@@ -48,9 +34,7 @@ def test_categorize_handles_non_string_fields_gracefully():
     assert cat in CATEGORIES
 
 
-# --------------------------------------------------------------------------- #
 # _categorize — unambiguous anchors classify correctly
-# --------------------------------------------------------------------------- #
 def test_kind_drives_profile_and_mcp_categories():
     assert _cat("modern-unix") == "profile"
     assert _cat("fetch") == "mcp-server"
@@ -77,15 +61,12 @@ def test_anchor_classifications():
 
 
 def test_tags_include_replaced_classic_tool():
-    # ripgrep's blurb calls out grep-style recursive search; a user searching
-    # "grep" should be able to find it via tags.
+    # ripgrep's blurb mentions grep-style search, so searching "grep" must find it via tags.
     _, tags = _categorize(server._load_recipe("ripgrep"))
     assert "search" in tags
 
 
-# --------------------------------------------------------------------------- #
 # stored category — schema validation
-# --------------------------------------------------------------------------- #
 def _base(**extra):
     r = {
         "id": "demo",

@@ -1,11 +1,4 @@
-"""Behavioral tests for recipe `requires:` — prerequisite recipes that must be
-bootstrapped before the recipe that depends on them.
-
-All recipes are prototype recipes (POSIX-builtin commands), so a live bootstrap is
-deterministic and side-effect-free. The `requires` graph is exercised end-to-end
-through the real `bootstrap` tool: ordering, idempotency, transitive + diamond
-deps, cycle safety, and failure short-circuiting.
-"""
+"""`requires:` prerequisites bootstrap first, tested end-to-end through the real `bootstrap` (ordering, idempotency, transitive + diamond, cycles, short-circuit); see AGENTS.d/141."""
 from __future__ import annotations
 
 import pytest
@@ -20,9 +13,7 @@ def _boot(*recipes, target=None, **kwargs):
         return call_tool("bootstrap", {"recipe_id": target, **kwargs})
 
 
-# --------------------------------------------------------------------------- #
 # validation
-# --------------------------------------------------------------------------- #
 import server  # noqa: E402
 
 
@@ -41,9 +32,7 @@ def test_self_reference_is_rejected():
     assert any("requires" in e and ("itself" in e or "self" in e) for e in errs), errs
 
 
-# --------------------------------------------------------------------------- #
 # ordering + idempotency
-# --------------------------------------------------------------------------- #
 def test_prerequisite_is_bootstrapped_before_the_dependent():
     # b is absent (detect FALSE) so it installs; a depends on b
     a = cli_recipe("a", requires=["b"])
@@ -63,9 +52,7 @@ def test_present_prerequisite_skips_its_install():
     assert out["ok"] is True
 
 
-# --------------------------------------------------------------------------- #
 # failure short-circuits the dependent
-# --------------------------------------------------------------------------- #
 def test_failed_prerequisite_aborts_the_dependent():
     a = cli_recipe("a", requires=["b"])
     b = cli_recipe("b", detect={"command": FALSE}, install={"methods": [{"id": "x", "run": FALSE}]})
@@ -83,9 +70,7 @@ def test_missing_prerequisite_recipe_fails_cleanly():
     assert "ghost" in out.get("error", "")
 
 
-# --------------------------------------------------------------------------- #
 # transitive + diamond
-# --------------------------------------------------------------------------- #
 def test_transitive_requires_are_resolved_depth_first():
     a = cli_recipe("a", requires=["b"])
     b = cli_recipe("b", requires=["c"], detect={"command": FALSE})
@@ -105,8 +90,7 @@ def test_diamond_dependency_bootstraps_shared_prereq_once():
     d = cli_recipe("d", detect={"command": FALSE})
     out = _boot(a, b, c, d, target="a")
     assert out["ok"] is True
-    # d appears fully bootstrapped under b; under c it's a skipped "already handled"
-    # note (bootstrapped once per top-level call)
+    # d is fully bootstrapped under b but a skipped "already handled" note under c (bootstrapped once per top-level call).
     def find_d(reports):
         return [r for r in reports if r["recipe"] == "d"]
     b_d = find_d(out["requires"][0]["requires"])[0]
@@ -115,9 +99,7 @@ def test_diamond_dependency_bootstraps_shared_prereq_once():
     assert sum(1 for r in handled if r.get("status") == "already-handled") == 1
 
 
-# --------------------------------------------------------------------------- #
 # cycle safety
-# --------------------------------------------------------------------------- #
 def test_cycle_is_detected_and_does_not_recurse_forever():
     a = cli_recipe("a", requires=["b"])
     b = cli_recipe("b", requires=["a"])
@@ -129,9 +111,7 @@ def test_cycle_is_detected_and_does_not_recurse_forever():
     assert a_again and a_again[0].get("status") == "cycle"
 
 
-# --------------------------------------------------------------------------- #
 # dry-run surfaces prerequisites without executing
-# --------------------------------------------------------------------------- #
 def test_dry_run_lists_prerequisites_and_runs_nothing():
     a = cli_recipe("a", requires=["b"])
     b = cli_recipe("b", detect={"command": FALSE})

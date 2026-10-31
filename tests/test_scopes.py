@@ -1,11 +1,4 @@
-"""Coverage for the scope-audit surface: _scope_map, audit_scopes, remove_mcp.
-
-These read Claude Code config (`~/.claude.json` and `<project>/.mcp.json`). We
-never touch the real files: `_claude_json` is monkeypatched to return a
-controlled dict, the project scope is fed via a temp `.mcp.json`, and
-`remove_mcp`'s scope resolution is driven through a monkeypatched `_scope_map`.
-Nothing shells out (remove_mcp is only exercised on dry-run / error paths).
-"""
+"""Scope-audit surface (`_scope_map`, `audit_scopes`, `remove_mcp`) with `_claude_json`, `_scope_map` and a temp `.mcp.json` faked: never the real config, never a shell-out."""
 from __future__ import annotations
 
 import json
@@ -21,9 +14,7 @@ def _fake_claude_json(monkeypatch, data: dict) -> None:
     monkeypatch.setattr(server, "_claude_json", lambda: data)
 
 
-# --------------------------------------------------------------------------- #
 # _claude_json — must degrade to {} rather than raise on a missing/broken file
-# --------------------------------------------------------------------------- #
 def test_claude_json_missing_file_returns_empty(tmp_path, monkeypatch):
     monkeypatch.setattr(server.Path, "home", staticmethod(lambda: tmp_path))
     assert server._claude_json() == {}  # no ~/.claude.json present
@@ -41,9 +32,7 @@ def test_claude_json_valid_is_parsed(tmp_path, monkeypatch):
     assert server._claude_json() == {"mcpServers": {"x": {}}}
 
 
-# --------------------------------------------------------------------------- #
 # _scope_map — name -> which scope(s) define it
-# --------------------------------------------------------------------------- #
 def test_scope_map_aggregates_all_three_scopes(tmp_path, monkeypatch):
     proj = str(Path(tmp_path).resolve())
     _fake_claude_json(monkeypatch, {
@@ -79,8 +68,7 @@ def test_scope_map_tolerates_broken_project_mcp_json(tmp_path, monkeypatch):
 
 
 def test_scope_map_tolerates_a_project_dir_that_is_a_regular_file(tmp_path, monkeypatch):
-    # a project_dir routed THROUGH a regular file (afile/subdir) => ENOTDIR; Path
-    # handles this by returning False from .exists(), so it already degrades.
+    # A project_dir routed THROUGH a regular file gives ENOTDIR; Path.exists() returns False, so it already degrades.
     _fake_claude_json(monkeypatch, {"mcpServers": {"u1": {}}})
     f = tmp_path / "afile"
     f.write_text("x")
@@ -88,17 +76,7 @@ def test_scope_map_tolerates_a_project_dir_that_is_a_regular_file(tmp_path, monk
     assert smap["u1"] == ["user"]
 
 
-# --------------------------------------------------------------------------- #
-# FINDING #7 (FIXED): a pathological project_dir used to crash the scope surface
-# with a raw exception instead of degrading to the user-scope map — the code
-# tolerated a missing/malformed .mcp.json but not an OS-level bad path. Two
-# vectors: an over-long path component -> OSError (ENAMETOOLONG) at
-# mcp_json.exists(), and an embedded NUL byte -> ValueError at
-# Path(project_dir).resolve(). The read is now funneled through the shared
-# `_resolve_project_root` / `_project_mcp_names` helpers, which both degrade to
-# "no project scope" instead of raising — fixing _scope_map AND audit_scopes
-# (which had duplicated the pattern).
-# --------------------------------------------------------------------------- #
+# Finding #7 (FIXED): a bad project_dir (over-long component -> OSError at .exists(), NUL byte -> ValueError at resolve()) crashed the scope surface; `_resolve_project_root`/`_project_mcp_names` now degrade to no project scope.
 @pytest.mark.parametrize("bad_dir", [
     "a" * 300,          # over-long single component -> ENAMETOOLONG at .exists()
     "/tmp/a\x00b",      # embedded NUL -> ValueError from resolve()
@@ -113,9 +91,7 @@ def test_scope_map_tolerates_a_pathological_project_dir(bad_dir, monkeypatch):
 
 @pytest.mark.parametrize("bad_dir", ["a" * 300, "/tmp/a\x00b"])
 def test_audit_scopes_tolerates_a_pathological_project_dir(bad_dir, monkeypatch):
-    # both vectors must NOT crash and must still report the user scope + degrade
-    # the project scope to [] (the two vectors fail at different points — NUL at
-    # resolve(), the over-long path only at .exists() — but neither is fatal).
+    # Both vectors must not crash and must report the user scope with project [] (NUL fails at resolve(), the long path only at .exists()).
     _fake_claude_json(monkeypatch, {"mcpServers": {"u1": {}}})
     out = call_tool("audit_scopes", {"project_dir": bad_dir})
     assert isinstance(out, dict) and "error" not in out
@@ -131,8 +107,7 @@ def test_audit_scopes_reports_unresolvable_root_for_nul_byte(monkeypatch):
 
 
 def test_resolve_project_root_helper():
-    # NUL byte fails at resolve() -> None; an over-long path RESOLVES (resolve()
-    # doesn't touch the fs) and only trips later at .exists(); None -> cwd.
+    # NUL fails at resolve() -> None; an over-long path RESOLVES (no fs access) and only trips later at .exists(); None -> cwd.
     assert server._resolve_project_root("/tmp/a\x00b") is None
     assert isinstance(server._resolve_project_root("a" * 300), Path)
     assert isinstance(server._resolve_project_root(None), Path)
@@ -144,9 +119,7 @@ def test_project_mcp_names_tolerates_non_object_json(tmp_path):
     assert server._project_mcp_names(Path(tmp_path).resolve()) == []
 
 
-# --------------------------------------------------------------------------- #
 # audit_scopes — the read-only report
-# --------------------------------------------------------------------------- #
 def test_audit_scopes_buckets_each_scope(tmp_path, monkeypatch):
     proj = str(Path(tmp_path).resolve())
     _fake_claude_json(monkeypatch, {
@@ -217,9 +190,7 @@ def test_audit_scopes_states_precedence_and_where(tmp_path, monkeypatch):
     assert proj in out["scopes"]["local"]["where"]
 
 
-# --------------------------------------------------------------------------- #
 # remove_mcp — scope resolution + guardrails (dry-run / error paths only)
-# --------------------------------------------------------------------------- #
 def _fake_scope_map(monkeypatch, mapping: dict) -> None:
     monkeypatch.setattr(server, "_scope_map", lambda *a, **k: mapping)
 
@@ -268,12 +239,7 @@ def test_remove_mcp_shell_quotes_a_name_with_spaces(monkeypatch):
     assert "'weird name'" in out["would_run"]
 
 
-# --------------------------------------------------------------------------- #
-# remove_mcp — LIVE (non-dry) exit-code mapping. `_run` is monkeypatched so the
-# `claude` CLI is never actually invoked; we only assert how remove_mcp turns a
-# process result into its report shape (server.py:1112-1118, previously only the
-# dry-run/error paths were exercised).
-# --------------------------------------------------------------------------- #
+# remove_mcp LIVE exit-code mapping, with `_run` monkeypatched so the claude CLI never runs; asserts only how a process result becomes the report.
 def _fake_run(monkeypatch, exit_code: int):
     captured = {}
 

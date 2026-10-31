@@ -1,10 +1,4 @@
-"""Conformance / hardening tests applied to EVERY recipe in recipes/.
-
-These are stricter than `validate_recipe` (the schema contract): they encode
-curated-registry *policy* so a new recipe can't ship half-baked. Every recipe
-file is discovered dynamically, so adding recipes/<id>.yaml automatically opts it
-into all of these checks.
-"""
+"""Registry policy applied to EVERY recipes/*.yaml (stricter than `validate_recipe`), discovered dynamically so new recipes opt in automatically."""
 from __future__ import annotations
 
 import graphlib
@@ -32,8 +26,7 @@ def test_recipe_loads_and_validates_clean(rid):
 
 @pytest.mark.parametrize("rid", RECIPE_IDS)
 def test_recipe_meets_registry_policy(rid):
-    # non-empty title + description and a `when:` guard on every install method.
-    # Single source of truth: server.lint_recipe_policy (also run by the linter).
+    # Non-empty title and description plus a `when:` guard on every install method; single source is server.lint_recipe_policy.
     recipe = server._load_recipe(rid)
     problems = server.lint_recipe_policy(recipe)
     assert problems == [], f"{rid}: {problems}"
@@ -52,16 +45,14 @@ def test_mcp_server_recipe_is_scope_aware(rid):
 
 @pytest.mark.parametrize("rid", RECIPE_IDS)
 def test_recipe_requires_reference_existing_recipes(rid):
-    # a `requires:` entry must name a recipe that actually ships in the registry,
-    # otherwise bootstrap would fail at runtime on a dangling prerequisite.
+    # A `requires:` entry must name a shipped recipe, else bootstrap fails at runtime on a dangling prerequisite.
     recipe = server._load_recipe(rid)
     for dep in recipe.get("requires") or []:
         assert dep in RECIPE_IDS, f"{rid}: requires unknown recipe {dep!r}"
 
 
 def test_requires_graph_has_no_cycles():
-    # build the whole requires DAG and assert it's acyclic (a cycle would make
-    # bootstrap's cycle-guard kick in, but the registry should never ship one).
+    # Build the whole requires DAG and assert it is acyclic; the registry must never ship a cycle.
     graph = {rid: (server._load_recipe(rid).get("requires") or []) for rid in RECIPE_IDS}
     try:
         graphlib.TopologicalSorter(graph).prepare()
@@ -71,8 +62,7 @@ def test_requires_graph_has_no_cycles():
 
 @pytest.mark.parametrize("rid", RECIPE_IDS)
 def test_recipe_plan_leaves_no_unexpanded_placeholder(rid):
-    # After substitution the consent-surface plan must contain no literal ${...}
-    # (a stray/unknown placeholder would otherwise be shelled out verbatim).
+    # After substitution the plan must contain no literal ${...}, or a stray placeholder would be shelled out verbatim.
     for scope in ("user", "project", "local"):
         plan = call_tool(
             "inspect_recipe", {"recipe_id": rid, "scope": scope, "project_dir": "/tmp/proj"}
