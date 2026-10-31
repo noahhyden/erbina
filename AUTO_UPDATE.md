@@ -12,7 +12,7 @@ awareness** and (later) **state**.
 | **0** | `version:` recipe block + version compare core | ✅ done (iter 1) |
 | **1** | `check_updates` tool — read-only current-vs-latest report | ✅ done (iter 1) |
 | **2** | `update(recipe_id, dry_run)` — apply update, re-run `verify` | ✅ done (iter 2); `pin`/`unpin` deferred to phase 3 |
-| **3** | state manifest (`~/.erbina/state.json`): what was installed, versions, pins, last-checked | ✅ 3a manifest+recording, 3b pins, 3c rollback |
+| **3** | state manifest (`~/.erbina/state.json`): what was installed, versions, pins, last-checked | ✅ 3a manifest+recording, 3b pins, 3c rollback (auto-rollback later removed; `rollback_plan` kept) |
 | **4** | automatic trigger — SessionStart hook or `/schedule` routine that runs `check_updates` and offers to apply | ✅ done (iter 4, opt-in) |
 
 **The auto-update feature is complete (phases 0–4).**
@@ -93,9 +93,8 @@ runs `update` per tool — which re-verifies and rolls back on failure.
 
 ## Open questions for later phases
 
-- **Rollback**: easy for brew/pip (reinstall prior), hard for curl-script
-  installs (no version history). The state manifest (phase 3) is what makes
-  rollback possible.
+- **Rollback**: the `rollback:` block was removed (no recipe used it); a failed
+  re-verify marks the tool broken and returns a manual `rollback_plan`.
 - **Floating installs**: MCP servers run via `uvx <pkg>` already fetch latest on
   launch unless pinned — need to detect pinned vs floating before "updating."
 - **Rate limits** on `latest` queries (GitHub/PyPI). Consider caching in the
@@ -120,8 +119,8 @@ runs `update` per tool — which re-verifies and rolls back on failure.
 
 ### Iteration 2 (2026-07-18) — phase 2 (`update` tool)
 - Built the `update(recipe_id, scope, dry_run, project_dir)` tool: resolves an
-  update method (explicit `update:` block, else install methods when
-  `install.upgrade_safe: true`), requires the tool to be installed (runs
+  update method (the `update:` block; the `install.upgrade_safe` fallback was
+  later removed), requires the tool to be installed (runs
   `detect`), runs the chosen method, then **re-runs `verify` as the safety net**
   (verify failure → ok=False + a "may be broken" warning). Reports version
   before/after and flags a no-op when unchanged. Dry-run returns the plan only.
@@ -176,6 +175,9 @@ runs `update` per tool — which re-verifies and rolls back on failure.
   pin-logic-inverted (2); no flakiness.
 
 ### Iteration 3c (2026-07-18) — rollback
+> Superseded: the `rollback:` block, `_run(env=)` and `$ERBINA_ROLLBACK_VERSION`
+> were removed (no shipped recipe used them). Only the `rollback_plan` path remains.
+
 - On a post-update verify failure, `update` now tries to recover: it runs the
   recipe's `rollback:` method (first eligible), passing the recorded previous
   version via the `$ERBINA_ROLLBACK_VERSION` env var, then re-verifies. If that

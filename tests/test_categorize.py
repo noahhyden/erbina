@@ -1,5 +1,5 @@
 """Unit tests for the recipe taxonomy: `server._categorize` and the optional
-stored `category`/`tags` schema fields.
+stored `category` schema fields.
 
 `_categorize` is the computed FALLBACK that gives every recipe a category and a
 set of search tags even when the YAML doesn't author them. It must:
@@ -8,7 +8,7 @@ set of search tags even when the YAML doesn't author them. It must:
     which must not blow up on one weird file),
   * classify obvious, unambiguous tools correctly.
 
-The schema half asserts that stored `category`/`tags` are validated (closed
+The schema half asserts that stored `category` is validated (closed
 taxonomy, list-of-strings) and that a stored value WINS over the computed one.
 """
 from __future__ import annotations
@@ -84,7 +84,7 @@ def test_tags_include_replaced_classic_tool():
 
 
 # --------------------------------------------------------------------------- #
-# stored category/tags — schema validation
+# stored category — schema validation
 # --------------------------------------------------------------------------- #
 def _base(**extra):
     r = {
@@ -100,19 +100,13 @@ def _base(**extra):
     return r
 
 
-def test_valid_stored_category_and_tags_accepted():
-    assert validate_recipe(_base(category="search", tags=["grep", "find"]), stem="demo") == []
+def test_valid_stored_category_accepted():
+    assert validate_recipe(_base(category="search"), stem="demo") == []
 
 
 def test_stored_category_must_be_in_taxonomy():
     errs = validate_recipe(_base(category="not-a-real-category"), stem="demo")
     assert any("category" in e for e in errs)
-
-
-def test_stored_tags_must_be_a_list_of_nonempty_strings():
-    assert any("tags" in e for e in validate_recipe(_base(tags="grep"), stem="demo"))
-    assert any("tags" in e for e in validate_recipe(_base(tags=[1, 2]), stem="demo"))
-    assert any("tags" in e for e in validate_recipe(_base(tags=[""]), stem="demo"))
 
 
 def test_category_and_tags_are_optional():

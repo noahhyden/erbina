@@ -46,12 +46,12 @@ VALID_KINDS = ("cli-tool", "mcp-server", "profile")
 # a profile is a meta-recipe: it installs nothing itself, it just `requires` a
 # curated set of other recipes (bootstrap resolves them). These per-tool
 # lifecycle keys are therefore meaningless on a profile and are rejected.
-_PROFILE_FORBIDDEN_KEYS = ("detect", "install", "configure", "verify", "version", "update", "rollback", "uninstall")
+_PROFILE_FORBIDDEN_KEYS = ("detect", "install", "configure", "verify", "version", "update", "uninstall")
 
 # The closed set of top-level keys SCHEMA.md defines. `_path` is injected by the
 # loader AFTER validation, so it is not part of the recipe's authored contract.
 TOP_LEVEL_KEYS = frozenset(
-    {"id", "kind", "title", "description", "detect", "install", "configure", "verify", "scope", "version", "update", "rollback", "requires", "uninstall", "category", "tags"}
+    {"id", "kind", "title", "description", "detect", "install", "configure", "verify", "scope", "version", "update", "requires", "uninstall", "category"}
 )
 
 # --------------------------------------------------------------------------- #
@@ -182,7 +182,7 @@ def _categorize(recipe: dict[str, Any]) -> tuple[str, list[str]]:
 
     An authored `category` (valid taxonomy member) wins over inference for
     cli-tools; `kind: profile`/`mcp-server` always map to their own bucket.
-    Authored `tags` are merged in. The recipe id is always a tag.
+    The recipe id is always a tag.
     """
     rid = str(recipe.get("id") or "")
     kind = recipe.get("kind")
@@ -198,9 +198,6 @@ def _categorize(recipe: dict[str, Any]) -> tuple[str, list[str]]:
 
     tags = {rid, category}
     tags.update(t for t in tokens if t in _TAG_VOCAB)
-    stored_tags = recipe.get("tags")
-    if isinstance(stored_tags, list):
-        tags.update(str(t) for t in stored_tags if isinstance(t, str) and t.strip())
     tags.discard("")
     return category, sorted(tags)
 # Matches the first version-looking token in arbitrary command output, e.g.
@@ -236,16 +233,11 @@ mcp = FastMCP(
 # --------------------------------------------------------------------------- #
 # helpers
 # --------------------------------------------------------------------------- #
-def _run(cmd: str, cwd: str | None = None, timeout: int = 600, env: dict[str, str] | None = None) -> dict[str, Any]:
-    """Run a shell command, capturing a trimmed result. Never raises.
-
-    `env` supplies EXTRA variables merged over the inherited environment (used to
-    hand a rollback command its target version via $ERBINA_ROLLBACK_VERSION).
-    """
+def _run(cmd: str, cwd: str | None = None, timeout: int = 600) -> dict[str, Any]:
+    """Run a shell command, capturing a trimmed result. Never raises."""
     try:
         p = subprocess.run(
             cmd, shell=True, cwd=cwd, capture_output=True, text=True, timeout=timeout,
-            env={**os.environ, **env} if env else None,
         )
         return {
             "cmd": cmd,
@@ -486,7 +478,7 @@ def _is_pinned(recipe_id: str) -> bool:
 
 def _validate_methods(block: Any, name: str, *, required: bool, errors: list[str]) -> None:
     """Validate a guarded-method block — {methods: [{id, run, when?}]} — shared by
-    `install` (required) and `update` / `rollback` (optional). Appends the same
+    `install` (required) and `update` (optional). Appends the same
     messages the three blocks emitted individually before this was factored out.
     """
     if not isinstance(block, dict):
@@ -645,11 +637,6 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
     # tool runs to upgrade an already-installed tool.
     _validate_methods(recipe.get("update"), "update", required=False, errors=errors)
 
-    # rollback — optional. Same guarded-method shape; runs to restore a previous
-    # version when an update's verify fails. Its `run` may read
-    # $ERBINA_ROLLBACK_VERSION (the recorded previous version erbina injects).
-    _validate_methods(recipe.get("rollback"), "rollback", required=False, errors=errors)
-
     # uninstall — optional. Same guarded-method shape; what the `uninstall` tool
     # runs to reverse an install (`brew uninstall`, `rm`, …).
     _validate_methods(recipe.get("uninstall"), "uninstall", required=False, errors=errors)
@@ -679,14 +666,6 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
     category = recipe.get("category")
     if category is not None and category not in CATEGORIES:
         errors.append(f"'category' must be one of {CATEGORIES}, got {category!r}")
-
-    # tags — optional list of non-empty search-term strings
-    tags = recipe.get("tags")
-    if tags is not None:
-        if not isinstance(tags, list):
-            errors.append("'tags' must be a list of non-empty strings")
-        elif not all(isinstance(t, str) and t.strip() for t in tags):
-            errors.append("'tags' must be a list of non-empty strings")
 
     # mcp-server: the configure wiring must be scope-aware (reference ${scope}),
     # otherwise the same recipe can't target local/project/user.
@@ -786,19 +765,10 @@ def _pick_install_method(recipe: dict[str, Any]) -> dict[str, Any] | None:
     return _pick_method(recipe.get("install", {}).get("methods", []))
 
 
-def _update_methods(recipe: dict[str, Any]) -> tuple[list[dict[str, Any]], str | None]:
-    """The methods `update` will try, and where they came from.
-
-    Prefer an explicit `update:` block; otherwise fall back to the install
-    methods only when the recipe marks them upgrade-safe (`install.upgrade_safe:
-    true`). Returns ([], None) when the recipe declares no update path at all.
-    """
+def _update_methods(recipe: dict[str, Any]) -> list[dict[str, Any]]:
+    """The methods `update` will try: the recipe's `update:` block, or [] if none."""
     upd = recipe.get("update")
-    if isinstance(upd, dict) and upd.get("methods"):
-        return upd["methods"], "update"
-    if recipe.get("install", {}).get("upgrade_safe"):
-        return recipe.get("install", {}).get("methods", []), "install (upgrade_safe)"
-    return [], None
+    return upd["methods"] if isinstance(upd, dict) and upd.get("methods") else []
 
 
 def _plan(recipe: dict[str, Any], scope: str, project_dir: str | None) -> dict[str, Any]:
@@ -1179,9 +1149,7 @@ def _bootstrap_recipe(
     det_spec = recipe.get("detect", {})
     detected = False
     if det_spec.get("command"):
-        det_cwd = project_dir if det_spec.get("needs_project_dir") else None
-        det = _run(_subst(det_spec["command"], scope, project_dir), cwd=det_cwd, timeout=30)
-        detected = det["exit"] == det_spec.get("expect_exit", 0)
+        det, detected = _run_detect(recipe, scope, project_dir)
         report["phases"]["detect"] = {"present": detected, **det}
 
     # 2. install (only if not already present)
@@ -1239,15 +1207,7 @@ def _bootstrap_recipe(
             return report
 
     # 4. verify (must exit 0)
-    verify_results = []
-    all_ok = True
-    for v in recipe.get("verify", []):
-        v_cwd = project_dir if v.get("needs_project_dir") else None
-        res = _run(_subst(v["command"], scope, project_dir), cwd=v_cwd, timeout=30)
-        ok = res["exit"] == v.get("expect_exit", 0)
-        if not ok and not v.get("optional"):
-            all_ok = False
-        verify_results.append({"status": "ok" if ok else "failed", **res})
+    verify_results, all_ok = _run_verify(recipe, scope, project_dir)
     report["phases"]["verify"] = verify_results
     report["ok"] = all_ok
 
@@ -1297,11 +1257,9 @@ def check_updates(recipe_id: str | None = None, project_dir: str | None = None) 
 
         # is it installed? nothing to update if it isn't.
         det = recipe.get("detect", {})
-        det_cwd = project_dir if det.get("needs_project_dir") else None
         installed = False
         if det.get("command"):
-            d = _run(_subst(det["command"], scope, project_dir), cwd=det_cwd, timeout=30)
-            installed = d["exit"] == det.get("expect_exit", 0)
+            _d, installed = _run_detect(recipe, scope, project_dir)
         entry: dict[str, Any] = {
             "id": rid,
             "kind": recipe.get("kind"),
@@ -1354,6 +1312,14 @@ def _current_version(recipe: dict[str, Any], scope: str, project_dir: str | None
     return _extract_version(_version_text(res))
 
 
+def _run_detect(recipe: dict[str, Any], scope: str, project_dir: str | None) -> tuple[dict[str, Any], bool]:
+    """Run the recipe's detect command; return (result, present)."""
+    det = recipe.get("detect", {})
+    cwd = project_dir if det.get("needs_project_dir") else None
+    res = _run(_subst(det.get("command"), scope, project_dir), cwd=cwd, timeout=30)
+    return res, res["exit"] == det.get("expect_exit", 0)
+
+
 def _run_verify(recipe: dict[str, Any], scope: str, project_dir: str | None) -> tuple[list[dict[str, Any]], bool]:
     """Run every verify command; return (per-command results, all_required_passed)."""
     results: list[dict[str, Any]] = []
@@ -1379,8 +1345,7 @@ def update(
     """
     Update an already-installed tool, then re-run its `verify` as a safety net.
 
-    Runs the recipe's `update:` methods (or its install methods when the recipe
-    marks them `install.upgrade_safe: true`) — the first whose `when:` guard
+    Runs the recipe's `update:` methods — the first whose `when:` guard
     passes — then re-runs `verify`. If verify fails, the update is reported failed
     and flagged (the tool may be broken). Set dry_run=true to see the exact
     command without executing. Only updates a tool that is already installed; run
@@ -1396,23 +1361,18 @@ def update(
             "skipped": True,
             "note": f"'{recipe_id}' is pinned; unpin it (pin('{recipe_id}', pinned=false)) or pass force=true to update anyway.",
         }
-    methods, source = _update_methods(recipe)
+    methods = _update_methods(recipe)
     method = _pick_method(methods)
 
-    if source is None:
-        return {
-            "error": (
-                f"recipe '{recipe_id}' declares no `update:` block and its install is not "
-                "marked upgrade_safe, so erbina has no safe way to update it"
-            )
-        }
+    if not methods:
+        return {"error": f"recipe '{recipe_id}' declares no `update:` block, so erbina has no safe way to update it"}
 
     report: dict[str, Any] = {
         "recipe": recipe_id,
         "scope": scope,
         "dry_run": dry_run,
         "plan": {
-            "update_source": source,
+            "update_source": "update",
             "chosen_method": method.get("id") if method else None,
             "command": _subst(method.get("run"), scope, project_dir) if method else None,
             "verify": [_subst(v.get("command"), scope, project_dir) for v in recipe.get("verify", [])],
@@ -1426,9 +1386,8 @@ def update(
     # only update something that is actually installed
     det = recipe.get("detect", {})
     if det.get("command"):
-        det_cwd = project_dir if det.get("needs_project_dir") else None
-        d = _run(_subst(det["command"], scope, project_dir), cwd=det_cwd, timeout=30)
-        if d["exit"] != det.get("expect_exit", 0):
+        d, present = _run_detect(recipe, scope, project_dir)
+        if not present:
             report["phases"]["detect"] = {"present": False, **d}
             report["ok"] = False
             report["error"] = "not installed — run bootstrap first"
@@ -1469,51 +1428,21 @@ def update(
             report["note"] = f"Already at {after} — update was a no-op."
         return report
 
-    # verify FAILED after the upgrade — try to roll back to the previous version.
+    # verify FAILED after the upgrade — mark broken and surface a manual plan.
     report["ok"] = False
-    rb_method = _pick_method(recipe.get("rollback", {}).get("methods", []))
-    if rb_method and before:
-        # hand the rollback command its target version via the environment
-        rb_res = _run(rb_method["run"], env={"ERBINA_ROLLBACK_VERSION": before})
-        rb_verify: list[dict[str, Any]] = []
-        rb_ok = False
-        if rb_res["exit"] == 0:
-            rb_verify, rb_ok = _run_verify(recipe, scope, project_dir)
-        recovered = rb_res["exit"] == 0 and rb_ok
-        report["phases"]["rollback"] = {
-            "status": "ok" if recovered else "failed",
-            "method": rb_method.get("id"),
-            "verify": rb_verify,
-            **rb_res,
-        }
-        if recovered:
-            _record_tool(
-                recipe_id, installed_version=before, previous_version=after,
-                update_method=method.get("id"), broken=False,
-            )
-            report["rolled_back_to"] = before
-            report["warning"] = f"update to {after} failed verify; rolled back to {before}, which verifies OK."
-        else:
-            _record_tool(recipe_id, broken=True)
-            report["warning"] = (
-                "update failed verify AND rollback failed — the tool may be broken; reinstall via bootstrap."
-            )
-        return report
-
-    # no rollback path — surface a manual plan and mark the tool broken in state
     _record_tool(recipe_id, broken=True)
     report["rollback_plan"] = {
         "previous_version": before,
         "instructions": (
-            f"No `rollback:` command declared. The tool was at {before} before this update; "
+            f"The tool was at {before} before this update; "
             "reinstall that version manually, or run bootstrap to reinstall the latest."
             if before
-            else "No `rollback:` command and no recorded previous version; run bootstrap to reinstall."
+            else "No recorded previous version; run bootstrap to reinstall."
         ),
     }
     report["warning"] = (
         "verify FAILED after update — the tool may be broken and is marked so in state. "
-        "No rollback command declared; see rollback_plan."
+        "See rollback_plan."
     )
     return report
 
@@ -1562,9 +1491,8 @@ def uninstall(
 
     # is it actually installed? if not, there's nothing to remove — just forget it.
     det = recipe.get("detect", {})
-    det_cwd = project_dir if det.get("needs_project_dir") else None
-    d = _run(_subst(det.get("command"), scope, project_dir), cwd=det_cwd, timeout=30)
-    if d["exit"] != det.get("expect_exit", 0):
+    d, present = _run_detect(recipe, scope, project_dir)
+    if not present:
         report["phases"]["detect"] = {"present": False, **d}
         report["ok"] = True
         report["already_absent"] = True
@@ -1588,8 +1516,7 @@ def uninstall(
         return report
 
     # confirm removal — re-run detect; the tool should now be ABSENT.
-    c = _run(_subst(det.get("command"), scope, project_dir), cwd=det_cwd, timeout=30)
-    still_present = c["exit"] == det.get("expect_exit", 0)
+    c, still_present = _run_detect(recipe, scope, project_dir)
     report["phases"]["confirm"] = {"present": still_present, **c}
     if still_present:
         report["ok"] = False
@@ -1724,10 +1651,8 @@ def doctor(project_dir: str | None = None) -> dict[str, Any]:
             continue  # an mcp-server's health is find_dead_mcps' job, not a CLI detect/verify
         checked += 1
         scope = recipe.get("scope", "user")
-        det = recipe.get("detect", {})
-        det_cwd = project_dir if det.get("needs_project_dir") else None
-        d = _run(_subst(det.get("command"), scope, project_dir), cwd=det_cwd, timeout=30)
-        if d["exit"] != det.get("expect_exit", 0):
+        _d, present = _run_detect(recipe, scope, project_dir)
+        if not present:
             problems.append({
                 "recipe": rid, "status": "missing",
                 "detail": "recorded as installed but detect now fails — reinstall via bootstrap",

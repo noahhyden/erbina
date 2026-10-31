@@ -87,48 +87,33 @@ version:
 
 # UPDATE — optional. What the `update` tool runs to upgrade an already-installed
 # tool: the same guarded/ordered method shape as install (first passing `when:`
-# wins). If omitted, `update` falls back to the install methods only when
-# `install.upgrade_safe: true` is set (i.e. re-running install upgrades in place).
+# wins). If omitted, `update` refuses the tool (no safe way to update it).
 update:
   methods:
     - id: <method id>
       when: "<guard command>"   # optional
       run: "<upgrade command>"  # e.g. brew upgrade <pkg>
 
-# ROLLBACK — optional. If an `update`'s re-verify fails, erbina runs the first
-# eligible rollback method to restore the prior version, then re-verifies. The
-# `run` receives the recorded previous version in $ERBINA_ROLLBACK_VERSION (a
-# normal env var — use it WITHOUT ${...} braces). Omit this block if the tool has
-# no safe way to reinstall a specific version; erbina then just reports a plan.
-rollback:
-  methods:
-    - id: <method id>
-      when: "<guard command>"   # optional
-      run: "<reinstall a specific version, e.g. brew install <pkg>@$ERBINA_ROLLBACK_VERSION>"
-
 # scope this recipe targets when wiring an mcp-server (local | project | user).
 # Informational for cli-tool recipes.
 scope: user
 
-# CATEGORY / TAGS — optional queriability metadata surfaced by `list_recipes` and
+# CATEGORY — optional queriability metadata surfaced by `list_recipes` and
 # `search_recipes` so an agent can find a tool by keyword/category instead of
 # scanning every description. `category` must be one of the fixed taxonomy
-# buckets; `tags` is a list of free-form search terms. BOTH ARE OPTIONAL — when a
-# recipe omits them, erbina infers a category and tags from the recipe's own
-# id/title/description, so the registry is fully searchable without every file
-# hand-labelling itself. An authored `category` overrides the inference.
+# buckets. OPTIONAL — when a recipe omits it, erbina infers a category (and search
+# tags) from the recipe's own id/title/description, so the registry is fully
+# searchable without every file hand-labelling itself. An authored `category`
+# overrides the inference. Tags are never authored; they are always inferred.
 category: search          # one of the taxonomy buckets (see below)
-tags: [grep, regex, find] # extra search terms
 ```
 
-## Categories (`category`) and tags (`tags`)
+## Categories (`category`) and inferred tags
 
 Every recipe is exposed through `list_recipes` / `search_recipes` with a
 `category` (exactly one of the closed taxonomy below) and a bag of `tags`
-(search terms). These are **optional authored fields** — when absent, erbina
-computes them from the recipe's id/title/description, so an omitted `category`
-still yields a sensible bucket and an omitted `tags` still yields useful search
-terms. An authored `category` (validated against the taxonomy) wins over the
+(search terms). `tags` are always inferred from the recipe's
+id/title/description; `category` is optional and inferred when omitted. An authored `category` (validated against the taxonomy) wins over the
 computed one; `kind: profile` and `kind: mcp-server` always map to the `profile`
 and `mcp-server` buckets respectively.
 
@@ -153,7 +138,7 @@ A **profile** is a meta-recipe that installs nothing itself — it just declares
 one prompt. A profile has **only** `id` / `kind: profile` / `title` /
 `description` / `requires` (and an optional informational `scope`); any per-tool
 lifecycle key (`detect`, `install`, `configure`, `verify`, `version`, `update`,
-`rollback`, `uninstall`) is rejected, and `requires` must be non-empty.
+`uninstall`) is rejected, and `requires` must be non-empty.
 
 ```yaml
 id: modern-unix
@@ -198,19 +183,15 @@ can't justify.
 ## Applying updates (`update`)
 
 `update(recipe_id, dry_run)` upgrades an already-installed tool. It runs the
-recipe's `update:` methods (first passing `when:` guard wins), or the install
-methods when `install.upgrade_safe: true`, then **re-runs `verify`** as the
+recipe's `update:` methods (first passing `when:` guard wins), then **re-runs `verify`** as the
 safety net — if verify fails after the upgrade, the update is reported failed and
 the tool flagged as possibly broken. `dry_run: true` shows the exact command
 first (consent surface, like `bootstrap`). It refuses a tool that isn't installed
 yet (run `bootstrap` first), and refuses a **pinned** tool unless `force: true`.
 
-If the re-verify FAILS after an upgrade, erbina tries to recover: it runs the
-recipe's `rollback:` method (passing the recorded previous version in
-`$ERBINA_ROLLBACK_VERSION`) and re-verifies. If that restores a working tool, the
-result reports `rolled_back_to`; otherwise — or when no `rollback:` is declared —
-the tool is marked `broken` in the state manifest and a `rollback_plan` (the
-previous version + manual instructions) is returned.
+If the re-verify FAILS after an upgrade, the tool is marked `broken` in the
+state manifest and a `rollback_plan` (the previous version + manual instructions)
+is returned.
 
 ## Pinning (`pin`)
 
