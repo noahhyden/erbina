@@ -4,7 +4,6 @@
 > prompt — install, wire, and **verify** CLI tools and other MCP servers from
 > curated recipes, and see where every MCP server lives across your scopes.
 
-[![CI](https://github.com/noahhyden/erbina/actions/workflows/ci.yml/badge.svg)](https://github.com/noahhyden/erbina/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/noahhyden/erbina?sort=semver)](https://github.com/noahhyden/erbina/releases)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/Model_Context_Protocol-server-blueviolet.svg)](https://modelcontextprotocol.io)
