@@ -115,7 +115,7 @@ can't call any tool — that's the one thing new CI users trip on.
 | `inspect_recipe` | Show **exactly** what bootstrapping a recipe would run — the consent surface. Nothing executes. |
 | `bootstrap` | Run a recipe: detect → install → configure → verify, idempotently. `dry_run=true` returns the full plan without executing. |
 | `check_updates` | Read-only report of whether installed tools have newer versions available, for recipes that declare a `version:` block. Pinned tools are flagged and excluded. |
-| `update` | Upgrade an installed tool, then **re-run `verify`** as a safety net — on failure it rolls back (if the recipe supports it) or marks the tool broken. `dry_run=true` shows the command first. |
+| `update` | Upgrade an installed tool, then **re-run `verify`** as a safety net — on failure it marks the tool broken and returns a `rollback_plan`. `dry_run=true` shows the command first. |
 | `pin` | Pin (or unpin) a tool so automatic updates skip it. `update` refuses a pinned tool unless `force=true`. |
 | `audit_scopes` | Read-only report of which MCP servers are configured in `local` / `project` / `user` scope, where each lives, and any name shadowed across scopes. |
 | `find_dead_mcps` | Health-check every configured MCP server and flag the ones that fail to connect — stale/dead servers, annotated with the scope to remove them from. Read-only. |
@@ -177,9 +177,9 @@ method. Then:
   parse, skips **pinned** tools, and for a `{ github: … }` source includes a
   release-notes link so you can review before applying.
 - **`update`** applies the upgrade and **re-runs `verify`**; if verify fails it
-  marks the tool `broken` in the state manifest and returns a recovery plan
+  marks the tool `broken` in the state manifest and returns a `rollback_plan`
   (the recorded previous version plus manual instructions). There is no
-  automatic revert.
+  automatic rollback.
 - erbina records what it manages in a small state manifest (`~/.erbina/state.json`)
   — versions, install method, and pins.
 
