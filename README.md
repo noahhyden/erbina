@@ -243,5 +243,9 @@ recipe contract, and [CHANGELOG.md](CHANGELOG.md) for what's landed.
 [Apache License 2.0](LICENSE).
 
 The name **erbina**, the name **Noah Hyden**, and the project's logos are
-trademarks and are *not* covered by that licence — see [NOTICE](NOTICE). Fork
-the code freely; just give your fork its own name.
+trademarks and are *not* covered by that licence — see
+[TRADEMARKS.md](TRADEMARKS.md) for what's fine without asking, and
+[NOTICE](NOTICE). Fork the code freely; just give your fork its own name.
+
+Releases published before the move to Apache 2.0 keep the MIT terms they
+shipped under.

@@ -6,6 +6,10 @@ a copy of the License in the LICENSE file in this repository, or at:
 
     http://www.apache.org/licenses/LICENSE-2.0
 
+Releases published before the move to Apache 2.0 shipped under the MIT License
+and keep the terms they were released under. Every contribution to this
+repository to date is the work of the copyright holder named above.
+
 
 TRADEMARKS
 
@@ -14,19 +18,12 @@ the trade names, trademarks, service marks, or product names of the Licensor,
 except as required for reasonable and customary use in describing the origin
 of the Work and reproducing the content of this NOTICE file.
 
-The following are trademarks of Noah Hyden and are NOT licensed under the
-Apache License, Version 2.0:
+The name "erbina", the name "Noah Hyden", and the project's logos are
+trademarks of Noah Hyden and are NOT licensed under the Apache License,
+Version 2.0. Nominative use ("built on erbina", "a fork of erbina") is fine;
+branding your own product or implying endorsement is not.
 
-  - "erbina", as the name of this repository, project and software
-  - "Noah Hyden"
-  - the erbina logo, and any other logo or design mark of the project
-
-You may use these marks nominatively — that is, only as needed to state a fact
-about the origin of the work, such as "built on erbina" or "a fork of erbina",
-and to reproduce this NOTICE file.
-
-You may NOT use these marks to name, brand, or promote a fork, derivative work,
-product or service, or in any way that suggests endorsement by, or affiliation
-with, Noah Hyden, without prior written permission. A fork distributed under a
-different name remains fully permitted by the Apache License, Version 2.0 —
-this reservation restricts the use of the names and logos only, never the code.
+See TRADEMARKS.md for what is permitted without asking and what needs
+permission. A fork distributed under a different name remains fully permitted
+by the Apache License, Version 2.0 — this reservation restricts use of the
+names and logos only, never the code.

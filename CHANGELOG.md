@@ -13,7 +13,10 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
   reservation in a new `NOTICE` file: the name *erbina*, the name *Noah Hyden*,
   and the project's logos are not licensed under it. The code is as free to fork
   as before — a fork simply needs its own name. Sole copyright holder, so no
-  third-party consent was required.
+  third-party consent was required, and releases published before the move keep
+  the MIT terms they shipped under. `TRADEMARKS.md` spells out what is fine
+  without asking (nominative use, forking) and what needs permission (branding a
+  product, implying endorsement).
 
 ### Removed
 
