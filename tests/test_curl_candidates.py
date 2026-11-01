@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 
 import curl_candidates as cc
-from _harvest import apply_keys
+from _harvest import apply_keys, parse_tools
 
 
 # norm
@@ -134,48 +134,54 @@ def test_resolve_all_id_filter(monkeypatch):
     assert [p["id"] for p in got] == ["b"]
 
 
-# apply_keys — staging into the parsed recipe_data rows
-def _rows():
-    return [
-        {"id": "deno", "bin": "deno", "brew": "deno", "gh": "denoland/deno"},
-        {"id": "denox", "bin": "denox", "brew": "denox"},
-        {"id": "rclone", "bin": "rclone", "brew": "rclone", "curl": "https://x"},
-    ]
+# apply_keys — staging into recipe_data.py source text (pure)
+SRC = """TOOLS = [
+    {"id": "deno", "bin": "deno", "brew": "deno", "gh": "denoland/deno"},
+    {"id": "denox", "bin": "denox", "brew": "denox"},
+    {"id": "rclone", "bin": "rclone", "brew": "rclone", "curl": "https://x"},
+]
+"""
 
 
 def test_apply_inserts_after_id_and_is_anchored_to_exact_id():
-    rows = _rows()
-    applied, missing = apply_keys(rows, [{"id": "deno", "curl": "https://deno.land/install.sh"}], cc.CURL_KEYS)
+    new, applied, missing = apply_keys(SRC, [{"id": "deno", "curl": "https://deno.land/install.sh"}], cc.CURL_KEYS)
     assert applied == ["deno"] and missing == []
-    assert list(rows[0])[:3] == ["id", "curl", "bin"] and rows[0]["curl"] == "https://deno.land/install.sh"
-    assert "curl" not in rows[1]  # exact-id anchoring, not prefix
+    assert '"id": "deno", "curl": "https://deno.land/install.sh"' in new
+    assert '"id": "denox", "curl"' not in new  # exact-id anchoring, not prefix
 
 
 def test_apply_writes_curl_shell_when_present():
-    rows = _rows()
-    apply_keys(rows, [{"id": "deno", "curl": "https://x/install.sh", "curl_shell": "bash"}], cc.CURL_KEYS)
-    assert rows[0]["curl"] == "https://x/install.sh" and rows[0]["curl_shell"] == "bash"
+    new, _, _ = apply_keys(SRC, [{"id": "deno", "curl": "https://x/install.sh", "curl_shell": "bash"}], cc.CURL_KEYS)
+    assert '"curl": "https://x/install.sh", "curl_shell": "bash"' in new
 
 
 def test_apply_is_idempotent_on_rows_that_already_have_curl():
-    rows = _rows()
-    applied, _ = apply_keys(rows, [{"id": "rclone", "curl": "https://other"}], cc.CURL_KEYS)
-    assert applied == [] and rows == _rows()
+    new, applied, _ = apply_keys(SRC, [{"id": "rclone", "curl": "https://other"}], cc.CURL_KEYS)
+    assert applied == [] and new == SRC
 
 
 def test_apply_reports_missing_ids():
-    rows = _rows()
-    applied, missing = apply_keys(rows, [{"id": "ghost", "curl": "https://x"}], cc.CURL_KEYS)
-    assert applied == [] and missing == ["ghost"] and rows == _rows()
+    new, applied, missing = apply_keys(SRC, [{"id": "ghost", "curl": "https://x"}], cc.CURL_KEYS)
+    assert applied == [] and missing == ["ghost"] and new == SRC
 
 
-# main — end-to-end against a fixture recipe_data.json
+def test_apply_leaves_the_rest_of_the_file_byte_identical():
+    commented = "# a section header the table leans on\n" + SRC
+    new, applied, _ = apply_keys(commented, [{"id": "deno", "curl": "https://deno.land/install.sh"}], cc.CURL_KEYS)
+    assert applied == ["deno"]
+    assert new.startswith("# a section header the table leans on\n")
+    assert new.count("\n") == commented.count("\n")
+
+
+# main — end-to-end against a fixture recipe_data.py
 def _fixture_recipe_data(tmp_path):
-    p = tmp_path / "recipe_data.json"
-    p.write_text(json.dumps([
-        {"id": "deno", "bin": "deno", "brew": "deno", "gh": "denoland/deno"},
-        {"id": "atuin", "bin": "atuin", "brew": "atuin", "cargo": "atuin", "gh": "atuinsh/atuin"},
-    ]))
+    p = tmp_path / "recipe_data.py"
+    p.write_text(
+        'TOOLS = [\n'
+        '    {"id": "deno", "bin": "deno", "brew": "deno", "gh": "denoland/deno"},\n'
+        '    {"id": "atuin", "bin": "atuin", "brew": "atuin", "cargo": "atuin", "gh": "atuinsh/atuin"},\n'
+        ']\n'
+    )
     return p
 
 
@@ -193,6 +199,6 @@ def test_main_apply_writes_curl_key_into_recipe_data(tmp_path):
     rd = _fixture_recipe_data(tmp_path)
     rc = cc.main(["--recipe-data", str(rd), "--out", str(tmp_path / "p.json"), "--apply"])
     assert rc == 0
-    curl = {t["id"]: t.get("curl") for t in json.loads(rd.read_text())}
+    curl = {t["id"]: t.get("curl") for t in parse_tools(rd.read_text())}
     assert curl["deno"] == "https://deno.land/install.sh"
     assert curl["atuin"] is None  # not gapped -> never touched

@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Generate curated cli-tool recipes from the scripts/recipe_data.json table."""
+"""Generate curated cli-tool recipes from the scripts/recipe_data.py table."""
 from __future__ import annotations
 
-import json
 import textwrap
 from pathlib import Path
 
@@ -109,7 +108,9 @@ def render(t: dict) -> str:
 def main(argv: list[str] | None = None) -> int:
     import sys
 
-    TOOLS = json.loads((Path(__file__).parent / "recipe_data.json").read_text())
+    from _harvest import DEFAULT_RECIPE_DATA, load_tools
+
+    TOOLS = load_tools(DEFAULT_RECIPE_DATA)
 
     # never clobbers an existing recipe; --rewrite overwrites only files that drifted from their row.
     rewrite = "--rewrite" in (argv if argv is not None else sys.argv[1:])

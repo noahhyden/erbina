@@ -58,10 +58,14 @@ table became data instead of executable Python. No behaviour was added.
   `find_dead_mcps`, and `uninstall` unwires an mcp-server recipe instead of
   erroring and naming `remove_mcp`. Both tools remain for addressing a server
   by name rather than by recipe.
-- **`scripts/recipe_data.py` is now `scripts/recipe_data.json`.** The table was
-  483 dict literals of pure constants, yet the harvesters exec'd the module to
-  read it and spliced new keys in with a regex over the source text. Both are
-  now `json.load` / `json.dump`. The file's section comments are the cost.
+- **The tool table is read without executing it.** `scripts/recipe_data.py`
+  stays a Python file - it is hand-maintained, and its section comments are
+  what make 483 rows navigable - but `load_tools` no longer execs the module to
+  read one constant: it parses the source and `ast.literal_eval`s the `TOOLS`
+  node, so a table that smuggled in code is refused rather than run. The
+  brace-matching regex that spliced harvested keys into the source is gone too;
+  `--apply` anchors on the row's unique `"id"` token and leaves every other
+  byte, including the comments, untouched.
   `scripts/ingest_validated.py` emits rows without a `category`, so the
   generator now fails loudly, naming the id, when such a row is merged.
 - The stub `claude` binary used by the offline suite lives once, in

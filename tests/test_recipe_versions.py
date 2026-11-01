@@ -1,8 +1,6 @@
 """Red-team shipped version blocks: real-world `--version`/tag output must yield a parseable token or check_updates silently returns update_available=null."""
 from __future__ import annotations
 
-import json
-from pathlib import Path
 
 import pytest
 
@@ -61,13 +59,15 @@ def test_every_versioned_recipe_extracts_a_version():
 
 
 def test_every_winget_recipe_is_covered():
-    TOOLS = json.loads((Path(__file__).parent.parent / "scripts" / "recipe_data.json").read_text())
+    from _harvest import DEFAULT_RECIPE_DATA, load_tools
+
+    TOOLS = load_tools(DEFAULT_RECIPE_DATA)
 
     generated = {t["id"] for t in TOOLS if t.get("winget")}
     with_winget = {rid for rid in server._recipe_ids()
                    if any(m.get("id") == "winget"
                           for m in (server._load_recipe(rid).get("install", {}).get("methods") or []))}
-    assert generated <= with_winget, f"recipe_data.json winget recipe lost its method: {generated - with_winget}"
+    assert generated <= with_winget, f"recipe_data.py winget recipe lost its method: {generated - with_winget}"
 
 
 # mcp-server wiring: lock the exact `claude mcp add` command per recipe and scope; `runner` is everything after `-- ` (uvx for Python, npx for Node).

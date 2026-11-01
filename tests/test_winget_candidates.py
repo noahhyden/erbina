@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 import winget_candidates as wc
-from _harvest import apply_keys
+from _harvest import apply_keys, parse_tools
 
 
 # fixtures: a real SQLite index matching the winget source2 schema
@@ -209,46 +209,51 @@ def test_resolve_all_id_filter(index):
     assert [p["id"] for p in got] == ["task"]
 
 
-# apply_keys — staging into the parsed recipe_data rows
-def _rows():
-    return [
-        {"id": "fd", "bin": "fd", "brew": "fd", "gh": "sharkdp/fd"},
-        {"id": "fdupes", "bin": "fdupes", "brew": "fdupes"},
-        {"id": "rg", "bin": "rg", "winget": "BurntSushi.ripgrep.MSVC"},
-    ]
+# apply_keys — staging into recipe_data.py source text (pure)
+SRC = """TOOLS = [
+    {"id": "fd", "bin": "fd", "brew": "fd", "gh": "sharkdp/fd"},
+    {"id": "fdupes", "bin": "fdupes", "brew": "fdupes"},
+    {"id": "rg", "bin": "rg", "winget": "BurntSushi.ripgrep.MSVC"},
+]
+"""
 
 
 def test_apply_inserts_after_id_and_is_anchored_to_exact_id():
-    rows = _rows()
-    applied, missing = apply_keys(rows, [{"id": "fd", "winget": "sharkdp.fd"}], ("winget",))
+    new, applied, missing = apply_keys(SRC, [{"id": "fd", "winget": "sharkdp.fd"}], ("winget",))
     assert applied == ["fd"]
     assert missing == []
-    assert list(rows[0]) == ["id", "winget", "bin", "brew", "gh"]
-    assert "winget" not in rows[1]  # exact-id anchoring, not prefix
+    assert '"id": "fd", "winget": "sharkdp.fd"' in new
+    assert '"id": "fdupes", "winget"' not in new  # exact-id anchoring, not prefix
 
 
 def test_apply_is_idempotent_on_rows_that_already_have_winget():
-    rows = _rows()
-    applied, _ = apply_keys(rows, [{"id": "rg", "winget": "Something.Else"}], ("winget",))
+    new, applied, _ = apply_keys(SRC, [{"id": "rg", "winget": "Something.Else"}], ("winget",))
     assert applied == []
-    assert rows == _rows()
+    assert new == SRC
 
 
 def test_apply_reports_missing_ids():
-    rows = _rows()
-    applied, missing = apply_keys(rows, [{"id": "ghost", "winget": "No.Body"}], ("winget",))
+    new, applied, missing = apply_keys(SRC, [{"id": "ghost", "winget": "No.Body"}], ("winget",))
     assert applied == []
     assert missing == ["ghost"]
-    assert rows == _rows()
+    assert new == SRC
 
 
 def test_apply_multiple():
-    rows = _rows()
     proposals = [{"id": "fd", "winget": "sharkdp.fd"}, {"id": "fdupes", "winget": "Adrian.fdupes"}]
-    applied, _ = apply_keys(rows, proposals, ("winget",))
+    new, applied, _ = apply_keys(SRC, proposals, ("winget",))
     assert sorted(applied) == ["fd", "fdupes"]
-    assert {r["id"]: r.get("winget") for r in rows} == {
-        "fd": "sharkdp.fd", "fdupes": "Adrian.fdupes", "rg": "BurntSushi.ripgrep.MSVC"}
+    assert {r["id"]: r.get("winget") for r in parse_tools(new)} == {
+        "fd": "sharkdp.fd", "fdupes": "Adrian.fdupes", "rg": "BurntSushi.ripgrep.MSVC",
+    }
+
+
+def test_apply_leaves_the_rest_of_the_file_byte_identical():
+    commented = "# a section header the table leans on\n" + SRC
+    new, applied, _ = apply_keys(commented, [{"id": "fd", "winget": "sharkdp.fd"}], ("winget",))
+    assert applied == ["fd"]
+    assert new.startswith("# a section header the table leans on\n")
+    assert new.count("\n") == commented.count("\n")
 
 
 # open_msix — extract Public/index.db out of a msix (zip)
@@ -272,13 +277,15 @@ def test_open_msix_extracts_and_queries(tmp_path):
         assert wc.by_command(conn, "zellij")[0][0] == "Zellij.Zellij"
 
 
-# main — end-to-end against a fixture msix + fixture recipe_data.json
+# main — end-to-end against a fixture msix + fixture recipe_data.py
 def _fixture_recipe_data(tmp_path: Path) -> Path:
-    p = tmp_path / "recipe_data.json"
-    p.write_text(json.dumps([
-        {"id": "zellij", "bin": "zellij", "brew": "zellij"},
-        {"id": "ghost", "bin": "ghost", "brew": "ghost"},
-    ]))
+    p = tmp_path / "recipe_data.py"
+    p.write_text(
+        'TOOLS = [\n'
+        '    {"id": "zellij", "bin": "zellij", "brew": "zellij"},\n'
+        '    {"id": "ghost", "bin": "ghost", "brew": "ghost"},\n'
+        ']\n'
+    )
     return p
 
 
@@ -306,5 +313,5 @@ def test_main_apply_writes_winget_key_into_recipe_data(tmp_path):
         "--apply",
     ])
     assert rc == 0
-    winget = {t["id"]: t.get("winget") for t in json.loads(rd.read_text())}
+    winget = {t["id"]: t.get("winget") for t in parse_tools(rd.read_text())}
     assert winget == {"zellij": "Zellij.Zellij", "ghost": None}
