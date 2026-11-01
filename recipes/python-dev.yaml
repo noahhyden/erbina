@@ -16,3 +16,4 @@ requires:
   - poetry
   - pre-commit
   - ipython
+category: profile

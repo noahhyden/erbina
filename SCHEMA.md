@@ -74,13 +74,12 @@ verify:
 # so extra text around the number is fine. Only present when a tool can be
 # meaningfully version-checked.
 #
-# `latest` is either a shell command string OR the structured GitHub shorthand
-# `{ github: "owner/repo" }`, which erbina expands to the releases-API call that
-# prints the latest tag (`curl … /releases/latest | grep '"tag_name"'`). Prefer
-# the shorthand for GitHub-released tools — it's less boilerplate and can't drift.
+# `latest` is always the GitHub shorthand `{ github: "owner/repo" }`: erbina
+# fetches the releases API in Python and reads `tag_name`. Any network, HTTP or
+# JSON failure leaves the latest version unresolved (never an update).
 version:
   current: "<cmd that prints the installed version>"
-  latest: { github: "owner/repo" }   # or: "<cmd that prints the latest version>"
+  latest: { github: "owner/repo" }
   needs_project_dir: false   # optional; run both commands inside project_dir
 
 # UPDATE — optional. What the `update` tool runs to upgrade an already-installed
@@ -96,20 +95,18 @@ update:
 # Informational for cli-tool recipes.
 scope: user
 
-# CATEGORY — optional queriability metadata surfaced by `search_recipes` and
-# `search_recipes` so an agent can find a tool by keyword/category instead of
-# scanning every description. `category` must be one of the fixed taxonomy
-# buckets. OPTIONAL — when a recipe omits it, erbina infers a category from the recipe's
-# own id/title/description. An authored `category` overrides the inference.
+# CATEGORY — required. Queriability metadata surfaced by `search_recipes` so an
+# agent can find a tool by category instead of scanning every description. It
+# must be one of the fixed taxonomy buckets; erbina never infers it.
 category: search          # one of the taxonomy buckets (see below)
 ```
 
 ## Categories (`category`)
 
 Every recipe is exposed through `search_recipes` with a
-`category` (exactly one of the closed taxonomy below), optional and inferred when omitted. An authored `category` (validated against the taxonomy) wins over the
-computed one; `kind: profile` and `kind: mcp-server` always map to the `profile`
-and `mcp-server` buckets respectively.
+`category` (exactly one of the closed taxonomy below), required and validated
+against it. `kind: profile` and `kind: mcp-server` recipes author `category:
+profile` and `category: mcp-server` themselves.
 
 The taxonomy:
 
@@ -129,7 +126,7 @@ narrow the set; an empty query with no filters returns everything in id order.
 A **profile** is a meta-recipe that installs nothing itself — it just declares a
 `requires:` list of other recipes and lets `bootstrap` resolve the whole bundle in
 one prompt. A profile has **only** `id` / `kind: profile` / `title` /
-`description` / `requires` (and an optional informational `scope`); any per-tool
+`description` / `category` / `requires` (and an optional informational `scope`); any per-tool
 lifecycle key (`detect`, `install`, `configure`, `verify`, `version`, `update`,
 `uninstall`) is rejected, and `requires` must be non-empty.
 

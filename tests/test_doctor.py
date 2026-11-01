@@ -1,4 +1,4 @@
-"""Behavioral tests for `doctor`, which re-runs detect and verify on recorded CLI tools and classifies healthy / missing / broken, read-only."""
+"""Behavioral tests for `doctor`, which re-runs detect and verify on recorded tools (CLI by detect/verify, mcp-server by connection) and classifies healthy / missing / broken, read-only."""
 from __future__ import annotations
 
 import server
@@ -73,14 +73,32 @@ def test_only_recorded_tools_are_checked_not_the_whole_registry():
     assert {*out["healthy"]} == {"recorded"}
 
 
-def test_mcp_server_records_are_deferred_to_find_dead_mcps():
-    r = mcp_recipe("m")
-    with registry(r):
-        _record("m", kind="mcp-server")
+def _fake_mcp_list(monkeypatch, servers):
+    monkeypatch.setattr(server, "_parse_mcp_list", lambda project_dir=None: servers)
+
+
+def test_mcp_server_records_are_health_checked_by_connection(monkeypatch):
+    _fake_mcp_list(monkeypatch, [
+        {"name": "up", "connected": True, "command": "x"},
+        {"name": "down", "connected": False, "command": "x"},
+    ])
+    with registry(mcp_recipe("up"), mcp_recipe("down"), mcp_recipe("absent")):
+        for rid in ("up", "down", "absent"):
+            _record(rid, kind="mcp-server")
         out = call_tool("doctor", {})
-    # an mcp-server isn't cli-tool-verified here; it's pointed at find_dead_mcps
-    assert out["checked"] == 0 or all(p["status"] != "broken" for p in out["problems"])
-    assert "find_dead_mcps" in out["hint"] or out["checked"] == 0
+    assert out["checked"] == 3
+    assert out["healthy"] == ["up"]
+    assert {p["recipe"]: p["status"] for p in out["problems"]} == {"down": "broken", "absent": "missing"}
+
+
+def test_mcp_list_is_not_queried_without_an_mcp_record(monkeypatch):
+    def boom(project_dir=None):
+        raise AssertionError("claude mcp list was run")
+
+    monkeypatch.setattr(server, "_parse_mcp_list", boom)
+    with registry(cli_recipe("t", detect={"command": TRUE}, verify=[{"command": TRUE}])):
+        _record("t")
+        assert call_tool("doctor", {})["healthy"] == ["t"]
 
 
 def test_recorded_tool_whose_recipe_vanished_is_flagged():

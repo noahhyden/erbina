@@ -24,3 +24,4 @@ update:
       when: "command -v brew"
       run: "brew upgrade pkg-config"
 
+category: languages

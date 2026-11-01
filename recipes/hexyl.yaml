@@ -40,3 +40,4 @@ update:
       when: "command -v cargo"
       run: "cargo install hexyl"
 
+category: terminal

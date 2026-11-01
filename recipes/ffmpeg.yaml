@@ -30,3 +30,4 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id Gyan.FFmpeg --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
+category: media

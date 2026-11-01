@@ -24,3 +24,4 @@ update:
       when: "command -v npm"
       run: "npm update -g wrangler"
 
+category: cloud

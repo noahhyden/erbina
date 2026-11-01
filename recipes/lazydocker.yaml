@@ -40,3 +40,4 @@ update:
       when: "command -v go"
       run: "go install github.com/jesseduffield/lazydocker@latest"
 
+category: containers

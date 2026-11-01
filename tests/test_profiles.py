@@ -34,7 +34,7 @@ def test_profile_with_empty_requires_is_rejected():
     ("detect", {"command": "true"}),
     ("install", {"methods": [{"id": "m", "run": "true"}]}),
     ("verify", [{"command": "true"}]),
-    ("version", {"current": "x --version", "latest": "echo 1"}),
+    ("version", {"current": "x --version", "latest": {"github": "o/t"}}),
     ("uninstall", {"methods": [{"id": "u", "run": "true"}]}),
 ])
 def test_profile_with_a_lifecycle_key_is_rejected(key, value):

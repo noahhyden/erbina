@@ -51,3 +51,4 @@ uninstall:
     - id: rm
       when: "command -v http"
       run: "rm -f \"$(command -v http)\""
+category: http

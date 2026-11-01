@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import argparse
-import importlib.util
+import ast
 import json
 import re
 from collections import Counter
@@ -13,8 +13,6 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_RECIPE_DATA = REPO_ROOT / "scripts" / "recipe_data.py"
 
 CONF_RANK = {"high": 3, "medium": 2, "low": 1}
-
-_ROW = re.compile(r"\{[^{}]*\}")  # a TOOLS row is a brace-balanced dict with no nesting
 
 
 def norm(s: str | None) -> str:
@@ -27,35 +25,39 @@ def _id_token(rid: str) -> re.Pattern[str]:
     return re.compile(r'"id":\s*"' + re.escape(rid) + r'"')
 
 
+def parse_tools(source_text: str) -> list[dict]:
+    """The TOOLS rows from recipe_data.py source, read as a literal: parsed, never executed."""
+    for node in ast.parse(source_text).body:
+        target = node.target if isinstance(node, ast.AnnAssign) else getattr(node, "targets", [None])[0]
+        if isinstance(target, ast.Name) and target.id == "TOOLS":
+            return ast.literal_eval(node.value)
+    raise ValueError("no TOOLS assignment found in recipe_data source")
+
+
+def load_tools(path: str | Path) -> list[dict]:
+    """Read the TOOLS rows from a recipe_data.py file."""
+    return parse_tools(Path(path).read_text())
+
+
 def apply_keys(source_text: str, proposals: list[dict],
                keys: tuple[str, ...]) -> tuple[str, list[str], list[str]]:
-    """Insert `, "<key>": "<value>"` after each row's id; idempotent, a row already carrying keys[0] is skipped."""
+    """Insert `, "<key>": "<value>"` after each row's id, leaving the rest of the file byte-identical; idempotent, a row already carrying keys[0] is skipped."""
+    rows = {r["id"]: r for r in parse_tools(source_text)}
     text = source_text
     applied: list[str] = []
     missing: list[str] = []
     for p in proposals:
         rid = p["id"]
-        token = _id_token(rid)
-        row_match = next((m for m in _ROW.finditer(text) if token.search(m.group())), None)
-        if row_match is None:
+        row = rows.get(rid)
+        if row is None:
             missing.append(rid)
             continue
-        row = row_match.group()
-        if f'"{keys[0]}"' in row:  # already staged -> idempotent
+        if keys[0] in row:
             continue
-        insert = "".join(f', "{k}": "{p[k]}"' for k in keys if p.get(k))
-        at = token.search(row).end()
-        text = text[:row_match.start()] + row[:at] + insert + row[at:] + text[row_match.end():]
+        at = _id_token(rid).search(text).end()
+        text = text[:at] + "".join(f', "{k}": "{p[k]}"' for k in keys if p.get(k)) + text[at:]
         applied.append(rid)
     return text, applied, missing
-
-
-def load_tools(recipe_data_path: str | Path) -> list[dict]:
-    """Import TOOLS from a recipe_data.py file at an arbitrary path."""
-    spec = importlib.util.spec_from_file_location("_erbina_recipe_data", recipe_data_path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.TOOLS
 
 
 def resolve_rows(rows: list[dict], resolve: Callable[[dict], dict | None],

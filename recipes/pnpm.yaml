@@ -40,3 +40,4 @@ update:
       when: "command -v npm"
       run: "npm update -g pnpm"
 
+category: packaging

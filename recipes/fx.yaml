@@ -34,3 +34,4 @@ update:
       when: "command -v go"
       run: "go install github.com/antonmedv/fx@latest"
 
+category: data

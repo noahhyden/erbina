@@ -10,6 +10,7 @@ import json
 import re
 import shlex
 import subprocess
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -32,7 +33,7 @@ TOP_LEVEL_KEYS = frozenset(
     {"id", "kind", "title", "description", "detect", "install", "configure", "verify", "scope", "version", "update", "requires", "uninstall", "category"}
 )
 
-# recipe taxonomy: closed CATEGORIES, authored `category` wins, else `_categorize` infers it from id/title/description
+# recipe taxonomy: the closed set an authored `category` must belong to
 CATEGORIES = (
     "search", "files", "git", "http", "network", "kubernetes", "containers",
     "cloud", "data", "database", "monitoring", "editors", "shells", "terminal",
@@ -40,106 +41,6 @@ CATEGORIES = (
     "benchmarking", "compression", "devtools", "mcp-server", "profile", "misc",
 )
 
-# Ordered (category, keywords) rules, first hit wins; a spaced/hyphenated keyword is a substring match, a bare word a token match.
-_CATEGORY_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("kubernetes", ("kubernetes", "k8s", "kubectl", "kubectx", "kubens",
-                    "kustomize", "kubeconfig", "cluster", "clusters", "helm")),
-    ("containers", ("docker", "podman", "container", "containers", "oci",
-                    "buildah", "nerdctl", "containerd", "dockerfile")),
-    ("cloud", ("aws", "gcp", "azure", "terraform", "terragrunt", "pulumi",
-               "cloudformation", "opentofu", "serverless", "lambda", "cloud",
-               "deploy", "deployment", "s3", "bucket", "cloudflare", "heroku")),
-    ("security", ("secret", "secrets", "vulnerability", "vulnerabilities", "cve",
-                  "encrypt", "encryption", "decrypt", "password", "passwords",
-                  "credential", "credentials", "certificate", "scanner",
-                  "malware", "exploit", "pentest", "leak", "leaks")),
-    ("git", ("git", "commit", "commits", "rebase", "staging", "branches")),
-    ("database", ("database", "databases", "sql", "postgres", "postgresql",
-                  "mysql", "sqlite", "redis", "mongodb", "mongo")),
-    ("compression", ("compression", "compress", "compresses", "decompress",
-                     "decompresses", "gzip", "lossless", "zstd", "archive",
-                     "archives", "tarball")),
-    ("benchmarking", ("benchmark", "benchmarks", "benchmarking",
-                      "load-testing", "load test", "stress")),
-    ("security", ("fuzzer", "fuzzing", "hashing")),
-    ("search", ("search", "grep", "fuzzy", "finder", "ripgrep")),
-    ("http", ("http", "rest", "webhook", "http requests")),
-    ("network", ("network", "networking", "dns", "ping", "tcp", "udp", "port",
-                 "ports", "ssh", "vpn", "bandwidth", "netcat", "socket",
-                 "latency", "traceroute", "tunnel", "download", "downloader",
-                 "accelerator", "proxy")),
-    ("data", ("json", "yaml", "csv", "toml", "xml", "parquet", "dataframe",
-              "structured data", "html", "statistical", "stats")),
-    ("media", ("image", "images", "video", "audio", "photo", "png", "jpeg",
-               "gif", "ffmpeg", "exif", "graphics", "svg", "imagemagick",
-               "color", "colors", "colour", "visualization", "graph", "plot")),
-    ("monitoring", ("monitor", "monitoring", "htop", "processes", "metrics",
-                    "observability", "disk usage", "resource usage")),
-    ("editors", ("editor", "vim", "neovim", "emacs", "text editor")),
-    ("shells", ("shell", "shells", "prompt", "zsh", "cross-shell")),
-    ("terminal", ("terminal", "multiplexer", "tmux", "panes", "tui",
-                  "terminal ui", "terminal workspace")),
-    ("docs", ("documentation", "markdown", "man page", "cheatsheet",
-              "cheatsheets", "tldr", "manpage")),
-    ("languages", ("version manager", "runtime", "compiler", "interpreter",
-                   "programming language", "language", "type checker",
-                   "type-safe")),
-    ("build", ("build system", "build tool", "build automation", "task runner",
-               "command runner", "bundler", "bundles", "compile", "makefile")),
-    ("packaging", ("package manager", "packaging", "dependency", "dependencies")),
-    ("files", ("directory", "directories", "file manager", "listing", "tree",
-               "du", "find", "files")),
-    ("text", ("formatter", "formatting", "format", "formats", "linter",
-              "linters", "linting", "lint", "style", "cut", "diff", "regex",
-              "regular expression", "unicode")),
-    ("devtools", ("developer", "utility", "productivity")),
-)
-
-_URL_RE = re.compile(r"https?://\S+")
-
-
-def _norm_text(recipe: dict[str, Any]) -> tuple[str, set[str]]:
-    """(lowercased raw text, word-token set) from title + description, with homepage URLs stripped so "https"/"github" don't pollute the category."""
-    parts = [str(recipe.get("title") or ""), str(recipe.get("description") or "")]
-    raw = _URL_RE.sub(" ", " ".join(parts).lower())
-    tokens = set(re.findall(r"[a-z0-9]+", raw))
-    return raw, tokens
-
-
-def _token_hit(kw: str, tokens: set[str]) -> bool:
-    """Plural-tolerant word match (`certificate` matches `certificates` and vice-versa)."""
-    return kw in tokens or (kw + "s") in tokens or (kw.endswith("s") and kw[:-1] in tokens)
-
-
-def _infer_category(raw: str, tokens: set[str], rid: str) -> str:
-    rid_l = rid.lower()
-    for category, keywords in _CATEGORY_RULES:
-        for kw in keywords:
-            if " " in kw or "-" in kw:
-                if kw in raw:
-                    return category
-            elif _token_hit(kw, tokens):
-                return category
-        # id-substring hints for buckets whose tools name themselves (lazygit -> git, k9s -> kubernetes).
-        if category == "git" and "git" in rid_l:
-            return category
-        if category == "kubernetes" and any(h in rid_l for h in ("kube", "k9s", "k3s", "k3d")):
-            return category
-    return "misc"
-
-
-def _categorize(recipe: dict[str, Any]) -> str:
-    """Return a recipe's category; total and crash-proof, an authored valid `category` wins for cli-tools and profile/mcp-server map to their own bucket."""
-    rid = str(recipe.get("id") or "")
-    kind = recipe.get("kind")
-    raw, tokens = _norm_text(recipe)
-
-    if kind == "profile":
-        return "profile"
-    if kind == "mcp-server":
-        return "mcp-server"
-    stored = recipe.get("category")
-    return stored if stored in CATEGORIES else _infer_category(raw, tokens, rid)
 # First version-looking token in command output ("v1.2.3 (build 4)" -> "1.2.3"); a leading `v` is stripped by _extract_version.
 _VERSION_RE = re.compile(r"v?(\d+\.\d+(?:\.\d+)?(?:[-.][0-9A-Za-z][0-9A-Za-z.-]*)?)")
 # The only placeholders `_subst` expands (see AGENTS.d/101).
@@ -156,7 +57,7 @@ mcp = FastMCP(
         "to AUDIT where MCP servers live across local/project/user scopes, and to find "
         "and REMOVE stale/dead MCP servers that no longer connect (`find_dead_mcps` then "
         "`remove_mcp`).\n\n"
-        "Always call `inspect_recipe` (or `bootstrap` with dry_run=true) FIRST and show the "
+        "Always call `bootstrap` with dry_run=true FIRST and show the "
         "user exactly what will run before executing — erbina shells out to package managers "
         "with real privileges. Recipes are idempotent: `bootstrap` detects an already-present "
         "tool and skips installation. When a recipe installs a new MCP server, remind the user "
@@ -216,18 +117,20 @@ def _check_placeholders(text: Any, where: str, errors: list[str]) -> None:
 _GITHUB_REPO_RE = re.compile(r"^[\w.-]+/[\w.-]+$")
 
 
-def _latest_command(latest: Any) -> str:
-    """Resolve a `version.latest` spec to a shell command printing the latest version: a string as-is, `{github: owner/repo}` to a releases-API curl grepped to the `"tag_name"` line, else ""."""
-    if isinstance(latest, str):
-        return latest
-    if isinstance(latest, dict) and isinstance(latest.get("github"), str) and _GITHUB_REPO_RE.match(latest["github"]):
-        repo = latest["github"]
-        return f"curl -fsSL https://api.github.com/repos/{repo}/releases/latest | grep '\"tag_name\"'"
-    return ""
+def _github_latest(latest: Any) -> str | None:
+    """Fetch the latest release tag of a `{github: owner/repo}` source from the GitHub API; None on any network/HTTP/JSON failure."""
+    if not (isinstance(latest, dict) and isinstance(latest.get("github"), str) and _GITHUB_REPO_RE.match(latest["github"])):
+        return None
+    try:
+        with urllib.request.urlopen(f"https://api.github.com/repos/{latest['github']}/releases/latest", timeout=30) as r:
+            tag = json.load(r)["tag_name"]
+        return tag if isinstance(tag, str) else None
+    except Exception:  # noqa: BLE001 - degrade to unresolvable, never raise
+        return None
 
 
 def _release_notes_url(latest: Any) -> str | None:
-    """The GitHub releases URL for a `{github: owner/repo}` version source, or None for a plain-string `latest`."""
+    """The GitHub releases URL for a `{github: owner/repo}` version source, or None if malformed."""
     if isinstance(latest, dict) and isinstance(latest.get("github"), str) and _GITHUB_REPO_RE.match(latest["github"]):
         return f"https://github.com/{latest['github']}/releases"
     return None
@@ -454,6 +357,10 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
                     errors.append(f"{tag}: missing non-empty 'command'")
                 _check_placeholders(v.get("command"), f"{tag}.command", errors)
 
+    category = recipe.get("category")
+    if not (isinstance(category, str) and category in CATEGORIES):
+        errors.append(f"'category' is required and must be one of {CATEGORIES}, got {category!r}")
+
     # version is optional, but needs `current` + `latest` commands so check_updates can compare them.
     version = recipe.get("version")
     if version is not None:
@@ -465,20 +372,13 @@ def validate_recipe(recipe: Any, *, stem: str) -> list[str]:
             if not (isinstance(cur, str) and cur.strip()):
                 errors.append("'version.current' is required and must be a non-empty string")
             _check_placeholders(cur, "version.current", errors)
-    # latest is a shell command string or the structured {github: "owner/repo"} form.
             lat = version.get("latest")
-            if isinstance(lat, dict):
-                repo = lat.get("github")
-                if set(lat) != {"github"}:
-                    errors.append("'version.latest' mapping supports only the 'github' key")
-                elif not (isinstance(repo, str) and _GITHUB_REPO_RE.match(repo)):
-                    errors.append("'version.latest.github' must be an \"owner/repo\" string")
-            elif isinstance(lat, str):
-                if not lat.strip():
-                    errors.append("'version.latest' is required and must be a non-empty string")
-                _check_placeholders(lat, "version.latest", errors)
-            else:
-                errors.append("'version.latest' must be a non-empty string or a {github: \"owner/repo\"} mapping")
+            if not isinstance(lat, dict):
+                errors.append("'version.latest' must be a {github: \"owner/repo\"} mapping")
+            elif set(lat) != {"github"}:
+                errors.append("'version.latest' mapping supports only the 'github' key")
+            elif not (isinstance(lat["github"], str) and _GITHUB_REPO_RE.match(lat["github"])):
+                errors.append("'version.latest.github' must be an \"owner/repo\" string")
 
     # update is optional, same guarded-method shape as install; what the `update` tool runs.
     _validate_methods(recipe.get("update"), "update", required=False, errors=errors)
@@ -691,13 +591,13 @@ def _parse_mcp_list(project_dir: str | None = None) -> list[dict[str, Any]]:
 
 # tools
 def _recipe_summary(rid: str, r: dict[str, Any]) -> dict[str, Any]:
-    """Compact queriable view of a recipe: identity plus authored-or-inferred `category`."""
+    """Compact queriable view of a recipe: identity plus authored `category`."""
     return {
         "id": rid,
         "kind": r.get("kind", "?"),
         "title": r.get("title", rid),
         "description": r.get("description", ""),
-        "category": _categorize(r),
+        "category": r["category"],
     }
 
 
@@ -788,7 +688,7 @@ def list_categories() -> dict[str, Any]:
             r = _load_recipe(rid)
         except Exception:  # noqa: BLE001
             continue
-        category = _categorize(r)
+        category = r["category"]
         buckets.setdefault(category, []).append(rid)
 
     rows = [
@@ -797,26 +697,6 @@ def list_categories() -> dict[str, Any]:
     ]
     rows.sort(key=lambda c: (-c["count"], c["category"]))
     return {"count": len(rows), "categories": rows}
-
-
-@mcp.tool
-def inspect_recipe(recipe_id: str, scope: str = "user", project_dir: str | None = None) -> dict[str, Any]:
-    """
-    Show EXACTLY what bootstrapping a recipe would run, without executing anything.
-    Call this and show the user before running `bootstrap`. `scope` is one of
-    local|project|user (only meaningful for kind: mcp-server recipes).
-    """
-    if scope not in VALID_SCOPES:
-        return {"error": f"scope must be one of {VALID_SCOPES}"}
-    recipe = _load_recipe(recipe_id)
-    return {
-        "id": recipe_id,
-        "kind": recipe.get("kind"),
-        "title": recipe.get("title"),
-        "description": recipe.get("description"),
-        "will_run": _plan(recipe, scope, project_dir),
-        "note": "Nothing was executed. Re-run via `bootstrap` (optionally dry_run=true) to proceed.",
-    }
 
 
 @mcp.tool
@@ -1030,8 +910,7 @@ def check_updates(recipe_id: str | None = None, project_dir: str | None = None) 
 
         v_cwd = project_dir if ver.get("needs_project_dir") else None
         cur = _run(_subst(ver["current"], scope, project_dir), cwd=v_cwd, timeout=30)
-        lat = _run(_subst(_latest_command(ver["latest"]), scope, project_dir), cwd=v_cwd, timeout=60)
-        entry.update(_version_status(_version_text(cur), lat["stdout"]))
+        entry.update(_version_status(_version_text(cur), _github_latest(ver["latest"])))
         # for a github-sourced recipe, link the release notes so the update decision is informed.
         notes = _release_notes_url(ver["latest"])
         if notes:
@@ -1207,25 +1086,26 @@ def update(
 @mcp.tool
 def uninstall(
     recipe_id: str,
-    scope: str = "user",
     dry_run: bool = False,
     project_dir: str | None = None,
 ) -> dict[str, Any]:
     """
-    Reverse a cli-tool install: run the recipe's `uninstall:` methods, confirm the
+    Reverse an install: run the recipe's `uninstall:` methods, confirm the
     tool is actually gone (re-run detect), and forget it in the state manifest.
 
     Destructive — like bootstrap, show the user the command and confirm first; set
     dry_run=true to see the exact command without running it. Only recipes that
     declare an `uninstall:` block can be removed (erbina never guesses how to delete
-    a tool). For mcp-server recipes use `remove_mcp` instead. A tool that is already
+    a tool). An mcp-server recipe is unwired from the scope that holds it (as `remove_mcp`). A tool that is already
     absent is reported so (and any stale state record is cleaned up).
     """
-    if scope not in VALID_SCOPES:
-        return {"error": f"scope must be one of {VALID_SCOPES}"}
     recipe = _load_recipe(recipe_id)
     if recipe.get("kind") == "mcp-server":
-        return {"error": f"'{recipe_id}' is an mcp-server — use remove_mcp to unwire it, not uninstall"}
+        res = _remove_mcp(recipe_id, None, dry_run)
+        if res.get("removed"):
+            res["forgotten"] = _forget_tool(recipe_id)
+        return {"recipe": recipe_id, "dry_run": dry_run, **res}
+    scope = recipe.get("scope", "user")
 
     methods = (recipe.get("uninstall") or {}).get("methods", [])
     if not methods:
@@ -1385,14 +1265,15 @@ def doctor(project_dir: str | None = None) -> dict[str, Any]:
     Health-check the CLI tools erbina has installed (from its state manifest):
     re-run each recorded tool's `detect` (is it still present?) and, when present,
     its `verify` (does it still run?), classifying each as healthy / missing /
-    broken. Read-only — it runs only the recipe's own non-destructive
-    detect/verify commands. This is the CLI-tool counterpart to `find_dead_mcps`
-    (which health-checks MCP servers); mcp-server records are deferred to it.
+    broken; an mcp-server record is healthy when it connects (via `claude mcp
+    list`) and missing otherwise. Read-only — it runs only the recipe's own
+    non-destructive detect/verify commands.
     """
     recorded = _read_state()["tools"]
     healthy: list[str] = []
     problems: list[dict[str, Any]] = []
     checked = 0
+    mcp_state: dict[str, bool] | None = None
     for rid in sorted(recorded):
         try:
             recipe = _load_recipe(rid)
@@ -1403,9 +1284,18 @@ def doctor(project_dir: str | None = None) -> dict[str, Any]:
                 "detail": "recorded in state but no longer in the registry — can't health-check",
             })
             continue
-        if recipe.get("kind") == "mcp-server":
-            continue  # an mcp-server's health is find_dead_mcps' job, not a CLI detect/verify
         checked += 1
+        if recipe.get("kind") == "mcp-server":
+            if mcp_state is None:
+                mcp_state = {m["name"]: m["connected"] for m in _parse_mcp_list(project_dir)}
+            if mcp_state.get(rid):
+                healthy.append(rid)
+            else:
+                problems.append({
+                    "recipe": rid, "status": "missing" if rid not in mcp_state else "broken",
+                    "detail": "mcp-server is not configured — re-run bootstrap" if rid not in mcp_state else "mcp-server does not connect — see find_dead_mcps",
+                })
+            continue
         scope = recipe.get("scope", "user")
         _d, present = _run_detect(recipe, scope, project_dir)
         if not present:
@@ -1423,24 +1313,15 @@ def doctor(project_dir: str | None = None) -> dict[str, Any]:
                 "detail": "present but verify failed — the tool may be corrupted; re-run bootstrap",
             })
     hint = (
-        f"{len(problems)} recorded tool(s) need attention — re-run `bootstrap` for each. "
-        "For MCP servers, use find_dead_mcps."
+        f"{len(problems)} recorded tool(s) need attention — re-run `bootstrap` for each."
         if problems
         else "All recorded tools are healthy."
     )
     return {"checked": checked, "healthy": healthy, "problems": problems, "hint": hint}
 
 
-@mcp.tool
-def remove_mcp(name: str, scope: str | None = None, dry_run: bool = False) -> dict[str, Any]:
-    """
-    Remove a configured MCP server by name (e.g. a dead one surfaced by
-    `find_dead_mcps`). If `scope` is omitted, erbina resolves which scope holds
-    it; pass it explicitly if the same name exists in more than one scope.
-
-    Destructive — run `find_dead_mcps` and confirm with the user first. Set
-    dry_run=true to see the exact `claude mcp remove` command without running it.
-    """
+def _remove_mcp(name: str, scope: str | None, dry_run: bool) -> dict[str, Any]:
+    """Unwire the MCP server `name`, resolving its scope when omitted; shared by `remove_mcp` and `uninstall`."""
     if scope is None:
         scopes = _scope_map().get(name, [])
         if not scopes:
@@ -1461,6 +1342,19 @@ def remove_mcp(name: str, scope: str | None = None, dry_run: bool = False) -> di
         "status": "ok" if res["exit"] == 0 else "failed",
         **res,
     }
+
+
+@mcp.tool
+def remove_mcp(name: str, scope: str | None = None, dry_run: bool = False) -> dict[str, Any]:
+    """
+    Remove a configured MCP server by name (e.g. a dead one surfaced by
+    `find_dead_mcps`). If `scope` is omitted, erbina resolves which scope holds
+    it; pass it explicitly if the same name exists in more than one scope.
+
+    Destructive — run `find_dead_mcps` and confirm with the user first. Set
+    dry_run=true to see the exact `claude mcp remove` command without running it.
+    """
+    return _remove_mcp(name, scope, dry_run)
 
 
 if __name__ == "__main__":  # pragma: no cover - blocking stdio entry point, not unit-testable

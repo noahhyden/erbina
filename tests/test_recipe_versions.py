@@ -1,6 +1,7 @@
 """Red-team shipped version blocks: real-world `--version`/tag output must yield a parseable token or check_updates silently returns update_available=null."""
 from __future__ import annotations
 
+
 import pytest
 
 import server
@@ -58,7 +59,9 @@ def test_every_versioned_recipe_extracts_a_version():
 
 
 def test_every_winget_recipe_is_covered():
-    from recipe_data import TOOLS
+    from _harvest import DEFAULT_RECIPE_DATA, load_tools
+
+    TOOLS = load_tools(DEFAULT_RECIPE_DATA)
 
     generated = {t["id"] for t in TOOLS if t.get("winget")}
     with_winget = {rid for rid in server._recipe_ids()

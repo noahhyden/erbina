@@ -28,3 +28,4 @@ update:
       when: "command -v pipx"
       run: "pipx upgrade buku"
 
+category: database

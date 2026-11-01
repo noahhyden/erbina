@@ -34,3 +34,4 @@ update:
       when: "command -v pipx"
       run: "pipx upgrade xonsh"
 
+category: shells

@@ -40,3 +40,4 @@ update:
       when: "command -v pipx"
       run: "pipx upgrade yt-dlp"
 
+category: network

@@ -17,3 +17,4 @@ requires:
   - kubectx
   - kind
   - minikube
+category: profile

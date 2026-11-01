@@ -10,7 +10,7 @@ SCOPES = ("local", "project", "user")
 
 # ataegina — a cli-tool recipe
 def test_ataegina_plan_shape():
-    plan = call_tool("inspect_recipe", {"recipe_id": "ataegina"})["will_run"]
+    plan = call_tool("bootstrap", {"recipe_id": "ataegina", "dry_run": True})["plan"]
     assert plan["detect"] == "ataegina --version"
     # both install methods are surfaced, in order (brew preferred, curl fallback)
     ids = [m["id"] for m in plan["install"]["all_methods"]]
@@ -20,7 +20,7 @@ def test_ataegina_plan_shape():
 
 
 def test_ataegina_configure_step_carries_needs_project_dir():
-    plan = call_tool("inspect_recipe", {"recipe_id": "ataegina"})["will_run"]
+    plan = call_tool("bootstrap", {"recipe_id": "ataegina", "dry_run": True})["plan"]
     steps = plan["configure"]
     assert len(steps) == 1
     step = steps[0]
@@ -32,7 +32,7 @@ def test_ataegina_configure_step_carries_needs_project_dir():
 
 def test_ataegina_cli_recipe_has_no_scope_placeholder():
     # a cli-tool's plan should not contain an unsubstituted ${scope}
-    plan = call_tool("inspect_recipe", {"recipe_id": "ataegina", "scope": "project"})["will_run"]
+    plan = call_tool("bootstrap", {"recipe_id": "ataegina", "scope": "project", "dry_run": True})["plan"]
     blob = repr(plan)
     assert "${scope}" not in blob
 
@@ -56,8 +56,8 @@ def test_fetch_configure_command_is_the_expected_wiring():
 
 def test_fetch_detect_and_verify_need_project_dir():
     # Project-scope wiring lands in <project_dir>/.mcp.json, so detect and verify must run inside project_dir.
-    out = call_tool("inspect_recipe", {"recipe_id": "fetch"})
+    plan = call_tool("bootstrap", {"recipe_id": "fetch", "dry_run": True})["plan"]
     # detect command is surfaced verbatim
-    assert out["will_run"]["detect"] == "claude mcp get fetch"
+    assert plan["detect"] == "claude mcp get fetch"
     # configure step carries needs_project_dir (bootstrap skips it without one)
-    assert out["will_run"]["configure"][0]["needs_project_dir"] is True
+    assert plan["configure"][0]["needs_project_dir"] is True

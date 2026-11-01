@@ -39,8 +39,8 @@ usage examples:
 
 Each candidate is INSTALLED, its real binary discovered, and a version/help flag
 probed; a row is emitted only if it runs (libraries are skipped). Rows use the
-scripts/recipe_data.py TOOLS shape. Nothing is committed -- review rows.json,
-then merge into scripts/recipe_data.py.
+scripts/recipe_data.json TOOLS shape. Nothing is committed -- review rows.json,
+then merge into scripts/recipe_data.json.
 """
 REPO = Path(__file__).resolve().parent.parent
 RECIPES = REPO / "recipes"

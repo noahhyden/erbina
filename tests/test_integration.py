@@ -44,9 +44,10 @@ def _recipe(*, version="1.0.0", ok=True, update_to=None):
         "install": {"methods": [{"id": "script", "when": "command -v chmod", "run": _write_script(version, ok)}]},
         "verify": [{"command": "erbtool --version"}],
         "scope": "user",
+        "category": "devtools",
     }
     if update_to is not None:
-        r["version"] = {"current": "erbtool --version", "latest": f"echo {update_to}"}
+        r["version"] = {"current": "erbtool --version", "latest": {"github": "o/erbtool"}}
         r["update"] = {"methods": [{"id": "script", "when": "command -v chmod", "run": _write_script(update_to)}]}
     return r
 
@@ -120,6 +121,7 @@ def _mcp_recipe(name="fixsrv", runner="npx -y fixsrv-server"):
     return {
         "id": name,
         "kind": "mcp-server",
+        "category": "mcp-server",
         "title": f"{name} — mcp-server fixture",
         "description": "a stub mcp-server recipe for end-to-end wiring tests",
         "detect": {"command": f"claude mcp get {name}", "needs_project_dir": True},

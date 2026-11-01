@@ -98,9 +98,9 @@ def render(t: dict) -> str:
         lines.append(f'      when: "{guard}"')
         lines.append(f'      run: "{run}"')
     lines.append("")
-    # optional queriability metadata (SCHEMA.md): emitted only when a row authors it.
-    if t.get("category"):
-        lines.append(f"category: {t['category']}")
+    if not t.get("category"):
+        raise SystemExit(f"{rid}: row has no category (required on every recipe)")
+    lines.append(f"category: {t['category']}")
     lines.append("")
     return "\n".join(lines)
 
@@ -108,7 +108,9 @@ def render(t: dict) -> str:
 def main(argv: list[str] | None = None) -> int:
     import sys
 
-    from recipe_data import TOOLS  # local import so the table lives in its own file
+    from _harvest import DEFAULT_RECIPE_DATA, load_tools
+
+    TOOLS = load_tools(DEFAULT_RECIPE_DATA)
 
     # never clobbers an existing recipe; --rewrite overwrites only files that drifted from their row.
     rewrite = "--rewrite" in (argv if argv is not None else sys.argv[1:])

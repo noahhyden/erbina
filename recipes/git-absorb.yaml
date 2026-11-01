@@ -41,3 +41,4 @@ update:
       when: "command -v cargo"
       run: "cargo install git-absorb"
 
+category: git

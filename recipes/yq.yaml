@@ -54,3 +54,4 @@ uninstall:
     - id: rm
       when: "command -v yq"
       run: "rm -f \"$(command -v yq)\""
+category: data

@@ -32,3 +32,4 @@ verify:
     needs_project_dir: true
 
 scope: project
+category: mcp-server

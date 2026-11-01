@@ -54,3 +54,4 @@ uninstall:
     - id: rm
       when: "command -v gh"
       run: "rm -f \"$(command -v gh)\""
+category: terminal

@@ -117,6 +117,7 @@ def test_schema_valid_but_policyless_recipe_loads_but_fails_linter(tmp_path):
     (tmp_path / "policyless.yaml").write_text(
         "id: policyless\n"
         "kind: cli-tool\n"
+        "category: devtools\n"
         "detect: {command: 'true'}\n"
         "install: {methods: [{id: m, run: 'true'}]}\n"
         "verify: [{command: 'true'}]\n"

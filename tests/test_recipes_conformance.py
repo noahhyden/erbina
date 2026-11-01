@@ -65,6 +65,6 @@ def test_recipe_plan_leaves_no_unexpanded_placeholder(rid):
     # After substitution the plan must contain no literal ${...}, or a stray placeholder would be shelled out verbatim.
     for scope in ("user", "project", "local"):
         plan = call_tool(
-            "inspect_recipe", {"recipe_id": rid, "scope": scope, "project_dir": "/tmp/proj"}
-        )["will_run"]
+            "bootstrap", {"recipe_id": rid, "scope": scope, "project_dir": "/tmp/proj", "dry_run": True}
+        )["plan"]
         assert "${" not in repr(plan), f"{rid} @ {scope}: unexpanded placeholder in plan"

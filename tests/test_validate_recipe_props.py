@@ -100,16 +100,16 @@ def test_mcp_server_requires_scope_aware_configure():
 
 # version block (optional; powers check_updates)
 def test_valid_version_block_validates_clean():
-    r = cli_recipe("t", version={"current": "t --version", "latest": "echo 1.2.3"})
+    r = cli_recipe("t", version={"current": "t --version", "latest": {"github": "o/t"}})
     assert _errs(r) == []
 
 
 @pytest.mark.parametrize("version,needle", [
     ("not-a-mapping", "version"),
-    ({"latest": "echo 1"}, "current"),          # missing current
+    ({"latest": {"github": "o/t"}}, "current"),          # missing current
     ({"current": "t --version"}, "latest"),     # missing latest
-    ({"current": "  ", "latest": "echo 1"}, "current"),  # blank current
-    ({"current": "echo ${scopee}", "latest": "echo 1"}, "scopee"),  # bad placeholder
+    ({"current": "  ", "latest": {"github": "o/t"}}, "current"),  # blank current
+    ({"current": "echo ${scopee}", "latest": {"github": "o/t"}}, "scopee"),  # bad placeholder
 ])
 def test_bad_version_block_is_reported(version, needle):
     r = cli_recipe("t", version=version)

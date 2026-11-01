@@ -28,3 +28,4 @@ update:
       when: "command -v brew"
       run: "brew upgrade terrascan"
 
+category: cloud
