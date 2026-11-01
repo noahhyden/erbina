@@ -22,8 +22,7 @@ plus what they should observe. For anything that executes, include the
       the tool actually *runs*, and `id` matches the filename.
 - [ ] Recipes stay declarative data handled generically — no per-recipe
       special-casing in the server.
-- [ ] Smoke-tested with an in-memory FastMCP client (see CONTRIBUTING.md);
-      anything wired in during testing was `claude mcp remove`d.
+- [ ] Anything wired in during manual testing was `claude mcp remove`d.
 - [ ] README.md and SCHEMA.md updated if a tool signature, the recipe schema, or
       a placeholder changed.
 - [ ] CHANGELOG.md updated under `## [Unreleased]`.
