@@ -7,6 +7,31 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-01
+
+A cleanup release. The recipe schema lost three keys that no shipped recipe
+used, ~8,800 lines came out of the tree, and a pair of CI guards now cap how
+much explanation lives in code. No tool was added or removed; all 13 keep their
+signatures.
+
+### Removed — BREAKING (recipe schema)
+
+Three keys are gone. If you maintain a recipe outside this repo, check it
+against this list — the first two are hard failures, the third is silent.
+
+- **`rollback:`** — a recipe declaring it is now **refused at load** with
+  `unknown top-level key(s): rollback`. Zero of the 520 shipped recipes used it,
+  so the auto-rollback path only ever ran against synthetic test fixtures.
+  *Migration:* delete the block. On a post-update verify failure `update` still
+  marks the tool `broken` and returns a `rollback_plan` (previous version +
+  manual instructions); only the automatic re-install is gone.
+- **`tags:`** — likewise **refused at load**. No recipe ever authored it.
+  *Migration:* delete the key; `list_recipes` and `search_recipes` still infer
+  search tags from the recipe's own id/title/description, as they always did.
+- **`install.upgrade_safe`** — still parses, but is now **ignored**. This one
+  fails quietly: `update` will refuse the tool with "declares no `update:`
+  block". *Migration:* give the recipe a real `update:` block.
+
 ### Changed
 
 - **Relicensed from MIT to Apache License 2.0** (`LICENSE`), with a trademark
@@ -17,6 +42,19 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
   the MIT terms they shipped under. `TRADEMARKS.md` spells out what is fine
   without asking (nominative use, forking) and what needs permission (branding a
   product, implying endorsement).
+- **Generated recipes carry no boilerplate.** `scripts/gen_recipes.py` stopped
+  emitting `expect_exit: 0` (1,029 lines, always the reader's default), the
+  trailing `scope: user` (511 lines, likewise), and the five numbered phase
+  comments restating SCHEMA.md (~2,600 lines). 483 recipes regenerated; the diff
+  is pure deletion, with no `run:`, `when:`, `id:` or `command:` value altered.
+- **README cut from 779 to 181 lines.** The 520-entry recipe gallery is gone —
+  `search_recipes` / `list_categories` answer that better — as are a duplicated
+  tools table and drift-prone counts. The Safety model section moved above the
+  fold, since erbina executes with your real privileges outside Claude Code's
+  Bash sandbox.
+- **Docs consolidated.** `AUTO_UPDATE.md` folded into the README (its opt-in
+  SessionStart/`/schedule` setup survives verbatim; its iteration log did not).
+  `tests/README.md` lost a per-file coverage table that had drifted out of date.
 
 ### Removed
 
@@ -49,6 +87,38 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
   guard means a bad winget method fails cleanly rather than breaking a POSIX
   bootstrap, but macOS/Linux remain the first-class targets; treat Windows as
   best-effort and verify what got installed.
+- **Two CI guards on explanation.** `check_one_line_comments.py` caps docstrings
+  and standalone comment runs in `.py`/`.yaml` at one line (an `@mcp.tool`
+  docstring is exempt — the model reads it at call time);
+  `check_agents_rule_length.py` caps every `.github/AGENTS.d/` rule at one
+  heading plus one 255-character line. Both refuse to pass on an empty scan. The
+  burn-down took the tree from 431 violations to zero, so neither ships a
+  baseline. 20 rules now record the traps that the deleted prose was worth
+  keeping.
+
+### Fixed
+
+- **A CI step that reported green without running.** `if [ -f lint_recipes.py ]`
+  guarded the recipe lint in two `ci.yml` jobs long after the file was tracked,
+  so deleting it would have passed CI silently. Same for `if [ ! -f
+  server.json ]`. All three now run unconditionally.
+- **`python-floor` asserted a hardcoded tool count** instead of running the test
+  that owns the list; it now runs `tests/test_import.py` and
+  `tests/test_tools.py` under Python 3.10.
+- **`check_agents_rule_length.py` skipped untracked rules**, reporting
+  "scanned 6, OK" while four new rule files sat beside it unread. It now unions
+  `git ls-files --others --exclude-standard`.
+
+### Internal
+
+- `server.py`: five copies of the detect block collapsed into `_run_detect`, and
+  `bootstrap`'s inline verify loop now calls the existing `_run_verify`.
+- `scripts/_harvest.py`: shared plumbing (`apply_keys`, `load_tools`, confidence
+  tiering, the argparse skeleton) factored out of the winget and curl harvesters.
+- Tests: a 426-line generated module of 420 synthetic version samples replaced by
+  one loop over the real recipes; a hand-rolled three-colour DFS replaced by
+  `graphlib.TopologicalSorter`; a restated category lock and a build diary
+  deleted. 3645 → 2788 tests, all of the loss redundant parametrization.
 
 ## [0.2.1] - 2026-07-19
 
@@ -224,6 +294,8 @@ plus a curated recipe registry. Published to the
 - **Docs:** this changelog, `SECURITY.md`, `CONTRIBUTING.md`,
   `CODE_OF_CONDUCT.md`, and issue / pull-request templates.
 
-[Unreleased]: https://github.com/noahhyden/erbina/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/noahhyden/erbina/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/noahhyden/erbina/compare/v0.2.1...v0.3.0
+[0.2.1]: https://github.com/noahhyden/erbina/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/noahhyden/erbina/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/noahhyden/erbina/releases/tag/v0.1.0
