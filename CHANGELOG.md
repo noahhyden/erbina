@@ -7,6 +7,27 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased]
 
+### Changed
+
+- **Relicensed from MIT to Apache License 2.0** (`LICENSE`), with a trademark
+  reservation in a new `NOTICE` file: the name *erbina*, the name *Noah Hyden*,
+  and the project's logos are not licensed under it. The code is as free to fork
+  as before — a fork simply needs its own name. Sole copyright holder, so no
+  third-party consent was required, and releases published before the move keep
+  the MIT terms they shipped under. `TRADEMARKS.md` spells out what is fine
+  without asking (nominative use, forking) and what needs permission (branding a
+  product, implying endorsement).
+
+### Removed
+
+- `CODE_OF_CONDUCT.md` and `SECURITY.md`. The substantive half of the latter —
+  that erbina runs *outside* Claude Code's Bash sandbox with your real
+  privileges, that a recipe is equivalent to a shell script, and that erbina
+  sends no telemetry and makes no network calls of its own — moved into the
+  README's **Safety model** section. Private vulnerability reporting is
+  unaffected: the issue-template config already routes it to GitHub Security
+  Advisories.
+
 ### Added
 
 - **Broad `winget` coverage — 207 recipes now install on Windows** (up from 13).

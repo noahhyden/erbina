@@ -1,0 +1,29 @@
+erbina
+Copyright 2026 Noah Hyden
+
+This product is licensed under the Apache License, Version 2.0. You may obtain
+a copy of the License in the LICENSE file in this repository, or at:
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Releases published before the move to Apache 2.0 shipped under the MIT License
+and keep the terms they were released under. Every contribution to this
+repository to date is the work of the copyright holder named above.
+
+
+TRADEMARKS
+
+Section 6 of the Apache License, Version 2.0 does not grant permission to use
+the trade names, trademarks, service marks, or product names of the Licensor,
+except as required for reasonable and customary use in describing the origin
+of the Work and reproducing the content of this NOTICE file.
+
+The name "erbina", the name "Noah Hyden", and the project's logos are
+trademarks of Noah Hyden and are NOT licensed under the Apache License,
+Version 2.0. Nominative use ("built on erbina", "a fork of erbina") is fine;
+branding your own product or implying endorsement is not.
+
+See TRADEMARKS.md for what is permitted without asking and what needs
+permission. A fork distributed under a different name remains fully permitted
+by the Apache License, Version 2.0 — this reservation restricts use of the
+names and logos only, never the code.
