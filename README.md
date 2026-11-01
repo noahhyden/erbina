@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/noahhyden/erbina/actions/workflows/ci.yml/badge.svg)](https://github.com/noahhyden/erbina/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/noahhyden/erbina?sort=semver)](https://github.com/noahhyden/erbina/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/Model_Context_Protocol-server-blueviolet.svg)](https://modelcontextprotocol.io)
 [![Claude Code](https://img.shields.io/badge/client-Claude_Code-d97757.svg)](https://code.claude.com)
 
@@ -215,18 +215,33 @@ erbina runs as an ordinary sibling process of Claude Code — **not** inside its
 Bash sandbox — so a recipe's commands execute with your real privileges. The
 safety model is **consent before execution**: `inspect_recipe` and
 `bootstrap(dry_run=true)` show you the exact commands first, and the server
-instructs the agent to surface that plan before any real run. Only bootstrap
-recipes you've read. See [SECURITY.md](SECURITY.md) for the full trust model and
-how to report a vulnerability.
+instructs the agent to surface that plan before any real run.
+
+A recipe's `install.methods[].run` is a shell command string, so a malicious or
+compromised recipe file is equivalent to a malicious shell script, and erbina
+does not — and cannot — sandbox it. **Only bootstrap recipes you have read, from
+a checkout you trust.**
+
+erbina reads `~/.claude.json` and any project `.mcp.json` to answer "what MCP
+servers are installed, and where", and shells out to `claude mcp list`. It sends
+**no telemetry** and makes **no network calls of its own** — the only outbound
+activity is whatever a recipe's own commands do when you bootstrap it.
+
+Found a vulnerability? Report it privately through
+[GitHub Security Advisories](https://github.com/noahhyden/erbina/security/advisories/new),
+not a public issue.
 
 ## Contributing
 
 The most useful contribution is usually a **new recipe** — one YAML file in
 `recipes/`. See [CONTRIBUTING.md](CONTRIBUTING.md) for the ground rules and how
 to smoke-test with an in-memory FastMCP client, [SCHEMA.md](SCHEMA.md) for the
-recipe contract, and [CHANGELOG.md](CHANGELOG.md) for what's landed. By
-participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
+recipe contract, and [CHANGELOG.md](CHANGELOG.md) for what's landed.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+[Apache License 2.0](LICENSE).
+
+The name **erbina**, the name **Noah Hyden**, and the project's logos are
+trademarks and are *not* covered by that licence — see [NOTICE](NOTICE). Fork
+the code freely; just give your fork its own name.
