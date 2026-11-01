@@ -34,3 +34,4 @@ update:
       when: "command -v cargo"
       run: "cargo install fclones"
 
+category: search

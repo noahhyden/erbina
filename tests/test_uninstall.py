@@ -58,17 +58,35 @@ def test_no_uninstall_block_is_an_error():
     assert "no safe way to" in out["error"] or "no `uninstall`" in out["error"]
 
 
-def test_bad_scope_rejected_before_work():
+def test_scope_is_not_a_parameter():
     r = cli_recipe("t", uninstall={"methods": [{"id": "u", "run": TRUE}]})
-    out = _uninstall(r, scope="bogus")
-    assert "error" in out and "scope must be one of" in out["error"]
+    with registry(r), pytest.raises(Exception, match="scope"):
+        call_tool("uninstall", {"recipe_id": "t", "scope": "user"})
 
 
-def test_mcp_server_is_pointed_at_remove_mcp():
-    r = mcp_recipe("m", uninstall={"methods": [{"id": "u", "run": TRUE}]})
-    out = _uninstall(r)
-    assert "error" in out
-    assert "remove_mcp" in out["error"]
+def test_mcp_server_is_routed_to_unwiring(monkeypatch):
+    monkeypatch.setattr(server, "_scope_map", lambda project_dir=None: {"m": ["project"]})
+    out = _uninstall(mcp_recipe("m"), dry_run=True)
+    assert out["would_run"] == "claude mcp remove m -s project"
+    assert out["dry_run"] is True
+
+
+def test_mcp_server_unwiring_runs_and_forgets(monkeypatch):
+    ran = []
+    monkeypatch.setattr(server, "_scope_map", lambda project_dir=None: {"m": ["user"]})
+    monkeypatch.setattr(server, "_run", lambda cmd, *a, **k: ran.append(cmd) or {"cmd": cmd, "exit": 0, "stdout": "", "stderr": ""})
+    with registry(mcp_recipe("m")):
+        server._record_tool("m", kind="mcp-server")
+        out = call_tool("uninstall", {"recipe_id": "m"})
+    assert ran == ["claude mcp remove m -s user"]
+    assert out["removed"] == "m" and out["forgotten"] is True
+    assert "m" not in server._read_state()["tools"]
+
+
+def test_mcp_server_not_wired_anywhere_reports_the_error(monkeypatch):
+    monkeypatch.setattr(server, "_scope_map", lambda project_dir=None: {})
+    out = _uninstall(mcp_recipe("m"))
+    assert "no MCP server named 'm'" in out["error"]
 
 
 # not installed

@@ -29,3 +29,4 @@ update:
       when: "command -v npm"
       run: "npm update -g semantic-release"
 
+category: git

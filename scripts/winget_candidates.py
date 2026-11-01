@@ -2,11 +2,13 @@
 """Resolve winget PackageIdentifiers for recipe rows that lack Windows coverage."""
 from __future__ import annotations
 
+import contextlib
 import shutil
 import sqlite3
 import tempfile
 import urllib.request
 import zipfile
+from collections.abc import Iterator
 from pathlib import Path
 
 from _harvest import base_parser, load_tools, norm, report, resolve_rows, stage
@@ -20,50 +22,45 @@ def rows_missing_winget(tools: list[dict]) -> list[dict]:
     return [t for t in tools if not t.get("winget")]
 
 
-# the winget community-source index (SQLite inside the MSIX)
-class WingetIndex:
-    """Case-insensitive query layer over the winget SQLite catalog; rows are (id, name, moniker)."""
-
-    def __init__(self, conn: sqlite3.Connection, _tmpdir: str | None = None) -> None:
-        self.conn = conn
-        self._tmpdir = _tmpdir
-
-    @classmethod
-    def from_msix(cls, msix_path: str | Path) -> WingetIndex:
-        # deserialize() is 3.11+, but erbina supports 3.10 -> extract to a temp file.
-        tmpdir = tempfile.mkdtemp(prefix="winget-idx-")
+# the winget community-source index (SQLite inside the MSIX); query rows are (id, name, moniker)
+@contextlib.contextmanager
+def open_msix(msix_path: str | Path) -> Iterator[sqlite3.Connection]:
+    # deserialize() is 3.11+, but erbina supports 3.10 -> extract to a temp file.
+    with tempfile.TemporaryDirectory(prefix="winget-idx-") as tmpdir:
         with zipfile.ZipFile(msix_path) as z:
             raw = z.read(INDEX_MEMBER)
         dbpath = Path(tmpdir) / "index.db"
         dbpath.write_bytes(raw)
-        return cls(sqlite3.connect(dbpath), _tmpdir=tmpdir)
+        conn = sqlite3.connect(dbpath)
+        try:
+            yield conn
+        finally:
+            conn.close()
 
-    def by_command(self, command: str) -> list[tuple]:
-        """Packages that install an executable named `command` (the strongest CLI signal)."""
-        return self.conn.execute(
-            "SELECT p.id, p.name, p.moniker FROM commands2 c "
-            "JOIN commands2_map m ON m.command = c.rowid "
-            "JOIN packages p ON p.rowid = m.package "
-            "WHERE c.command = ? COLLATE NOCASE",
-            (command,),
-        ).fetchall()
 
-    def by_moniker(self, moniker: str) -> list[tuple]:
-        return self.conn.execute(
-            "SELECT id, name, moniker FROM packages WHERE moniker = ? COLLATE NOCASE",
-            (moniker,),
-        ).fetchall()
+def by_command(conn: sqlite3.Connection, command: str) -> list[tuple]:
+    """Packages that install an executable named `command` (the strongest CLI signal)."""
+    return conn.execute(
+        "SELECT p.id, p.name, p.moniker FROM commands2 c "
+        "JOIN commands2_map m ON m.command = c.rowid "
+        "JOIN packages p ON p.rowid = m.package "
+        "WHERE c.command = ? COLLATE NOCASE",
+        (command,),
+    ).fetchall()
 
-    def by_id(self, package_id: str) -> list[tuple]:
-        return self.conn.execute(
-            "SELECT id, name, moniker FROM packages WHERE id = ? COLLATE NOCASE",
-            (package_id,),
-        ).fetchall()
 
-    def close(self) -> None:
-        self.conn.close()
-        if self._tmpdir:
-            shutil.rmtree(self._tmpdir, ignore_errors=True)
+def by_moniker(conn: sqlite3.Connection, moniker: str) -> list[tuple]:
+    return conn.execute(
+        "SELECT id, name, moniker FROM packages WHERE moniker = ? COLLATE NOCASE",
+        (moniker,),
+    ).fetchall()
+
+
+def by_id(conn: sqlite3.Connection, package_id: str) -> list[tuple]:
+    return conn.execute(
+        "SELECT id, name, moniker FROM packages WHERE id = ? COLLATE NOCASE",
+        (package_id,),
+    ).fetchall()
 
 
 # resolver: tool row + index -> a confidence-tiered proposal (pure)
@@ -92,7 +89,7 @@ def _pick(rows: list[tuple], owner: str | None) -> tuple[tuple, bool] | None:
     return None
 
 
-def resolve(tool: dict, index: WingetIndex) -> dict | None:
+def resolve(tool: dict, conn: sqlite3.Connection) -> dict | None:
     """Resolve one row to a winget proposal (gh exact id > command > moniker), or None."""
     rid = tool["id"]
     binary = tool.get("bin", rid)
@@ -107,13 +104,13 @@ def resolve(tool: dict, index: WingetIndex) -> dict | None:
 
     # 1. gh-derived exact id (e.g. gh "sharkdp/pastel" -> id "sharkdp.pastel").
     if owner and repo:
-        hit = index.by_id(f"{owner}.{repo}")
+        hit = by_id(conn, f"{owner}.{repo}")
         if hit:
             return proposal(hit[0], "high", "gh-id-exact")
 
     # 2. command (installed-executable) match.
-    cmd_rows = _uniq_by_id(index.by_command(binary)
-                           + (index.by_command(rid) if rid != binary else []))
+    cmd_rows = _uniq_by_id(by_command(conn, binary)
+                           + (by_command(conn, rid) if rid != binary else []))
     picked = _pick(cmd_rows, owner)
     if picked is not None:
         row, corroborated = picked
@@ -121,8 +118,8 @@ def resolve(tool: dict, index: WingetIndex) -> dict | None:
             else proposal(row, "medium", "cmd-unique")
 
     # 3. moniker match (weakest -- monikers collide across unrelated apps).
-    mon_rows = _uniq_by_id(index.by_moniker(binary)
-                           + (index.by_moniker(rid) if rid != binary else []))
+    mon_rows = _uniq_by_id(by_moniker(conn, binary)
+                           + (by_moniker(conn, rid) if rid != binary else []))
     picked = _pick(mon_rows, owner)
     if picked is not None:
         row, corroborated = picked
@@ -132,10 +129,10 @@ def resolve(tool: dict, index: WingetIndex) -> dict | None:
     return None
 
 
-def resolve_all(tools: list[dict], index: WingetIndex, min_confidence: str = "high",
+def resolve_all(tools: list[dict], conn: sqlite3.Connection, min_confidence: str = "high",
                 ids: set[str] | None = None) -> list[dict]:
     """Resolve every winget-less row at or above `min_confidence`, sorted by id."""
-    return resolve_rows(rows_missing_winget(tools), lambda t: resolve(t, index),
+    return resolve_rows(rows_missing_winget(tools), lambda t: resolve(t, conn),
                         min_confidence, ids)
 
 
@@ -172,14 +169,11 @@ def main(argv: list[str] | None = None) -> int:
 
     tools = load_tools(args.recipe_data)
     if args.msix:
-        index = WingetIndex.from_msix(args.msix)
+        msix = args.msix
     else:  # pragma: no cover - network path, exercised by the ingest workflow
         msix = fetch_source_msix(args.source_url, tempfile.mkdtemp(prefix="winget-src-"))
-        index = WingetIndex.from_msix(msix)
-    try:
-        proposals = resolve_all(tools, index, args.min_confidence, set(args.ids) or None)
-    finally:
-        index.close()
+    with open_msix(msix) as conn:
+        proposals = resolve_all(tools, conn, args.min_confidence, set(args.ids) or None)
 
     by_conf = report(proposals, args.out)
     print(f"resolved {len(proposals)} winget id(s) "

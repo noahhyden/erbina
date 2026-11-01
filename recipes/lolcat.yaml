@@ -34,3 +34,4 @@ update:
       when: "command -v gem"
       run: "gem update lolcat"
 
+category: terminal

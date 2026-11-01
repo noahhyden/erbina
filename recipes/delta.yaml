@@ -45,3 +45,4 @@ update:
     - id: cargo
       when: "command -v cargo"
       run: "cargo install git-delta"
+category: git

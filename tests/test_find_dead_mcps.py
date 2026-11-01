@@ -67,3 +67,14 @@ def test_empty_server_list(monkeypatch):
     assert out["alive"] == []
     assert out["dead"] == []
     assert "No dead servers" in out["hint"]
+
+
+def test_doctor_and_find_dead_mcps_agree_on_a_dead_recorded_server(monkeypatch):
+    from prototype import mcp_recipe, registry
+
+    _patch(monkeypatch, [{"name": "d", "connected": False, "command": "x"}], {"d": ["user"]})
+    with registry(mcp_recipe("d")):
+        server._record_tool("d", kind="mcp-server")
+        doc = call_tool("doctor", {})
+    assert [p["recipe"] for p in doc["problems"]] == ["d"]
+    assert [x["name"] for x in call_tool("find_dead_mcps", {})["dead"]] == ["d"]

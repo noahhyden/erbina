@@ -60,9 +60,9 @@ COMMANDS = {
 
 @pytest.fixture
 def index():
-    idx = wc.WingetIndex(build_conn(PACKAGES, COMMANDS))
-    yield idx
-    idx.close()
+    conn = build_conn(PACKAGES, COMMANDS)
+    yield conn
+    conn.close()
 
 
 # norm
@@ -91,21 +91,21 @@ def test_rows_missing_winget_treats_empty_string_as_missing():
 
 # index queries
 def test_by_command_case_insensitive(index):
-    assert index.by_command("PASTEL")[0][0] == "sharkdp.pastel"
+    assert wc.by_command(index, "PASTEL")[0][0] == "sharkdp.pastel"
 
 
 def test_by_moniker_case_insensitive(index):
-    assert index.by_moniker("TASK")[0][0] == "Task.Task"
+    assert wc.by_moniker(index, "TASK")[0][0] == "Task.Task"
 
 
 def test_by_id_case_insensitive(index):
-    assert index.by_id("task.task")[0][0] == "Task.Task"
+    assert wc.by_id(index, "task.task")[0][0] == "Task.Task"
 
 
 def test_queries_return_empty_for_unknown(index):
-    assert index.by_command("nope") == []
-    assert index.by_moniker("nope") == []
-    assert index.by_id("nope") == []
+    assert wc.by_command(index, "nope") == []
+    assert wc.by_moniker(index, "nope") == []
+    assert wc.by_id(index, "nope") == []
 
 
 # resolve — the confidence tiers
@@ -209,53 +209,49 @@ def test_resolve_all_id_filter(index):
     assert [p["id"] for p in got] == ["task"]
 
 
-# apply_proposals — staging into recipe_data.py source text (pure)
-SRC = (
-    'TOOLS = [\n'
-    '    {"id": "fd", "bin": "fd", "brew": "fd", "gh": "sharkdp/fd"},\n'
-    '    {"id": "fdupes", "bin": "fdupes", "brew": "fdupes"},\n'
-    '    {"id": "rg", "bin": "rg", "winget": "BurntSushi.ripgrep.MSVC"},\n'
-    ']\n'
-)
+# apply_keys — staging into the parsed recipe_data rows
+def _rows():
+    return [
+        {"id": "fd", "bin": "fd", "brew": "fd", "gh": "sharkdp/fd"},
+        {"id": "fdupes", "bin": "fdupes", "brew": "fdupes"},
+        {"id": "rg", "bin": "rg", "winget": "BurntSushi.ripgrep.MSVC"},
+    ]
 
 
 def test_apply_inserts_after_id_and_is_anchored_to_exact_id():
-    proposals = [{"id": "fd", "winget": "sharkdp.fd"}]
-    new, applied, missing = apply_keys(SRC, proposals, ("winget",))
+    rows = _rows()
+    applied, missing = apply_keys(rows, [{"id": "fd", "winget": "sharkdp.fd"}], ("winget",))
     assert applied == ["fd"]
     assert missing == []
-    # inserted on the fd row only, right after its id...
-    assert '{"id": "fd", "winget": "sharkdp.fd", "bin": "fd"' in new
-    # ...and NOT on the fdupes row (mutation guard: exact-id anchoring).
-    assert '"id": "fdupes", "winget"' not in new
+    assert list(rows[0]) == ["id", "winget", "bin", "brew", "gh"]
+    assert "winget" not in rows[1]  # exact-id anchoring, not prefix
 
 
 def test_apply_is_idempotent_on_rows_that_already_have_winget():
-    proposals = [{"id": "rg", "winget": "Something.Else"}]
-    new, applied, missing = apply_keys(SRC, proposals, ("winget",))
-    assert applied == []           # already had winget -> untouched
-    assert new == SRC
+    rows = _rows()
+    applied, _ = apply_keys(rows, [{"id": "rg", "winget": "Something.Else"}], ("winget",))
+    assert applied == []
+    assert rows == _rows()
 
 
 def test_apply_reports_missing_ids():
-    proposals = [{"id": "ghost", "winget": "No.Body"}]
-    new, applied, missing = apply_keys(SRC, proposals, ("winget",))
+    rows = _rows()
+    applied, missing = apply_keys(rows, [{"id": "ghost", "winget": "No.Body"}], ("winget",))
     assert applied == []
     assert missing == ["ghost"]
-    assert new == SRC
+    assert rows == _rows()
 
 
-def test_apply_multiple_and_result_is_valid_python():
+def test_apply_multiple():
+    rows = _rows()
     proposals = [{"id": "fd", "winget": "sharkdp.fd"}, {"id": "fdupes", "winget": "Adrian.fdupes"}]
-    new, applied, missing = apply_keys(SRC, proposals, ("winget",))
+    applied, _ = apply_keys(rows, proposals, ("winget",))
     assert sorted(applied) == ["fd", "fdupes"]
-    ns: dict = {}
-    exec(new, ns)  # noqa: S102 - trusted fixture, proves output parses
-    tools = {t["id"]: t.get("winget") for t in ns["TOOLS"]}
-    assert tools == {"fd": "sharkdp.fd", "fdupes": "Adrian.fdupes", "rg": "BurntSushi.ripgrep.MSVC"}
+    assert {r["id"]: r.get("winget") for r in rows} == {
+        "fd": "sharkdp.fd", "fdupes": "Adrian.fdupes", "rg": "BurntSushi.ripgrep.MSVC"}
 
 
-# WingetIndex.from_msix — extract Public/index.db out of a msix (zip)
+# open_msix — extract Public/index.db out of a msix (zip)
 def _make_msix(tmp_path: Path) -> Path:
     conn = build_conn([("Zellij.Zellij", "Zellij", None)], {"zellij": ["Zellij.Zellij"]})
     dbfile = tmp_path / "src.db"
@@ -271,24 +267,18 @@ def _make_msix(tmp_path: Path) -> Path:
     return msix
 
 
-def test_from_msix_extracts_and_queries(tmp_path):
-    idx = wc.WingetIndex.from_msix(_make_msix(tmp_path))
-    try:
-        assert idx.by_command("zellij")[0][0] == "Zellij.Zellij"
-    finally:
-        idx.close()
+def test_open_msix_extracts_and_queries(tmp_path):
+    with wc.open_msix(_make_msix(tmp_path)) as conn:
+        assert wc.by_command(conn, "zellij")[0][0] == "Zellij.Zellij"
 
 
-# main — end-to-end against a fixture msix + fixture recipe_data.py
+# main — end-to-end against a fixture msix + fixture recipe_data.json
 def _fixture_recipe_data(tmp_path: Path) -> Path:
-    p = tmp_path / "recipe_data.py"
-    p.write_text(
-        'from __future__ import annotations\n'
-        'TOOLS: list[dict] = [\n'
-        '    {"id": "zellij", "bin": "zellij", "brew": "zellij"},\n'
-        '    {"id": "ghost", "bin": "ghost", "brew": "ghost"},\n'
-        ']\n'
-    )
+    p = tmp_path / "recipe_data.json"
+    p.write_text(json.dumps([
+        {"id": "zellij", "bin": "zellij", "brew": "zellij"},
+        {"id": "ghost", "bin": "ghost", "brew": "ghost"},
+    ]))
     return p
 
 
@@ -316,7 +306,5 @@ def test_main_apply_writes_winget_key_into_recipe_data(tmp_path):
         "--apply",
     ])
     assert rc == 0
-    ns: dict = {}
-    exec(rd.read_text(), ns)  # noqa: S102 - reads what main wrote back
-    winget = {t["id"]: t.get("winget") for t in ns["TOOLS"]}
+    winget = {t["id"]: t.get("winget") for t in json.loads(rd.read_text())}
     assert winget == {"zellij": "Zellij.Zellij", "ghost": None}

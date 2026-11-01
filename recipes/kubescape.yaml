@@ -35,3 +35,4 @@ update:
       when: "winget --version"
       run: "winget upgrade -e --id kubescape.kubescape --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
 
+category: kubernetes

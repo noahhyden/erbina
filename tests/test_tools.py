@@ -6,7 +6,6 @@ from helpers import call_tool, list_tool_names
 EXPECTED_TOOLS = {
     "search_recipes",
     "list_categories",
-    "inspect_recipe",
     "bootstrap",
     "check_updates",
     "update",
@@ -32,19 +31,6 @@ def test_search_recipes_includes_both_real_recipes():
     by_id = {r["id"]: r for r in recipes}
     assert by_id["ataegina"]["kind"] == "cli-tool"
     assert by_id["fetch"]["kind"] == "mcp-server"
-
-
-def test_inspect_recipe_returns_plan_without_executing():
-    out = call_tool("inspect_recipe", {"recipe_id": "ataegina"})
-    assert "error" not in out
-    assert out["id"] == "ataegina"
-    plan = out["will_run"]
-    # The consent surface must name the detect + verify commands verbatim.
-    assert plan["detect"] == "ataegina --version"
-    assert "ataegina --version" in plan["verify"]
-    # inspect_recipe never executes anything: it says so and returns no execution "phases" (only a real bootstrap run has that key).
-    assert "Nothing was executed" in out["note"]
-    assert "phases" not in out
 
 
 def test_bootstrap_dry_run_returns_plan_and_runs_nothing():
@@ -86,9 +72,9 @@ def _tool_error(tool: str, recipe_id: str):
     return repr(out)
 
 
-def test_inspect_recipe_rejects_dotdot_server_traversal():
+def test_bootstrap_rejects_dotdot_server_traversal():
     # ../server would reach server.py if traversal worked; _load_recipe collapses it to `server.yaml`, which does not exist -> "no recipe".
-    msg = _tool_error("inspect_recipe", "../server")
+    msg = _tool_error("bootstrap", "../server")
     assert "no recipe" in msg.lower()
     # It must not have LOADED server.py — no server source leaks into the reply.
     assert "FastMCP" not in msg
@@ -103,13 +89,6 @@ def test_bootstrap_rejects_etc_passwd_traversal():
     assert "/bin/" not in msg
     # available-recipes hint should list only real registry entries
     assert "ataegina" in msg or "fetch" in msg
-
-
-def test_inspect_recipe_rejects_bad_scope():
-    out = call_tool("inspect_recipe", {"recipe_id": "ataegina", "scope": "bogus"})
-    assert isinstance(out, dict)
-    assert "error" in out
-    assert "scope must be one of" in out["error"]
 
 
 def test_bootstrap_rejects_bad_scope():

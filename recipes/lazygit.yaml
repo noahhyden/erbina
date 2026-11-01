@@ -54,3 +54,4 @@ uninstall:
     - id: rm
       when: "command -v lazygit"
       run: "rm -f \"$(command -v lazygit)\""
+category: git

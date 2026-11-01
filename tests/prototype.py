@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import contextlib
+import copy
 import tempfile
 from pathlib import Path
 from typing import Any, Iterator
@@ -20,50 +21,48 @@ def exit_code(n: int) -> str:
     return f"exit {n}"
 
 
-def cli_recipe(rid: str = "proto", **overrides: Any) -> dict[str, Any]:
-    """A minimal VALID kind: cli-tool recipe; override any top-level key (e.g. detect={"command": FALSE} forces the install path)."""
-    recipe: dict[str, Any] = {
-        "id": rid,
-        "kind": "cli-tool",
-        "title": f"{rid} — prototype cli tool",
+_BODIES: dict[str, dict[str, Any]] = {
+    "cli-tool": {
+        "category": "devtools",
         "description": "A synthetic prototype recipe for behavioral testing.",
         "detect": {"command": TRUE},
         "install": {"methods": [{"id": "always", "run": TRUE}]},
         "verify": [{"command": TRUE}],
         "scope": "user",
-    }
-    recipe.update(overrides)
-    return recipe
-
-
-def mcp_recipe(rid: str = "proto_mcp", **overrides: Any) -> dict[str, Any]:
-    """A minimal VALID kind: mcp-server recipe whose configure step is a harmless echo of ${scope}."""
-    recipe: dict[str, Any] = {
-        "id": rid,
-        "kind": "mcp-server",
-        "title": f"{rid} — prototype mcp server",
+    },
+    "mcp-server": {
+        "category": "mcp-server",
         "description": "A synthetic prototype mcp-server recipe.",
         "detect": {"command": TRUE},
         "install": {"methods": [{"id": "always", "run": TRUE}]},
         "configure": {"steps": [{"run": "echo scope=${scope}"}]},
         "verify": [{"command": TRUE}],
         "scope": "user",
-    }
-    recipe.update(overrides)
-    return recipe
+    },
+    "profile": {
+        "category": "profile",
+        "description": "A synthetic prototype profile bundling other recipes.",
+        "requires": ["proto"],
+    },
+}
+
+
+def recipe(kind: str, rid: str, **overrides: Any) -> dict[str, Any]:
+    """A minimal VALID recipe of `kind`; override any top-level key (e.g. detect={"command": FALSE} forces the install path)."""
+    body = copy.deepcopy(_BODIES[kind])
+    return {"id": rid, "kind": kind, "title": f"{rid} — prototype {kind}", **body, **overrides}
+
+
+def cli_recipe(rid: str = "proto", **overrides: Any) -> dict[str, Any]:
+    return recipe("cli-tool", rid, **overrides)
+
+
+def mcp_recipe(rid: str = "proto_mcp", **overrides: Any) -> dict[str, Any]:
+    return recipe("mcp-server", rid, **overrides)
 
 
 def profile_recipe(rid: str = "proto_profile", requires: list[str] | None = None, **overrides: Any) -> dict[str, Any]:
-    """A minimal VALID kind: profile recipe, a meta-recipe that only bundles others via `requires`."""
-    recipe: dict[str, Any] = {
-        "id": rid,
-        "kind": "profile",
-        "title": f"{rid} — prototype profile",
-        "description": "A synthetic prototype profile bundling other recipes.",
-        "requires": list(requires) if requires is not None else ["proto"],
-    }
-    recipe.update(overrides)
-    return recipe
+    return recipe("profile", rid, **({} if requires is None else {"requires": list(requires)}), **overrides)
 
 
 @contextlib.contextmanager

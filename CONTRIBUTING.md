@@ -18,7 +18,7 @@ the server. Adding a recipe is just dropping one YAML file in `recipes/`.
 - **Consent before execution is the safety model — don't erode it.** erbina runs
   as a sibling process with real privileges, *not* inside Claude Code's Bash
   sandbox. Every code path that executes something must be reachable only after
-  `inspect_recipe` / `bootstrap(dry_run=true)` could show it. Never add a tool
+  `bootstrap(dry_run=true)` could show it. Never add a tool
   that runs an install side-effect without a dry-run surface, and keep `audit_*`
   / `find_*` tools strictly read-only.
 - **Recipes are declarative, not code.** A recipe is data an agent executes; it
@@ -49,7 +49,7 @@ the server. Adding a recipe is just dropping one YAML file in `recipes/`.
    are present and well-formed, an `mcp-server` recipe's configure step wires
    `${scope}`, and there are no typo'd `${...}` placeholders. It exits non-zero
    on any problem. Those schema checks run at recipe *load* time too
-   (`validate_recipe` in `server.py`), so `bootstrap` / `inspect_recipe` refuse a
+   (`validate_recipe` in `server.py`), so `bootstrap` refuses a
    malformed recipe instead of silently no-op'ing a phase. On top of the schema,
    the linter also enforces **curated-registry policy** (`lint_recipe_policy`): a
    non-empty `title` and `description`, a `when:` guard on every install method
@@ -105,7 +105,7 @@ erbina by hand the way an agent does, reuse `call_tool` in
 [`tests/helpers.py`](tests/helpers.py) (in-memory client); for the real-install path
 use `scripts/smoke_bootstrap.py` above.
 
-Because `dry_run=true` and `inspect_recipe` execute nothing, they're safe to run
+Because `dry_run=true` executes nothing, it's safe to run
 on any machine. For a real `bootstrap`, use a throwaway recipe target and a
 `project`-scope wiring (it lives in a temp `.mcp.json` you can delete) so you
 don't pollute your user-scope config. Always `claude mcp remove` anything a test

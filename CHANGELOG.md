@@ -4,49 +4,71 @@ All notable changes to erbina are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project aims to adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
 ## [Unreleased]
 
-An over-engineering audit, applied. 469 lines out, one tool off the MCP surface,
-no behaviour added. Everything removed was either dead, duplicated, or restating
-a default the reader already applies.
+Two over-engineering audits, applied. The MCP surface went from 13 tools to 11,
+the recipe schema lost three keys and gained one requirement, and the generator
+table became data instead of executable Python. No behaviour was added.
 
-### Removed — BREAKING (tool surface)
+### Removed - BREAKING (tool surface)
 
-- **`list_recipes`** — the tool is gone; 12 remain. It returned exactly what
-  `search_recipes()` returns with no arguments, so it was a second name for one
-  behaviour, costing a tool description in every client's context.
-  *Migration:* call `search_recipes` instead. Note it caps results at
-  `limit` (default 50) and reports the true total as `count`, so pass a larger
-  `limit` to page the whole registry.
-- **`tags`** — recipe summaries no longer carry the inferred tag bag, and
-  `search_recipes` no longer scores tag hits. The vocabulary was harvested from
-  the same words already present in each recipe's title and description, so a
-  description match already found everything a tag match did. This supersedes
-  the 0.3.0 note promising inferred tags would stay.
+- **`list_recipes`** - returned exactly what `search_recipes()` returns with no
+  arguments. *Migration:* call `search_recipes`; it caps at `limit` (default 50)
+  and reports the true total as `count`, so pass a larger `limit` to page the
+  whole registry.
+- **`inspect_recipe`** - returned the same plan as `bootstrap(dry_run=true)`,
+  which the suite asserted with a parity test. *Migration:* call
+  `bootstrap(recipe_id, dry_run=true)` and read `["plan"]` where you read
+  `["will_run"]`. Nothing executes on a dry run, so the consent surface is
+  unchanged.
+- **`tags`** - recipe summaries no longer carry the inferred tag bag and
+  `search_recipes` no longer scores tag hits; the vocabulary was harvested from
+  words already in each title and description.
 
-### Removed — recipe schema
+### Changed - BREAKING (recipe schema)
 
-- **`detect.expect_exit` / `verify[].expect_exit`** — still parses, but is now
-  **ignored**: detect and verify pass if and only if the command exits 0. All 61
-  occurrences across the shipped recipes said `0`, the default, and the key was
-  never validated. *Migration:* delete the key. A recipe relying on a non-zero
-  expected exit changes meaning silently — invert the command instead.
-- **`scope:` on cli-tool and profile recipes** — dropped from 28 recipes where
-  it was documented as "informational" and read by nothing. It stays load-bearing
-  (and required) on `kind: mcp-server`, where it drives `${scope}` wiring.
+- **`category` is now required.** It was inferred at runtime by a keyword
+  classifier that a 74-entry override table existed to correct. Both are gone:
+  every recipe authors its own `category`, and one that omits it (or names a
+  value outside the taxonomy) is **refused at load**. *Migration:* add
+  `category: <one of CATEGORIES>`; `lint_recipes.py` names the offender.
+- **`version.latest` accepts only `{github: "owner/repo"}`.** All 439 shipped
+  version blocks already used it and none used the string-command form.
+  *Migration:* replace a shell command with the mapping.
+
+### Removed - recipe schema
+
+- **`detect.expect_exit` / `verify[].expect_exit`** - still parses, now
+  **ignored**: a phase passes if and only if its command exits 0. All 61
+  shipped occurrences said `0`. *Migration:* delete the key; a recipe relying on
+  a non-zero expected exit changes meaning silently, so invert the command.
+- **`scope:` on cli-tool and profile recipes** - dropped from 28 recipes where
+  it was documented as informational and read by nothing. Still load-bearing on
+  `kind: mcp-server`.
+- **`uninstall`'s `scope` parameter** - the tool could never use it.
 
 ### Changed
 
-- `_categorize` returns a plain category string rather than a
-  `(category, tags)` tuple.
+- **GitHub update checks no longer shell out.** `curl -fsSL ... | grep
+  '"tag_name"'` is replaced by `urllib.request` + `json`, so `check_updates` no
+  longer needs curl on PATH. Any network, HTTP or parse failure degrades to an
+  unresolved latest version, exactly as an unparseable one already did.
+- **The health and removal tools dispatch on recipe kind.** `doctor` now
+  health-checks mcp-server records too instead of deferring to
+  `find_dead_mcps`, and `uninstall` unwires an mcp-server recipe instead of
+  erroring and naming `remove_mcp`. Both tools remain for addressing a server
+  by name rather than by recipe.
+- **`scripts/recipe_data.py` is now `scripts/recipe_data.json`.** The table was
+  483 dict literals of pure constants, yet the harvesters exec'd the module to
+  read it and spliced new keys in with a regex over the source text. Both are
+  now `json.load` / `json.dump`. The file's section comments are the cost.
+  `scripts/ingest_validated.py` emits rows without a `category`, so the
+  generator now fails loudly, naming the id, when such a row is merged.
 - The stub `claude` binary used by the offline suite lives once, in
-  `tests/stubs.py`; the two test modules and the `mcp-servers` CI job all read
-  it from there instead of carrying their own copy.
+  `tests/stubs.py`.
 - The one-line-comment CI guard no longer exempts "generated" files. The
-  exemption matched exactly two files, both by accident — one of them the guard
-  itself, whose marker list sat inside its own first 40 lines, so it had never
-  scanned itself.
+  exemption matched exactly two files, both by accident - one of them the guard
+  itself, whose marker list sat inside its own first 40 lines.
 
 ## [0.3.0] - 2026-11-01
 

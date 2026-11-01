@@ -1,16 +1,27 @@
 """Tests for pinning (phase 3b): the `pin` tool and how check_updates / update honor pins."""
 from __future__ import annotations
 
+import pytest
+
 import server
 from helpers import call_tool
 from prototype import TRUE, cli_recipe, registry
 
+_LATEST: dict[str, str] = {}
+
+
+@pytest.fixture(autouse=True)
+def _no_network(monkeypatch):
+    _LATEST.clear()
+    monkeypatch.setattr(server, "_github_latest", lambda spec: _LATEST.get(spec["github"]))
+
 
 def _versioned(rid="t", current="1.0.0", latest="2.0.0"):
+    _LATEST[f"o/{rid}"] = latest
     return cli_recipe(
         rid,
         detect={"command": TRUE},
-        version={"current": f"echo {current}", "latest": f"echo {latest}"},
+        version={"current": f"echo {current}", "latest": {"github": f"o/{rid}"}},
         update={"methods": [{"id": "u", "run": TRUE}]},
         verify=[{"command": TRUE}],
     )

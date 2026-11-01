@@ -55,3 +55,4 @@ uninstall:
     - id: rm
       when: "command -v ataegina"
       run: "rm -f \"$(command -v ataegina)\""
+category: git

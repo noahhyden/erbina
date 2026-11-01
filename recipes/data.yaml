@@ -16,3 +16,4 @@ requires:
   - miller
   - csvkit
   - qsv
+category: profile

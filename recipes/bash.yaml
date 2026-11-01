@@ -24,3 +24,4 @@ update:
       when: "command -v brew"
       run: "brew upgrade bash"
 
+category: shells

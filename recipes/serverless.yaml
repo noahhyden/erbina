@@ -34,3 +34,4 @@ update:
       when: "command -v npm"
       run: "npm update -g serverless"
 
+category: cloud

@@ -43,3 +43,4 @@ update:
     - id: apt
       when: "command -v apt-get"
       run: "sudo apt-get install -y --only-upgrade jq"
+category: data

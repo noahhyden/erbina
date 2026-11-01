@@ -28,3 +28,4 @@ update:
       when: "command -v npm"
       run: "npm update -g newman"
 
+category: terminal

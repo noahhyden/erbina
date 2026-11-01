@@ -15,3 +15,4 @@ requires:
   - esbuild
   - biome
   - tsx
+category: profile

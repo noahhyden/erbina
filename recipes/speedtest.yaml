@@ -24,3 +24,4 @@ update:
       when: "command -v pipx"
       run: "pipx upgrade speedtest-cli"
 
+category: network

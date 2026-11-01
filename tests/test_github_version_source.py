@@ -1,4 +1,4 @@
-"""The structured `version.latest: {github: "owner/repo"}` source resolves to the same releases-API `curl | grep tag_name` command recipes hand-rolled."""
+"""`version.latest: {github: owner/repo}` is fetched in Python (urllib + json) and degrades to None on any failure; the network is always faked here."""
 from __future__ import annotations
 
 import pytest
@@ -8,40 +8,63 @@ from helpers import call_tool
 from prototype import TRUE, cli_recipe, registry
 
 
-# _latest_command resolver
-def test_string_latest_is_returned_unchanged():
-    assert server._latest_command("rg --version") == "rg --version"
+# _github_latest fetch (urlopen faked, never the network)
+class _Resp:
+    def __init__(self, body):
+        self._b = body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def read(self, *a):
+        return self._b
 
 
-def test_github_form_expands_to_releases_api_with_tag_grep():
-    cmd = server._latest_command({"github": "BurntSushi/ripgrep"})
-    assert "api.github.com/repos/BurntSushi/ripgrep/releases/latest" in cmd
-    assert "curl -fsSL" in cmd
-    assert 'grep \'"tag_name"\'' in cmd  # the grep isolates the tag line
+def _urlopen_returning(body):
+    return lambda url, timeout=None: _Resp(body)
 
 
-def test_github_form_matches_the_legacy_handrolled_string():
-    # migrating a recipe from the raw string to {github: …} must be a no-op
-    legacy = (
-        "curl -fsSL https://api.github.com/repos/o/r/releases/latest | grep '\"tag_name\"'"
-    )
-    assert server._latest_command({"github": "o/r"}) == legacy
+def test_github_latest_reads_tag_name(monkeypatch):
+    seen = []
+
+    def fake(url, timeout=None):
+        seen.append(url)
+        return _Resp(b'{"tag_name": "v2.0.0"}')
+
+    monkeypatch.setattr(server.urllib.request, "urlopen", fake)
+    assert server._github_latest({"github": "BurntSushi/ripgrep"}) == "v2.0.0"
+    assert seen == ["https://api.github.com/repos/BurntSushi/ripgrep/releases/latest"]
 
 
-@pytest.mark.parametrize("bad", [{"github": ""}, {"github": "noslash"}, {"other": "x"}, {}, 5, None])
-def test_malformed_latest_resolves_to_empty(bad):
-    # anything the validator rejects must not produce a runnable command
-    assert server._latest_command(bad) == ""
+@pytest.mark.parametrize("body", [b"not json", b"{}", b'{"tag_name": 5}', b"[]"])
+def test_github_latest_degrades_on_bad_payload(monkeypatch, body):
+    monkeypatch.setattr(server.urllib.request, "urlopen", _urlopen_returning(body))
+    assert server._github_latest({"github": "o/r"}) is None
+
+
+def test_github_latest_degrades_on_network_error(monkeypatch):
+    def boom(url, timeout=None):
+        raise OSError("no network")
+
+    monkeypatch.setattr(server.urllib.request, "urlopen", boom)
+    assert server._github_latest({"github": "o/r"}) is None
+
+
+@pytest.mark.parametrize("bad", ["rg --version", {"github": ""}, {"github": "noslash"}, {"other": "x"}, {}, 5, None])
+def test_malformed_latest_never_hits_the_network(monkeypatch, bad):
+    def boom(*a, **k):
+        raise AssertionError("network touched")
+
+    monkeypatch.setattr(server.urllib.request, "urlopen", boom)
+    assert server._github_latest(bad) is None
 
 
 # validation
 def test_github_latest_validates_clean():
     r = cli_recipe("t", version={"current": "t --version", "latest": {"github": "owner/repo"}})
-    assert server.validate_recipe(r, stem="t") == []
-
-
-def test_string_latest_still_validates_clean():
-    r = cli_recipe("t", version={"current": "t --version", "latest": "echo 1.2.3"})
     assert server.validate_recipe(r, stem="t") == []
 
 
@@ -52,9 +75,9 @@ def test_string_latest_still_validates_clean():
     ({"github": 5}, "owner/repo"),
     ({"github": "a/b", "ref": "main"}, "only the 'github' key"),
     ({"tarball": "x"}, "only the 'github' key"),
-    (5, "must be a non-empty string or"),
+    (5, "must be a {github"),
     ({}, "only the 'github' key"),
-    ("   ", "non-empty string"),   # a blank string latest is rejected like any command
+    ("echo 1.2.3", "must be a {github"),   # the string-command form is gone
 ])
 def test_bad_github_latest_is_reported(latest, needle):
     r = cli_recipe("t", version={"current": "t --version", "latest": latest})
@@ -63,7 +86,7 @@ def test_bad_github_latest_is_reported(latest, needle):
 
 
 def test_current_still_required_as_a_string():
-    r = cli_recipe("t", version={"current": {"github": "o/r"}, "latest": "echo 1"})
+    r = cli_recipe("t", version={"current": {"github": "o/r"}, "latest": {"github": "o/r"}})
     errs = server.validate_recipe(r, stem="t")
     assert any("version.current" in e for e in errs)
 
@@ -79,45 +102,16 @@ def test_release_notes_url_is_none_for_non_github_latest(latest):
     assert server._release_notes_url(latest) is None
 
 
-def test_check_updates_surfaces_release_notes_for_github_source(monkeypatch):
-    def fake_run(cmd, *a, **k):
-        out = '  "tag_name": "2.0.0",' if "api.github.com" in cmd else "1.0.0"
-        return {"cmd": cmd, "exit": 0, "stdout": out, "stderr": ""}
-
-    monkeypatch.setattr(server, "_run", fake_run)
-    r = cli_recipe("t", detect={"command": TRUE},
-                   version={"current": "t --version", "latest": {"github": "o/r"}})
-    with registry(r):
-        entry = call_tool("check_updates", {"recipe_id": "t"})["checked"][0]
-    assert entry["update_available"] is True
-    assert entry["release_notes"] == "https://github.com/o/r/releases"
-
-
-def test_check_updates_omits_release_notes_for_a_string_latest(monkeypatch):
+def test_check_updates_surfaces_release_notes_and_latest_for_github_source(monkeypatch):
     monkeypatch.setattr(server, "_run", lambda cmd, *a, **k: {"cmd": cmd, "exit": 0, "stdout": "1.0.0", "stderr": ""})
-    r = cli_recipe("t", detect={"command": TRUE},
-                   version={"current": "t --version", "latest": "echo 2.0.0"})
-    with registry(r):
-        entry = call_tool("check_updates", {"recipe_id": "t"})["checked"][0]
-    assert "release_notes" not in entry  # a plain command has no known notes URL
-
-
-def test_check_updates_resolves_github_source(monkeypatch):
-    # intercept the resolved curl command and return a canned releases-API line
-    def fake_run(cmd, *a, **k):
-        if "api.github.com" in cmd:
-            out = '  "tag_name": "2.0.0",'
-        else:
-            out = "1.0.0"  # the `current` command
-        return {"cmd": cmd, "exit": 0, "stdout": out, "stderr": ""}
-
-    monkeypatch.setattr(server, "_run", fake_run)
+    monkeypatch.setattr(server, "_github_latest", lambda spec: "v2.0.0")
     r = cli_recipe("t", detect={"command": TRUE},
                    version={"current": "t --version", "latest": {"github": "o/r"}})
     with registry(r):
         out = call_tool("check_updates", {"recipe_id": "t"})
     entry = out["checked"][0]
     assert entry["current"] == "1.0.0"
-    assert entry["latest"] == "2.0.0"      # extracted from the tag_name line
+    assert entry["latest"] == "2.0.0"      # leading v stripped
     assert entry["update_available"] is True
+    assert entry["release_notes"] == "https://github.com/o/r/releases"
     assert out["updates_available"] == ["t"]

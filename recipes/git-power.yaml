@@ -16,3 +16,4 @@ requires:
   - git-lfs
   - tig
   - git-cliff
+category: profile

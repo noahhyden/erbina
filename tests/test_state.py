@@ -78,7 +78,7 @@ def test_bootstrap_records_version_when_recipe_has_version_block():
     recipe = cli_recipe(
         "t",
         detect={"command": FALSE},
-        version={"current": "echo 1.2.3", "latest": "echo 1.2.3"},
+        version={"current": "echo 1.2.3", "latest": {"github": "o/t"}},
     )
     with registry(recipe):
         call_tool("bootstrap", {"recipe_id": "t"})
@@ -107,7 +107,7 @@ def test_successful_update_records_before_and_after(tmp_path):
         "t",
         detect={"command": TRUE},
         update={"methods": [{"id": "u", "run": f"echo 2.0.0 > {vfile}"}]},
-        version={"current": f"cat {vfile}", "latest": "echo 2.0.0"},
+        version={"current": f"cat {vfile}", "latest": {"github": "o/t"}},
         verify=[{"command": TRUE}],
     )
     with registry(recipe):

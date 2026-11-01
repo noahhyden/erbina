@@ -3,15 +3,25 @@ from __future__ import annotations
 
 import pytest
 
+import server
 from helpers import call_tool
 from prototype import FALSE, TRUE, cli_recipe, registry
 
+_LATEST: dict[str, str] = {}
+
+
+@pytest.fixture(autouse=True)
+def _no_network(monkeypatch):
+    _LATEST.clear()
+    monkeypatch.setattr(server, "_github_latest", lambda spec: _LATEST.get(spec["github"]))
+
 
 def _versioned(rid, current="1.0.0", latest="2.0.0", detect=TRUE):
+    _LATEST[f"o/{rid}"] = latest
     return cli_recipe(
         rid,
         detect={"command": detect},
-        version={"current": f"echo {current}", "latest": f"echo {latest}"},
+        version={"current": f"echo {current}", "latest": {"github": f"o/{rid}"}},
     )
 
 
@@ -142,6 +152,14 @@ def test_uncoercible_current_degrades_gracefully(monkeypatch):
     assert out["reason"].startswith("unparseable current version:")
 
 
+def test_unavailable_latest_is_not_claimed_as_an_update():
+    recipe = _versioned("t", current="1.0.0")
+    _LATEST.clear()  # the fetch yields None, as on any network/HTTP/JSON failure
+    entry = _check(recipe)["checked"][0]
+    assert entry["update_available"] is None
+    assert entry["latest"] is None
+
+
 def test_unparseable_latest_is_not_claimed_as_an_update():
     """`latest` stays strict: an unparseable dev build (`1.2.4-SNAPSHOT`) is never claimed as an update, which keeps the core fallback safe."""
     out = _check(_versioned("t", current="1.2.3", latest="1.2.4-SNAPSHOT"))
@@ -153,10 +171,11 @@ def test_unparseable_latest_is_not_claimed_as_an_update():
 
 # Many tools print --version to stderr (`dot -V`, JVM tools); check_updates must resolve a version there or the version: block is dead weight.
 def test_version_current_read_from_stderr():
+    _LATEST["o/t"] = "2.0.0"
     recipe = cli_recipe(
         "t",
         detect={"command": TRUE},
-        version={"current": "echo 1.0.0 >&2", "latest": "echo 2.0.0"},
+        version={"current": "echo 1.0.0 >&2", "latest": {"github": "o/t"}},
     )
     out = _check(recipe)
     entry = out["checked"][0]
@@ -167,10 +186,11 @@ def test_version_current_read_from_stderr():
 
 def test_version_current_prefers_stdout_over_stderr():
     # When both streams carry a token, stdout wins so a noisy stderr warning cannot shadow the real version.
+    _LATEST["o/t"] = "1.5.0"
     recipe = cli_recipe(
         "t",
         detect={"command": TRUE},
-        version={"current": "echo 1.5.0; echo 9.9.9 >&2", "latest": "echo 1.5.0"},
+        version={"current": "echo 1.5.0; echo 9.9.9 >&2", "latest": {"github": "o/t"}},
     )
     entry = _check(recipe)["checked"][0]
     assert entry["current"] == "1.5.0"

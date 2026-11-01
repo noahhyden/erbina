@@ -111,7 +111,7 @@ def test_reports_version_before_and_after(tmp_path):
         "t",
         detect={"command": TRUE},
         update={"methods": [{"id": "u", "run": f"echo 2.0.0 > {vfile}"}]},
-        version={"current": f"cat {vfile}", "latest": "echo 2.0.0"},
+        version={"current": f"cat {vfile}", "latest": {"github": "o/t"}},
         verify=[{"command": TRUE}],
     )
     out = _upd(recipe)
@@ -129,7 +129,7 @@ def test_noop_update_reports_already_current(tmp_path):
         "t",
         detect={"command": TRUE},
         update={"methods": [{"id": "u", "run": TRUE}]},  # doesn't change version
-        version={"current": f"cat {vfile}", "latest": "echo 1.0.0"},
+        version={"current": f"cat {vfile}", "latest": {"github": "o/t"}},
         verify=[{"command": TRUE}],
     )
     out = _upd(recipe)

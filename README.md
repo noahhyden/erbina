@@ -44,8 +44,8 @@ so only one that exists on your machine ever runs.
 
 erbina runs as an ordinary sibling process of Claude Code — **not** inside its
 Bash sandbox — so a recipe's commands execute with your real privileges. The
-safety model is **consent before execution**: `inspect_recipe` and
-`bootstrap(dry_run=true)` show you the exact commands first, and the server
+safety model is **consent before execution**: `bootstrap(dry_run=true)`
+shows you the exact commands first, and the server
 instructs the agent to surface that plan before any real run.
 
 A recipe's `install.methods[].run` is a shell command string, so a malicious or
@@ -64,9 +64,8 @@ not a public issue.
 
 ## Tools
 
-- **Discover** — `search_recipes`, `list_categories`,
-  `inspect_recipe` (the consent surface: shows what would run, executes nothing)
-- **Act** — `bootstrap`, `update`, `uninstall`, `pin`
+- **Discover** — `search_recipes`, `list_categories`
+- **Act** — `bootstrap` (`dry_run=true` is the consent surface: shows what would run, executes nothing), `update`, `uninstall`, `pin`
 - **Audit** — `check_updates`, `audit_scopes`, `find_dead_mcps`, `remove_mcp`,
   `doctor`
 
@@ -150,12 +149,12 @@ a headless call can call nothing, which is the one thing CI users trip on.
 ```bash
 # erbina.mcp.json: { "mcpServers": { "erbina": {
 #   "command": "uv", "args": ["run", "--script", "/absolute/path/to/erbina/server.py"] } } }
-claude -p "use erbina to list recipes, then inspect ripgrep" \
+claude -p "use erbina to list recipes, then dry-run ripgrep" \
   --mcp-config erbina.mcp.json --strict-mcp-config \
-  --allowedTools mcp__erbina__search_recipes mcp__erbina__inspect_recipe
+  --allowedTools mcp__erbina__search_recipes
 ```
 
-Add `mcp__erbina__bootstrap` to install for real. `--strict-mcp-config` makes the
+Add `mcp__erbina__bootstrap` to dry-run, and let it run without `dry_run` to install for real. `--strict-mcp-config` makes the
 run use *only* that file, never your global config.
 
 ## What this is *not*

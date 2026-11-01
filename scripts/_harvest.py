@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
 import re
 from collections import Counter
@@ -10,11 +9,9 @@ from pathlib import Path
 from typing import Callable
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_RECIPE_DATA = REPO_ROOT / "scripts" / "recipe_data.py"
+DEFAULT_RECIPE_DATA = REPO_ROOT / "scripts" / "recipe_data.json"
 
 CONF_RANK = {"high": 3, "medium": 2, "low": 1}
-
-_ROW = re.compile(r"\{[^{}]*\}")  # a TOOLS row is a brace-balanced dict with no nesting
 
 
 def norm(s: str | None) -> str:
@@ -22,40 +19,26 @@ def norm(s: str | None) -> str:
     return re.sub(r"[^a-z0-9]", "", (s or "").lower())
 
 
-def _id_token(rid: str) -> re.Pattern[str]:
-    # anchored on the exact id so `fd` never matches the `fdupes` row.
-    return re.compile(r'"id":\s*"' + re.escape(rid) + r'"')
-
-
-def apply_keys(source_text: str, proposals: list[dict],
-               keys: tuple[str, ...]) -> tuple[str, list[str], list[str]]:
-    """Insert `, "<key>": "<value>"` after each row's id; idempotent, a row already carrying keys[0] is skipped."""
-    text = source_text
+def apply_keys(rows: list[dict], proposals: list[dict], keys: tuple[str, ...]) -> tuple[list[str], list[str]]:
+    """Set each proposal's `keys` on its row in place (right after `id`); idempotent, a row already carrying keys[0] is skipped."""
+    by_id = {r["id"]: r for r in rows}
     applied: list[str] = []
     missing: list[str] = []
     for p in proposals:
-        rid = p["id"]
-        token = _id_token(rid)
-        row_match = next((m for m in _ROW.finditer(text) if token.search(m.group())), None)
-        if row_match is None:
-            missing.append(rid)
-            continue
-        row = row_match.group()
-        if f'"{keys[0]}"' in row:  # already staged -> idempotent
-            continue
-        insert = "".join(f', "{k}": "{p[k]}"' for k in keys if p.get(k))
-        at = token.search(row).end()
-        text = text[:row_match.start()] + row[:at] + insert + row[at:] + text[row_match.end():]
-        applied.append(rid)
-    return text, applied, missing
+        row = by_id.get(p["id"])
+        if row is None:
+            missing.append(p["id"])
+        elif keys[0] not in row:
+            rest = {k: v for k, v in row.items() if k != "id"}
+            row.clear()
+            row.update({"id": p["id"], **{k: p[k] for k in keys if p.get(k)}, **rest})
+            applied.append(p["id"])
+    return applied, missing
 
 
-def load_tools(recipe_data_path: str | Path) -> list[dict]:
-    """Import TOOLS from a recipe_data.py file at an arbitrary path."""
-    spec = importlib.util.spec_from_file_location("_erbina_recipe_data", recipe_data_path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.TOOLS
+def load_tools(path: str | Path) -> list[dict]:
+    """Read the TOOLS rows from a recipe_data.json file."""
+    return json.loads(Path(path).read_text())
 
 
 def resolve_rows(rows: list[dict], resolve: Callable[[dict], dict | None],
@@ -77,7 +60,7 @@ def base_parser(description: str, default_out: str, epilog: str = "") -> argpars
     ap = argparse.ArgumentParser(description=description, epilog=epilog,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--recipe-data", default=str(DEFAULT_RECIPE_DATA),
-                    help="recipe_data.py to read TOOLS from (and edit with --apply)")
+                    help="recipe_data.json to read TOOLS from (and edit with --apply)")
     ap.add_argument("--out", default=default_out, help="proposals JSON output")
     ap.add_argument("--min-confidence", choices=list(CONF_RANK), default="high")
     ap.add_argument("--apply", action="store_true",
@@ -93,9 +76,10 @@ def report(proposals: list[dict], out: str) -> Counter:
 
 
 def stage(recipe_data: str, proposals: list[dict], keys: tuple[str, ...]) -> None:
-    """--apply: insert `keys` into recipe_data.py in place and print a summary."""
+    """--apply: insert `keys` into recipe_data.json in place and print a summary."""
     rd = Path(recipe_data)
-    new_text, applied, missing = apply_keys(rd.read_text(), proposals, keys)
-    rd.write_text(new_text)
+    rows = load_tools(rd)
+    applied, missing = apply_keys(rows, proposals, keys)
+    rd.write_text(json.dumps(rows, indent=2, ensure_ascii=False) + "\n")
     note = f"; {len(missing)} id(s) not found: {missing}" if missing else ""
     print(f"applied {len(applied)} {keys[0]} key(s) into {rd}{note}")

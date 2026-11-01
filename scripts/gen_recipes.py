@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Generate curated cli-tool recipes from the scripts/recipe_data.py table."""
+"""Generate curated cli-tool recipes from the scripts/recipe_data.json table."""
 from __future__ import annotations
 
+import json
 import textwrap
 from pathlib import Path
 
@@ -98,9 +99,9 @@ def render(t: dict) -> str:
         lines.append(f'      when: "{guard}"')
         lines.append(f'      run: "{run}"')
     lines.append("")
-    # optional queriability metadata (SCHEMA.md): emitted only when a row authors it.
-    if t.get("category"):
-        lines.append(f"category: {t['category']}")
+    if not t.get("category"):
+        raise SystemExit(f"{rid}: row has no category (required on every recipe)")
+    lines.append(f"category: {t['category']}")
     lines.append("")
     return "\n".join(lines)
 
@@ -108,7 +109,7 @@ def render(t: dict) -> str:
 def main(argv: list[str] | None = None) -> int:
     import sys
 
-    from recipe_data import TOOLS  # local import so the table lives in its own file
+    TOOLS = json.loads((Path(__file__).parent / "recipe_data.json").read_text())
 
     # never clobbers an existing recipe; --rewrite overwrites only files that drifted from their row.
     rewrite = "--rewrite" in (argv if argv is not None else sys.argv[1:])

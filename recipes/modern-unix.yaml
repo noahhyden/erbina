@@ -14,3 +14,4 @@ requires:
   - eza
   - dust
   - zoxide
+category: profile

@@ -40,3 +40,4 @@ update:
       when: "command -v pipx"
       run: "pipx upgrade mitmproxy"
 
+category: http
