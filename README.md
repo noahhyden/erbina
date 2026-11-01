@@ -44,7 +44,7 @@ erbina makes setup a thing an **agent does for you, and proves worked**:
   detects what's already there and skips it, and success means the tool *runs*,
   not that a line was written to a file. Recipes also **compose** (`requires:`
   prerequisites, `profile`s that bundle a whole set) and cover the **full
-  lifecycle**: `update` → re-verify → rollback, `uninstall`, and a `doctor`
+  lifecycle**: `update` → re-verify, `uninstall`, and a `doctor`
   health-check over everything erbina installed.
 - **Scope-aware.** It knows about Claude Code's `local` / `project` / `user`
   scopes, wires MCP-server recipes into the right one, and audits all three so
@@ -115,7 +115,7 @@ can't call any tool — that's the one thing new CI users trip on.
 | `inspect_recipe` | Show **exactly** what bootstrapping a recipe would run — the consent surface. Nothing executes. |
 | `bootstrap` | Run a recipe: detect → install → configure → verify, idempotently. `dry_run=true` returns the full plan without executing. |
 | `check_updates` | Read-only report of whether installed tools have newer versions available, for recipes that declare a `version:` block. Pinned tools are flagged and excluded. |
-| `update` | Upgrade an installed tool, then **re-run `verify`** as a safety net — on failure it rolls back (if the recipe supports it) or marks the tool broken. `dry_run=true` shows the command first. |
+| `update` | Upgrade an installed tool, then **re-run `verify`** as a safety net — on failure it marks the tool broken and returns a `rollback_plan`. `dry_run=true` shows the command first. |
 | `pin` | Pin (or unpin) a tool so automatic updates skip it. `update` refuses a pinned tool unless `force=true`. |
 | `audit_scopes` | Read-only report of which MCP servers are configured in `local` / `project` / `user` scope, where each lives, and any name shadowed across scopes. |
 | `find_dead_mcps` | Health-check every configured MCP server and flag the ones that fail to connect — stale/dead servers, annotated with the scope to remove them from. Read-only. |
@@ -151,7 +151,7 @@ nothing itself — it just `requires:` a curated set, so one prompt bootstraps t
 whole bundle.
 
 Recipes can also declare optional blocks: `requires:` (prerequisites bootstrapped
-first), `version:` + `update:` / `rollback:` (auto-updates, with `latest:` as a
+first), `version:` + `update:` (auto-updates, with `latest:` as a
 command or the `{ github: owner/repo }` shorthand), and `uninstall:` (teardown).
 Because each install method's `when:` guard runs in the host shell, methods are
 cross-platform — a `winget` method fires only on Windows, `brew`/`cargo`/`curl`
@@ -169,23 +169,66 @@ only where they apply. The full schema is in [SCHEMA.md](SCHEMA.md).
 ## Auto-updating tools
 
 A recipe can opt into update checks by declaring a `version:` block (an installed
-`current` command and a `latest` source) and, optionally, `update:` / `rollback:`
-methods. Then:
+`current` command and a `latest` source) and, optionally, an `update:`
+method. Then:
 
 - **`check_updates`** compares installed vs latest (numeric/pre-release aware, via
   `packaging`) and reports what's out of date — it never claims an update it can't
   parse, skips **pinned** tools, and for a `{ github: … }` source includes a
   release-notes link so you can review before applying.
 - **`update`** applies the upgrade and **re-runs `verify`**; if verify fails it
-  rolls back to the recorded previous version (when the recipe declares a
-  `rollback:` command) or marks the tool broken and returns a plan.
+  marks the tool `broken` in the state manifest and returns a `rollback_plan`
+  (the recorded previous version plus manual instructions). There is no
+  automatic rollback.
 - erbina records what it manages in a small state manifest (`~/.erbina/state.json`)
   — versions, install method, and pins.
 
-Checks are agent-driven; you can also enable an **opt-in** SessionStart hook or a
-`/schedule` routine so the agent checks for you and asks before applying anything.
-See [AUTO_UPDATE.md](AUTO_UPDATE.md) for the design, the `version:`/`update:`/
-`rollback:` schema, and the trigger setup.
+Schema details are in [SCHEMA.md](SCHEMA.md).
+
+### Enabling automatic checks (opt-in)
+
+erbina is an MCP server with **no CLI**, so nothing can call `check_updates` on a
+timer directly — the *agent* has to. Both mechanisms below just nudge the agent;
+neither installs or updates anything without your confirmation, and neither
+touches your live config unless you add it yourself.
+
+**Option A — SessionStart hook (checks each new session).** Point a SessionStart
+hook at the bundled script
+[`examples/erbina-session-start.sh`](examples/erbina-session-start.sh), which
+prints a hook payload whose `additionalContext` asks the agent to run
+`check_updates` and surface anything available. Add to `.claude/settings.json`
+(or `~/.claude/settings.json` for all projects):
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          { "type": "command", "command": "bash /ABSOLUTE/PATH/TO/erbina/examples/erbina-session-start.sh" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Remove the hook block to turn it off.
+
+**Option B — scheduled routine (checks on a cron).** Create a Claude Code
+scheduled routine (`/schedule`) whose prompt is:
+
+> Use erbina's `check_updates` tool to see whether any installed tools have
+> updates. If any do, report the `summary` and ask me before applying anything
+> with erbina's `update` tool. If nothing is available, do nothing.
+
+Pick a cadence (e.g. weekly).
+
+**What the agent gets.** `check_updates` returns a terse `summary` (e.g. `erbina:
+2 tool update(s) available — a, b.`) plus per-tool `checked` details and
+`updates_available` (pinned tools excluded). The agent surfaces the summary and,
+on your go-ahead, runs `update` per tool, which re-verifies afterwards.
 
 ## Finding recipes
 

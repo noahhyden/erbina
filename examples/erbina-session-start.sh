@@ -7,8 +7,8 @@
 # available tool updates for your confirmation. Nothing is installed or updated
 # automatically.
 #
-# Enable it by pointing a SessionStart hook at this file — see AUTO_UPDATE.md
-# ("Enabling automatic checks"). Remove the hook to turn it off.
+# Enable it by pointing a SessionStart hook at this file — see the README
+# ("Enabling automatic checks (opt-in)"). Remove the hook to turn it off.
 cat <<'JSON'
 {
   "hookSpecificOutput": {
