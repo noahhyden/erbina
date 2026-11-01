@@ -195,7 +195,7 @@ plus a curated recipe registry. Published to the
   `audit_scopes` reports MCP servers per `local` / `project` / `user` scope and
   shadowed names; `find_dead_mcps` flags servers that fail to connect and
   `remove_mcp` deletes one (scope auto-resolved, `dry_run` supported).
-- **Auto-updates** ([AUTO_UPDATE.md](AUTO_UPDATE.md)). Recipes can declare
+- **Auto-updates.** Recipes can declare
   `version:` and `update:` blocks. `check_updates` compares versions with
   [`packaging`](https://packaging.pypa.io) semantics and never claims an update it
   cannot parse; `update` re-runs `verify` afterwards and, on failure, rolls back
