@@ -64,7 +64,7 @@ not a public issue.
 
 ## Tools
 
-- **Discover** — `list_recipes`, `search_recipes`, `list_categories`,
+- **Discover** — `search_recipes`, `list_categories`,
   `inspect_recipe` (the consent surface: shows what would run, executes nothing)
 - **Act** — `bootstrap`, `update`, `uninstall`, `pin`
 - **Audit** — `check_updates`, `audit_scopes`, `find_dead_mcps`, `remove_mcp`,
@@ -79,13 +79,13 @@ Four phases an agent executes. From
 [`recipes/ataegina.yaml`](recipes/ataegina.yaml):
 
 ```yaml
-detect:   { command: "ataegina --version", expect_exit: 0 }   # skip install if present
+detect:   { command: "ataegina --version" }   # skip install if present
 install:                                                       # first guard to pass wins
   methods:
     - { id: homebrew, when: "command -v brew", run: "brew install noahhyden/tap/ataegina" }
     - { id: curl,     when: "command -v curl", run: "curl -fsSL .../install.sh | sh" }
 configure: { steps: [ { run: "ataegina init --yes", needs_project_dir: true, optional: true } ] }
-verify:   [ { command: "ataegina --version", expect_exit: 0 } ]
+verify:   [ { command: "ataegina --version" } ]
 ```
 
 A `kind: mcp-server` recipe instead wires a server into a chosen scope via
@@ -152,7 +152,7 @@ a headless call can call nothing, which is the one thing CI users trip on.
 #   "command": "uv", "args": ["run", "--script", "/absolute/path/to/erbina/server.py"] } } }
 claude -p "use erbina to list recipes, then inspect ripgrep" \
   --mcp-config erbina.mcp.json --strict-mcp-config \
-  --allowedTools mcp__erbina__list_recipes mcp__erbina__inspect_recipe
+  --allowedTools mcp__erbina__search_recipes mcp__erbina__inspect_recipe
 ```
 
 Add `mcp__erbina__bootstrap` to install for real. `--strict-mcp-config` makes the

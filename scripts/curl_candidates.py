@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import re
 
-from _harvest import (CONF_RANK, apply_keys, base_parser, load_tools, norm,  # noqa: F401
-                      report, resolve_rows, stage)
+from _harvest import base_parser, load_tools, norm, report, resolve_rows, stage
 
 # Install methods that work on plain Linux; brew/winget do NOT count, that gap is what this fills.
 LINUX_METHODS = ("cargo", "go", "pipx", "npm", "gem", "curl")
@@ -94,11 +93,6 @@ confidence tiers:
 
 Nothing is committed -- review the diff/JSON, then commit and regenerate recipes.
 """
-
-
-def apply_proposals(source_text: str, proposals: list[dict]) -> tuple[str, list[str], list[str]]:
-    """Stage `curl` (+ optional `curl_shell`) after each row's id; see _harvest.apply_keys."""
-    return apply_keys(source_text, proposals, CURL_KEYS)
 
 
 def main(argv: list[str] | None = None) -> int:

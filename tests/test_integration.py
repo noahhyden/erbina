@@ -10,6 +10,7 @@ import pytest
 import server
 from helpers import call_tool
 from prototype import registry
+from stubs import write_claude_stub
 
 
 @pytest.fixture
@@ -106,19 +107,12 @@ def test_update_upgrades_a_real_tool_end_to_end(erb_bin):
 
 # mcp-server wiring: real bootstrap against a STUB `claude` binary
 @pytest.fixture
-def stub_claude(erb_bin, tmp_path):
+def stub_claude(erb_bin, tmp_path, monkeypatch):
     """A fake `claude` on PATH: `mcp add <name>` records to a store dir and `mcp get <name>` exits 0 iff added; returns the store."""
     store = tmp_path / "mcp_store"
     store.mkdir()
-    claude = erb_bin / "claude"
-    claude.write_text(
-        "#!/bin/sh\n"
-        f'STORE="{store}"\n'
-        'if [ "$1" = "mcp" ] && [ "$2" = "add" ]; then echo "$@" > "$STORE/$3"; exit 0\n'
-        'elif [ "$1" = "mcp" ] && [ "$2" = "get" ]; then [ -f "$STORE/$3" ] && exit 0 || exit 1\n'
-        "fi\nexit 2\n"
-    )
-    claude.chmod(0o755)
+    write_claude_stub(erb_bin)
+    monkeypatch.setenv("CLAUDE_STUB_STORE", str(store))
     return store
 
 

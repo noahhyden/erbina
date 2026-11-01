@@ -1,4 +1,4 @@
-"""Unit tests for `_subst`, the `_load_recipe` traversal guard, and the deliberately brittle `_parse_mcp_list` (issue #3)."""
+"""Unit tests for `_subst`, the `_load_recipe` traversal guard."""
 from __future__ import annotations
 
 import pytest
@@ -48,46 +48,3 @@ def test_load_recipe_loads_real_recipe():
     r = server._load_recipe("ataegina")
     assert r["id"] == "ataegina"
     assert r["kind"] == "cli-tool"
-
-
-# _parse_mcp_list (issue #3) is driven by monkeypatching server._run; the capture has a header, one healthy and one failed server, ANSI codes, a trailing blank.
-SAMPLE_MCP_LIST = (
-    "Checking MCP server health...\n"
-    "\n"
-    "erbina: uv run --script /Users/x/erbina/server.py - \x1b[32m✔ Connected\x1b[0m\n"
-    "ataegina: uvx ataegina-mcp - \x1b[31m✘ Failed to connect\x1b[0m\n"
-    "\n"
-)
-
-
-def test_parse_mcp_list_classifies_connected_and_failed(monkeypatch):
-    def fake_run(cmd, cwd=None, timeout=600):  # noqa: ARG001
-        assert cmd == "claude mcp list"  # confirm it's the health-check command
-        return {"cmd": cmd, "exit": 0, "stdout": SAMPLE_MCP_LIST, "stderr": ""}
-
-    monkeypatch.setattr(server, "_run", fake_run)
-
-    servers = server._parse_mcp_list()
-    by_name = {s["name"]: s for s in servers}
-
-    # Exactly the two status lines are parsed — header/blank lines are dropped.
-    assert set(by_name) == {"erbina", "ataegina"}
-    assert by_name["erbina"]["connected"] is True
-    assert by_name["ataegina"]["connected"] is False
-    # ANSI codes are stripped from the surfaced command.
-    assert "\x1b" not in by_name["erbina"]["command"]
-    assert by_name["erbina"]["command"] == "uv run --script /Users/x/erbina/server.py"
-
-
-def test_parse_mcp_list_ignores_lines_without_status(monkeypatch):
-    def fake_run(cmd, cwd=None, timeout=600):  # noqa: ARG001
-        return {
-            "cmd": cmd,
-            "exit": 0,
-            # a line with a colon but no ✔/✘/Connected/Failed marker
-            "stdout": "Some heading: with a colon but no status marker\n",
-            "stderr": "",
-        }
-
-    monkeypatch.setattr(server, "_run", fake_run)
-    assert server._parse_mcp_list() == []

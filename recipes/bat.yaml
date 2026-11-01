@@ -9,7 +9,6 @@ description: >
 # 1. DETECT — already installed? `bat --version` exits 0 when present.
 detect:
   command: "bat --version"
-  expect_exit: 0
 
 # 2. INSTALL — prefer brew; fall back to cargo (crate + binary are both `bat`).
 install:
@@ -27,7 +26,6 @@ install:
 # 3. VERIFY — prove it actually runs.
 verify:
   - command: "bat --version"
-    expect_exit: 0
 
 # 4. VERSION — `bat --version` prints "bat 0.24.0"; tags look like "v0.24.0".
 version:
@@ -47,6 +45,5 @@ update:
       when: "command -v cargo"
       run: "cargo install bat"
 
-scope: user
 # a `cat` replacement; inference reads "Git integration" as the git bucket.
 category: files

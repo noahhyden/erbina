@@ -10,7 +10,6 @@ description: >
 # 1. DETECT — already installed? `uv --version` exits 0 when present.
 detect:
   command: "uv --version"
-  expect_exit: 0
 
 # 2. INSTALL — prefer brew; else the official standalone installer (no sudo).
 install:
@@ -28,7 +27,6 @@ install:
 # 3. VERIFY — prove it actually runs.
 verify:
   - command: "uv --version"
-    expect_exit: 0
 
 # 4. VERSION — `uv --version` prints "uv 0.5.11 (<hash> <date>)"; tags are "0.5.11".
 version:
@@ -48,6 +46,5 @@ update:
       when: "command -v uv"
       run: "uv self update"
 
-scope: user
 # uv calls itself a script runner, so inference misses packaging; category is authored.
 category: packaging

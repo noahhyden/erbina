@@ -10,7 +10,6 @@ description: >
 # 1. DETECT — already installed? `fd --version` exits 0 when present.
 detect:
   command: "fd --version"
-  expect_exit: 0
 
 # The cargo crate is `fd-find`, not `fd`.
 install:
@@ -28,7 +27,6 @@ install:
 # 3. VERIFY — prove it actually runs.
 verify:
   - command: "fd --version"
-    expect_exit: 0
 
 version:
   current: "fd --version"
@@ -46,5 +44,3 @@ update:
     - id: cargo
       when: "command -v cargo"
       run: "cargo install fd-find"
-
-scope: user

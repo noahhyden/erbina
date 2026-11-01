@@ -15,5 +15,3 @@ requires:
   - esbuild
   - biome
   - tsx
-
-scope: user

@@ -50,7 +50,7 @@ def test_recipe_ids_is_empty_when_recipes_dir_is_missing(tmp_path, monkeypatch):
     assert server._recipe_ids() == []
 
 
-def test_list_recipes_is_empty_when_recipes_dir_is_missing(tmp_path, monkeypatch):
+def test_search_recipes_is_empty_when_recipes_dir_is_missing(tmp_path, monkeypatch):
     monkeypatch.setattr(server, "RECIPES_DIR", tmp_path / "gone")
     from helpers import call_tool
-    assert call_tool("list_recipes", {}) == []
+    assert call_tool("search_recipes", {"limit": 1000})["results"] == []

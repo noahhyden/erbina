@@ -9,7 +9,6 @@ description: >
 # 1. DETECT — already installed? `difft --version` exits 0 when present.
 detect:
   command: "difft --version"
-  expect_exit: 0
 
 # 2. INSTALL — first guard to pass wins. Prefer brew; fall back to cargo.
 install:
@@ -24,7 +23,6 @@ install:
 # 3. VERIFY — prove it actually runs.
 verify:
   - command: "difft --version"
-    expect_exit: 0
 
 # 4. VERSION — powers check_updates (installed `--version` vs the GitHub release tag).
 version:
@@ -54,6 +52,5 @@ uninstall:
       when: "command -v difft"
       run: "rm -f \"$(command -v difft)\""
 
-scope: user
 # a structural diff tool; git-adjacent but primarily a text differ.
 category: text

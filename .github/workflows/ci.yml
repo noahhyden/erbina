@@ -68,8 +68,6 @@ jobs:
           fetch-depth: 0  # need tags for the version<->tag check
       - name: Install uv
         uses: astral-sh/setup-uv@v5
-      - name: Recipes lint clean
-        run: uv run --script lint_recipes.py
       - name: server.json is valid
         run: |
           python3 - <<'PY'

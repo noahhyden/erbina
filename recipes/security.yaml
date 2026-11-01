@@ -15,5 +15,3 @@ requires:
   - gitleaks
   - ripsecrets
   - semgrep
-
-scope: user

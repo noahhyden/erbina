@@ -16,5 +16,3 @@ requires:
   - poetry
   - pre-commit
   - ipython
-
-scope: user

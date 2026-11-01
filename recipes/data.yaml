@@ -16,5 +16,3 @@ requires:
   - miller
   - csvkit
   - qsv
-
-scope: user

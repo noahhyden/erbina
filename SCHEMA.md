@@ -30,11 +30,10 @@ description: <one paragraph; what it is and why>
 requires: [<recipe id>, ...]
 
 # 1. DETECT — the idempotency gate. Runs FIRST, every time.
-#    If `command` exits with `expect_exit`, the tool is already present and the
+#    If `command` exits 0, the tool is already present and the
 #    install phase is skipped entirely.
 detect:
   command: "<shell command>"
-  expect_exit: 0           # optional, default 0
   needs_project_dir: false # optional; run the check inside project_dir (e.g. a
                            # project-scope mcp-server resolves by cwd)
 
@@ -62,11 +61,10 @@ configure:
       needs_project_dir: false   # optional
       optional: false            # optional
 
-# 4. VERIFY — proof of success. Every command must exit `expect_exit`
-#    (default 0) or the bootstrap is reported failed, unless marked optional.
+# 4. VERIFY — proof of success. Every command must exit 0
+#    or the bootstrap is reported failed, unless marked optional.
 verify:
   - command: "<command>"
-    expect_exit: 0
     optional: false
     needs_project_dir: false   # optional; run the check inside project_dir
 
@@ -98,22 +96,18 @@ update:
 # Informational for cli-tool recipes.
 scope: user
 
-# CATEGORY — optional queriability metadata surfaced by `list_recipes` and
+# CATEGORY — optional queriability metadata surfaced by `search_recipes` and
 # `search_recipes` so an agent can find a tool by keyword/category instead of
 # scanning every description. `category` must be one of the fixed taxonomy
-# buckets. OPTIONAL — when a recipe omits it, erbina infers a category (and search
-# tags) from the recipe's own id/title/description, so the registry is fully
-# searchable without every file hand-labelling itself. An authored `category`
-# overrides the inference. Tags are never authored; they are always inferred.
+# buckets. OPTIONAL — when a recipe omits it, erbina infers a category from the recipe's
+# own id/title/description. An authored `category` overrides the inference.
 category: search          # one of the taxonomy buckets (see below)
 ```
 
-## Categories (`category`) and inferred tags
+## Categories (`category`)
 
-Every recipe is exposed through `list_recipes` / `search_recipes` with a
-`category` (exactly one of the closed taxonomy below) and a bag of `tags`
-(search terms). `tags` are always inferred from the recipe's
-id/title/description; `category` is optional and inferred when omitted. An authored `category` (validated against the taxonomy) wins over the
+Every recipe is exposed through `search_recipes` with a
+`category` (exactly one of the closed taxonomy below), optional and inferred when omitted. An authored `category` (validated against the taxonomy) wins over the
 computed one; `kind: profile` and `kind: mcp-server` always map to the `profile`
 and `mcp-server` buckets respectively.
 
@@ -126,10 +120,9 @@ The taxonomy:
 `mcp-server` · `profile` · `misc`.
 
 `search_recipes(query, category, kind, limit)` matches `query`
-(case-insensitively) against id/title/description/tags and ranks results
-(id/title hits outrank description hits outrank tag hits); `category`/`kind`
-narrow the set; an empty query with no filters returns everything (like
-`list_recipes`) in id order.
+(case-insensitively) against id/title/description and ranks results
+(id/title hits outrank description hits); `category`/`kind`
+narrow the set; an empty query with no filters returns everything in id order.
 
 ## Profiles (`kind: profile`)
 

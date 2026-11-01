@@ -10,7 +10,6 @@ description: >
 # 1. DETECT — already installed? `procs --version` exits 0 when present.
 detect:
   command: "procs --version"
-  expect_exit: 0
 
 # 2. INSTALL — prefer brew; fall back to cargo (crate + binary are both `procs`).
 install:
@@ -25,7 +24,6 @@ install:
 # 3. VERIFY — prove it actually runs.
 verify:
   - command: "procs --version"
-    expect_exit: 0
 
 # 4. VERSION — `procs --version` prints "procs 0.14.5"; tags look like "v0.14.5".
 version:
@@ -41,5 +39,3 @@ update:
     - id: cargo
       when: "command -v cargo"
       run: "cargo install procs"
-
-scope: user

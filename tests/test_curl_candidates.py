@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 
 import curl_candidates as cc
+from _harvest import apply_keys
 
 
 # norm
@@ -144,30 +145,30 @@ SRC = (
 
 
 def test_apply_inserts_after_id_and_is_anchored_to_exact_id():
-    new, applied, missing = cc.apply_proposals(SRC, [{"id": "deno", "curl": "https://deno.land/install.sh"}])
+    new, applied, missing = apply_keys(SRC, [{"id": "deno", "curl": "https://deno.land/install.sh"}], cc.CURL_KEYS)
     assert applied == ["deno"] and missing == []
     assert '{"id": "deno", "curl": "https://deno.land/install.sh", "bin": "deno"' in new
     assert '"id": "denox", "curl"' not in new  # exact-id anchoring, not prefix
 
 
 def test_apply_writes_curl_shell_when_present():
-    new, applied, _ = cc.apply_proposals(
-        SRC, [{"id": "deno", "curl": "https://x/install.sh", "curl_shell": "bash"}])
+    new, applied, _ = apply_keys(
+        SRC, [{"id": "deno", "curl": "https://x/install.sh", "curl_shell": "bash"}], cc.CURL_KEYS)
     assert '"curl": "https://x/install.sh", "curl_shell": "bash"' in new
 
 
 def test_apply_is_idempotent_on_rows_that_already_have_curl():
-    new, applied, missing = cc.apply_proposals(SRC, [{"id": "rclone", "curl": "https://other"}])
+    new, applied, missing = apply_keys(SRC, [{"id": "rclone", "curl": "https://other"}], cc.CURL_KEYS)
     assert applied == [] and new == SRC
 
 
 def test_apply_reports_missing_ids():
-    new, applied, missing = cc.apply_proposals(SRC, [{"id": "ghost", "curl": "https://x"}])
+    new, applied, missing = apply_keys(SRC, [{"id": "ghost", "curl": "https://x"}], cc.CURL_KEYS)
     assert applied == [] and missing == ["ghost"] and new == SRC
 
 
 def test_apply_result_is_valid_python():
-    new, _, _ = cc.apply_proposals(SRC, [{"id": "deno", "curl": "https://deno.land/install.sh"}])
+    new, _, _ = apply_keys(SRC, [{"id": "deno", "curl": "https://deno.land/install.sh"}], cc.CURL_KEYS)
     ns: dict = {}
     exec(new, ns)  # noqa: S102 - trusted fixture, proves output parses
     tools = {t["id"]: t.get("curl") for t in ns["TOOLS"]}

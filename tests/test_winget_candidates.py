@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 import winget_candidates as wc
+from _harvest import apply_keys
 
 
 # fixtures: a real SQLite index matching the winget source2 schema
@@ -220,7 +221,7 @@ SRC = (
 
 def test_apply_inserts_after_id_and_is_anchored_to_exact_id():
     proposals = [{"id": "fd", "winget": "sharkdp.fd"}]
-    new, applied, missing = wc.apply_proposals(SRC, proposals)
+    new, applied, missing = apply_keys(SRC, proposals, ("winget",))
     assert applied == ["fd"]
     assert missing == []
     # inserted on the fd row only, right after its id...
@@ -231,14 +232,14 @@ def test_apply_inserts_after_id_and_is_anchored_to_exact_id():
 
 def test_apply_is_idempotent_on_rows_that_already_have_winget():
     proposals = [{"id": "rg", "winget": "Something.Else"}]
-    new, applied, missing = wc.apply_proposals(SRC, proposals)
+    new, applied, missing = apply_keys(SRC, proposals, ("winget",))
     assert applied == []           # already had winget -> untouched
     assert new == SRC
 
 
 def test_apply_reports_missing_ids():
     proposals = [{"id": "ghost", "winget": "No.Body"}]
-    new, applied, missing = wc.apply_proposals(SRC, proposals)
+    new, applied, missing = apply_keys(SRC, proposals, ("winget",))
     assert applied == []
     assert missing == ["ghost"]
     assert new == SRC
@@ -246,7 +247,7 @@ def test_apply_reports_missing_ids():
 
 def test_apply_multiple_and_result_is_valid_python():
     proposals = [{"id": "fd", "winget": "sharkdp.fd"}, {"id": "fdupes", "winget": "Adrian.fdupes"}]
-    new, applied, missing = wc.apply_proposals(SRC, proposals)
+    new, applied, missing = apply_keys(SRC, proposals, ("winget",))
     assert sorted(applied) == ["fd", "fdupes"]
     ns: dict = {}
     exec(new, ns)  # noqa: S102 - trusted fixture, proves output parses

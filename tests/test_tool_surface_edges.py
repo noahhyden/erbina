@@ -1,4 +1,4 @@
-"""Edge behavior of the read-only tool surface: list_recipes resilience and inspect_recipe / bootstrap(dry_run) plan parity."""
+"""Edge behavior of the read-only tool surface: search_recipes resilience and inspect_recipe / bootstrap(dry_run) plan parity."""
 from __future__ import annotations
 
 import pytest
@@ -7,19 +7,19 @@ from helpers import call_tool
 from prototype import cli_recipe, mcp_recipe, registry
 
 
-# list_recipes must skip a malformed recipe in the dir and still return the valid ones.
-def test_list_recipes_skips_a_malformed_recipe():
+# search_recipes must skip a malformed recipe in the dir and still return the valid ones.
+def test_search_recipes_skips_a_malformed_recipe():
     with registry(cli_recipe("good")) as tmp:
         # a second file that fails validation (bad kind, no detect/install/verify)
         (tmp / "broken.yaml").write_text("id: broken\nkind: not-a-kind\n")
-        ids = {r["id"] for r in call_tool("list_recipes", {})}
+        ids = {r["id"] for r in call_tool("search_recipes", {"limit": 1000})["results"]}
     assert ids == {"good"}  # broken silently skipped, good still listed
 
 
-def test_list_recipes_tolerates_unparseable_yaml():
+def test_search_recipes_tolerates_unparseable_yaml():
     with registry(cli_recipe("good")) as tmp:
         (tmp / "garbage.yaml").write_text("id: [unterminated\n  : :\n")
-        ids = {r["id"] for r in call_tool("list_recipes", {})}
+        ids = {r["id"] for r in call_tool("search_recipes", {"limit": 1000})["results"]}
     assert "good" in ids
 
 

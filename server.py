@@ -95,17 +95,11 @@ _CATEGORY_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("devtools", ("developer", "utility", "productivity")),
 )
 
-# Single-word search terms harvested from the rules above; any found in a recipe's text become its `tags`.
-_TAG_VOCAB = frozenset(
-    kw for _cat, kws in _CATEGORY_RULES for kw in kws if " " not in kw and "-" not in kw
-)
-
-
 _URL_RE = re.compile(r"https?://\S+")
 
 
 def _norm_text(recipe: dict[str, Any]) -> tuple[str, set[str]]:
-    """(lowercased raw text, word-token set) from title + description, with homepage URLs stripped so "https"/"github" don't pollute category and tags."""
+    """(lowercased raw text, word-token set) from title + description, with homepage URLs stripped so "https"/"github" don't pollute the category."""
     parts = [str(recipe.get("title") or ""), str(recipe.get("description") or "")]
     raw = _URL_RE.sub(" ", " ".join(parts).lower())
     tokens = set(re.findall(r"[a-z0-9]+", raw))
@@ -134,24 +128,18 @@ def _infer_category(raw: str, tokens: set[str], rid: str) -> str:
     return "misc"
 
 
-def _categorize(recipe: dict[str, Any]) -> tuple[str, list[str]]:
-    """Return (category, tags) for a recipe; total and crash-proof, an authored valid `category` wins for cli-tools, profile/mcp-server map to their own bucket, and the id is always a tag."""
+def _categorize(recipe: dict[str, Any]) -> str:
+    """Return a recipe's category; total and crash-proof, an authored valid `category` wins for cli-tools and profile/mcp-server map to their own bucket."""
     rid = str(recipe.get("id") or "")
     kind = recipe.get("kind")
     raw, tokens = _norm_text(recipe)
 
     if kind == "profile":
-        category = "profile"
-    elif kind == "mcp-server":
-        category = "mcp-server"
-    else:
-        stored = recipe.get("category")
-        category = stored if stored in CATEGORIES else _infer_category(raw, tokens, rid)
-
-    tags = {rid, category}
-    tags.update(t for t in tokens if t in _TAG_VOCAB)
-    tags.discard("")
-    return category, sorted(tags)
+        return "profile"
+    if kind == "mcp-server":
+        return "mcp-server"
+    stored = recipe.get("category")
+    return stored if stored in CATEGORIES else _infer_category(raw, tokens, rid)
 # First version-looking token in command output ("v1.2.3 (build 4)" -> "1.2.3"); a leading `v` is stripped by _extract_version.
 _VERSION_RE = re.compile(r"v?(\d+\.\d+(?:\.\d+)?(?:[-.][0-9A-Za-z][0-9A-Za-z.-]*)?)")
 # The only placeholders `_subst` expands (see AGENTS.d/101).
@@ -602,19 +590,9 @@ def _pick_method(methods: list[dict[str, Any]] | None) -> dict[str, Any] | None:
     return None
 
 
-def _pick_install_method(recipe: dict[str, Any]) -> dict[str, Any] | None:
-    return _pick_method(recipe.get("install", {}).get("methods", []))
-
-
-def _update_methods(recipe: dict[str, Any]) -> list[dict[str, Any]]:
-    """The methods `update` will try: the recipe's `update:` block, or [] if none."""
-    upd = recipe.get("update")
-    return upd["methods"] if isinstance(upd, dict) and upd.get("methods") else []
-
-
 def _plan(recipe: dict[str, Any], scope: str, project_dir: str | None) -> dict[str, Any]:
     """The consent surface: exactly what bootstrap would do, running nothing destructive."""
-    method = _pick_install_method(recipe)
+    method = _pick_method(recipe.get("install", {}).get("methods", []))
     return {
         "requires": list(recipe.get("requires") or []),
         "detect": _subst(recipe.get("detect", {}).get("command"), scope, project_dir) or None,
@@ -713,46 +691,24 @@ def _parse_mcp_list(project_dir: str | None = None) -> list[dict[str, Any]]:
 
 # tools
 def _recipe_summary(rid: str, r: dict[str, Any]) -> dict[str, Any]:
-    """Compact queriable view of a recipe: identity plus authored-or-inferred `category` and `tags`."""
-    category, tags = _categorize(r)
+    """Compact queriable view of a recipe: identity plus authored-or-inferred `category`."""
     return {
         "id": rid,
         "kind": r.get("kind", "?"),
         "title": r.get("title", rid),
         "description": r.get("description", ""),
-        "category": category,
-        "tags": tags,
+        "category": _categorize(r),
     }
 
 
-@mcp.tool
-def list_recipes() -> list[dict[str, Any]]:
-    """List the curated recipes erbina can bootstrap.
-
-    Each entry carries id, kind, title, description, plus a `category` (one of the
-    fixed taxonomy buckets) and `tags` (search terms) so you can tell at a glance
-    what each recipe is for. To find a tool by keyword/category instead of scanning
-    the whole list, use `search_recipes`.
-    """
-    out = []
-    for rid in _recipe_ids():
-        try:
-            r = _load_recipe(rid)
-        except Exception:  # noqa: BLE001
-            continue
-        out.append(_recipe_summary(rid, r))
-    return out
-
-
 def _search_score(query: str, summary: dict[str, Any]) -> int:
-    """Relevance of a recipe to a lowercased query (id/title hit > description hit > tag hit; 0 = no match; an empty query scores every recipe 1)."""
+    """Relevance of a recipe to a lowercased query (id/title hit > description hit; 0 = no match; an empty query scores every recipe 1)."""
     if not query:
         return 1
     score = 0
     rid = summary["id"].lower()
     title = str(summary["title"]).lower()
     desc = str(summary["description"]).lower()
-    tags = [t.lower() for t in summary["tags"]]
     if query == rid:
         score += 100
     if query in rid:
@@ -761,10 +717,6 @@ def _search_score(query: str, summary: dict[str, Any]) -> int:
         score += 20
     if query in desc:
         score += 8
-    if any(query == t for t in tags):
-        score += 10
-    elif any(query in t for t in tags):
-        score += 4
     return score
 
 
@@ -775,14 +727,14 @@ def search_recipes(
     kind: str | None = None,
     limit: int = 50,
 ) -> dict[str, Any]:
-    """Find recipes by keyword and/or filter, so you don't have to scan `list_recipes`.
+    """Find recipes by keyword and/or filter, so you don't have to scan everything.
 
     `query` is matched (case-insensitively) against each recipe's id, title,
-    description and tags, and results are ranked by relevance (id/title hits beat
-    description hits beat tag hits). `category` restricts to one taxonomy bucket
+    and description, and results are ranked by relevance (id/title hits beat
+    description hits). `category` restricts to one taxonomy bucket
     (e.g. "kubernetes", "search", "http" — see `CATEGORIES`); `kind` restricts to
     cli-tool|mcp-server|profile. With no query and no filters this returns every
-    recipe (like `list_recipes`) in id order. `limit` caps the returned page;
+    recipe in id order. `limit` caps the returned page;
     `count` is the total number of matches before truncation.
     """
     if category is not None and category not in CATEGORIES:
@@ -836,7 +788,7 @@ def list_categories() -> dict[str, Any]:
             r = _load_recipe(rid)
         except Exception:  # noqa: BLE001
             continue
-        category, _tags = _categorize(r)
+        category = _categorize(r)
         buckets.setdefault(category, []).append(rid)
 
     rows = [
@@ -963,7 +915,7 @@ def _bootstrap_recipe(
     if detected:
         report["phases"]["install"] = {"status": "skipped", "reason": "already present"}
     else:
-        method = _pick_install_method(recipe)
+        method = _pick_method(recipe.get("install", {}).get("methods", []))
         if not method:
             report["phases"]["install"] = {
                 "status": "failed",
@@ -1121,7 +1073,7 @@ def _run_detect(recipe: dict[str, Any], scope: str, project_dir: str | None) -> 
     det = recipe.get("detect", {})
     cwd = project_dir if det.get("needs_project_dir") else None
     res = _run(_subst(det.get("command"), scope, project_dir), cwd=cwd, timeout=30)
-    return res, res["exit"] == det.get("expect_exit", 0)
+    return res, res["exit"] == 0
 
 
 def _run_verify(recipe: dict[str, Any], scope: str, project_dir: str | None) -> tuple[list[dict[str, Any]], bool]:
@@ -1131,7 +1083,7 @@ def _run_verify(recipe: dict[str, Any], scope: str, project_dir: str | None) -> 
     for v in recipe.get("verify", []):
         v_cwd = project_dir if v.get("needs_project_dir") else None
         vres = _run(_subst(v["command"], scope, project_dir), cwd=v_cwd, timeout=30)
-        ok = vres["exit"] == v.get("expect_exit", 0)
+        ok = vres["exit"] == 0
         if not ok and not v.get("optional"):
             all_ok = False
         results.append({"status": "ok" if ok else "failed", **vres})
@@ -1165,7 +1117,8 @@ def update(
             "skipped": True,
             "note": f"'{recipe_id}' is pinned; unpin it (pin('{recipe_id}', pinned=false)) or pass force=true to update anyway.",
         }
-    methods = _update_methods(recipe)
+    upd = recipe.get("update")
+    methods = upd["methods"] if isinstance(upd, dict) and upd.get("methods") else []
     method = _pick_method(methods)
 
     if not methods:

@@ -7,6 +7,47 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased]
 
+An over-engineering audit, applied. 469 lines out, one tool off the MCP surface,
+no behaviour added. Everything removed was either dead, duplicated, or restating
+a default the reader already applies.
+
+### Removed — BREAKING (tool surface)
+
+- **`list_recipes`** — the tool is gone; 12 remain. It returned exactly what
+  `search_recipes()` returns with no arguments, so it was a second name for one
+  behaviour, costing a tool description in every client's context.
+  *Migration:* call `search_recipes` instead. Note it caps results at
+  `limit` (default 50) and reports the true total as `count`, so pass a larger
+  `limit` to page the whole registry.
+- **`tags`** — recipe summaries no longer carry the inferred tag bag, and
+  `search_recipes` no longer scores tag hits. The vocabulary was harvested from
+  the same words already present in each recipe's title and description, so a
+  description match already found everything a tag match did. This supersedes
+  the 0.3.0 note promising inferred tags would stay.
+
+### Removed — recipe schema
+
+- **`detect.expect_exit` / `verify[].expect_exit`** — still parses, but is now
+  **ignored**: detect and verify pass if and only if the command exits 0. All 61
+  occurrences across the shipped recipes said `0`, the default, and the key was
+  never validated. *Migration:* delete the key. A recipe relying on a non-zero
+  expected exit changes meaning silently — invert the command instead.
+- **`scope:` on cli-tool and profile recipes** — dropped from 28 recipes where
+  it was documented as "informational" and read by nothing. It stays load-bearing
+  (and required) on `kind: mcp-server`, where it drives `${scope}` wiring.
+
+### Changed
+
+- `_categorize` returns a plain category string rather than a
+  `(category, tags)` tuple.
+- The stub `claude` binary used by the offline suite lives once, in
+  `tests/stubs.py`; the two test modules and the `mcp-servers` CI job all read
+  it from there instead of carrying their own copy.
+- The one-line-comment CI guard no longer exempts "generated" files. The
+  exemption matched exactly two files, both by accident — one of them the guard
+  itself, whose marker list sat inside its own first 40 lines, so it had never
+  scanned itself.
+
 ## [0.3.0] - 2026-11-01
 
 A cleanup release. The recipe schema lost three keys that no shipped recipe

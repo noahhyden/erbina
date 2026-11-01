@@ -88,9 +88,9 @@ def test_profile_dry_run_lists_members_and_runs_nothing():
     assert out["phases"] == {}
 
 
-def test_profile_appears_in_list_recipes_with_its_kind():
+def test_profile_appears_in_search_recipes_with_its_kind():
     p = profile_recipe("p", requires=["a"])
     a = cli_recipe("a")
     with registry(p, a):
-        recs = {r["id"]: r["kind"] for r in call_tool("list_recipes", {})}
+        recs = {r["id"]: r["kind"] for r in call_tool("search_recipes", {"limit": 1000})["results"]}
     assert recs.get("p") == "profile"

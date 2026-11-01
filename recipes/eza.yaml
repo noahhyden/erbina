@@ -9,7 +9,6 @@ description: >
 # 1. DETECT — already installed? `eza --version` exits 0 when present.
 detect:
   command: "eza --version"
-  expect_exit: 0
 
 # 2. INSTALL — prefer brew; fall back to cargo (crate + binary are both `eza`).
 install:
@@ -24,7 +23,6 @@ install:
 # 3. VERIFY — prove it actually runs.
 verify:
   - command: "eza --version"
-    expect_exit: 0
 
 # `eza --version` prints a banner line before the version token.
 version:
@@ -41,6 +39,5 @@ update:
       when: "command -v cargo"
       run: "cargo install eza"
 
-scope: user
 # an `ls` replacement; inference reads "git status" as the git bucket.
 category: files
