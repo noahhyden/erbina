@@ -16,9 +16,8 @@ What you expected to happen instead.
 
 ## Which tool / recipe
 
-The erbina tool involved (`list_recipes` / `inspect_recipe` / `bootstrap` /
-`audit_scopes` / `find_dead_mcps` / `remove_mcp`) and, if a recipe was involved,
-which one and at what `scope`.
+Which erbina tool was involved and, if a recipe was involved, which one and at
+what `scope`.
 
 ## Steps to reproduce
 
