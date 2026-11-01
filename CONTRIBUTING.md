@@ -85,21 +85,6 @@ python3 .github/scripts/check_one_line_comments.py
 python3 .github/scripts/check_agents_rule_length.py
 ```
 
-## Comments
-
-Explanation in code is capped at **one line**. A module, class or function gets a
-one-line docstring or none, and a run of standalone `#` comments is one line —
-`check_one_line_comments.py` enforces this across `.py` and `.yaml`, and the repo
-sits at zero — there is no baseline to park a new one in. A run that genuinely
-needs a tooling pragma (`noqa`, a PEP 723 `/// script` header) is exempt, as is an
-`@mcp.tool` docstring, which is the description the model reads at call time.
-
-Anything longer belongs in a rule under [`.github/AGENTS.d/`](.github/AGENTS.d/):
-one `## heading` plus **one body line of at most 255 characters**, enforced by
-`check_agents_rule_length.py`. A rule states the trap and its consequence — the
-measurements and the rationale essay go in a doc or the PR description, not into
-an agent's always-loaded context.
-
 **Two tiers of validation.** The offline suite above proves the *orchestration* is
 correct but never runs a real package manager, so it can't catch a renamed brew
 formula or a dead install URL. The
@@ -115,25 +100,10 @@ scripts/smoke_bootstrap.py <id> [<id> ...]        # bootstrap for real
 scripts/smoke_bootstrap.py --uninstall <id>       # then reverse it (clean machine)
 ```
 
-No test harness is installed — `uv --with` materializes the deps per run, so
-nothing is added to the tree. To exercise erbina by hand the way an agent does,
-an in-memory FastMCP client smoke test (no Claude Code or servers required) looks
-like:
-
-```python
-# smoke.py — run with: uv run --with 'fastmcp>=2.0' --with 'pyyaml>=6.0' --with 'packaging>=23' smoke.py
-import asyncio
-from fastmcp import Client
-from server import mcp
-
-async def main():
-    async with Client(mcp) as c:
-        print(await c.call_tool("list_recipes", {}))
-        # dry_run never executes anything — safe to run anywhere
-        print(await c.call_tool("bootstrap", {"recipe_id": "ataegina", "dry_run": True}))
-
-asyncio.run(main())
-```
+No test harness is installed — `uv --with` materializes the deps per run. To drive
+erbina by hand the way an agent does, reuse `call_tool` in
+[`tests/helpers.py`](tests/helpers.py) (in-memory client); for the real-install path
+use `scripts/smoke_bootstrap.py` above.
 
 Because `dry_run=true` and `inspect_recipe` execute nothing, they're safe to run
 on any machine. For a real `bootstrap`, use a throwaway recipe target and a
@@ -143,3 +113,18 @@ wired in.
 
 > Scratch files matching `scratch_*.py` are git-ignored — use that prefix for
 > throwaway test scripts.
+
+## Comments
+
+Explanation in code is capped at **one line**. A module, class or function gets a
+one-line docstring or none, and a run of standalone `#` comments is one line —
+`check_one_line_comments.py` enforces this across `.py` and `.yaml`, and the repo
+sits at zero — there is no baseline to park a new one in. A run that genuinely
+needs a tooling pragma (`noqa`, a PEP 723 `/// script` header) is exempt, as is an
+`@mcp.tool` docstring, which is the description the model reads at call time.
+
+Anything longer belongs in a rule under [`.github/AGENTS.d/`](.github/AGENTS.d/):
+one `## heading` plus **one body line of at most 255 characters**, enforced by
+`check_agents_rule_length.py`. A rule states the trap and its consequence — the
+measurements and the rationale essay go in a doc or the PR description, not into
+an agent's always-loaded context.

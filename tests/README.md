@@ -40,28 +40,4 @@ server's real code paths:
   temp dir holding the given prototypes and restores it afterward, so synthetic
   recipes resolve through the real MCP tool surface without touching `recipes/`.
 
-## What's covered
-
-| file | covers |
-|---|---|
-| `test_import.py` | `import server` succeeds and does **not** start the server (`mcp.run()` stays `__main__`-guarded). |
-| `test_tools.py` | The 11 expected tools register; `list_recipes` sees both real recipes; `inspect_recipe` / `bootstrap(dry_run)` return a plan and execute nothing; path-traversal ids rejected; bad `scope` rejected. |
-| `test_helpers.py` | `_subst` expansion (incl. missing-`project_dir` → `.`); `_load_recipe` traversal guard; `_parse_mcp_list` on a realistic capture (monkeypatched `_run`). |
-| `test_validate_recipe.py` | Both real recipes validate clean; a malformed recipe reports each seeded problem; the load path refuses a malformed recipe (temp recipes dir, never `recipes/`). |
-| `test_prototype_factory.py` | Self-tests for the harness: prototypes validate clean, `registry()` swaps + restores (incl. nesting and on-exception), tool registry undisturbed. |
-| `test_bootstrap_engine.py` | LIVE bootstrap orchestration: detect-gates-install, guarded/ordered install selection, configure skip + `force_configure`, verify pass/fail + `optional` + `expect_exit`, mcp-server reload hint. |
-| `test_parse_mcp_list_edges.py` | Adversarial `_parse_mcp_list` inputs (commands containing `:` or ` - `, CRLF, blank/header lines, double markers) + regressions for the status-tail fix. |
-| `test_real_recipes.py` | Real ataegina / fetch recipes through the dry-run plan surface, incl. `${scope}` across all scopes and `needs_project_dir` propagation. |
-| `test_scopes.py` | `_scope_map`, `audit_scopes` (bucketing, shadowing, precedence/where), `remove_mcp` guardrails, `_claude_json` tolerance. |
-| `test_placeholders.py` | `_check_placeholders` flagging + the lint↔subst invariant + unterminated-`${` regression. |
-| `test_validate_recipe_props.py` | Property fuzzing: valid → 0 errors; single-defect corruptions each → ≥1 matching error. |
-| `test_run.py` | `_run` exit passthrough, stderr, timeout→124 (no raise), stdout 4000-char trim, cwd, never-raises. |
-| `test_project_dir_and_phases.py` | `needs_project_dir` actually changes the cwd a phase runs in (marker technique); phase-gating incl. non-optional configure failure. |
-| `test_tool_surface_edges.py` | `list_recipes` skips malformed recipes; `inspect_recipe` ↔ `bootstrap(dry_run)` plan parity. |
-| `test_find_dead_mcps.py` | Alive/dead split, scope annotation, orphan handling, hints (monkeypatched `_parse_mcp_list` + `_scope_map`). |
-| `test_integration.py` | **Real end-to-end** (deterministic + offline): bootstraps a fixture tool genuinely absent → installed (a real script in a temp `$ERB_BIN` on PATH) → verified by execution; idempotent re-run; verify catches a broken install; real update v1→v2 with state recorded; **rollback recovery** of a broken update; and **mcp-server wiring** against a stub `claude` binary (`mcp add`/`get`, `${scope}`, `needs_project_dir`, idempotency). |
-
-(Auto-update, recipe, and quality suites — `test_version`, `test_check_updates`,
-`test_update`, `test_state`, `test_pin`, `test_rollback`, `test_recipes_conformance`,
-`test_recipe_versions`, `test_lint_policy`, `test_readme_gallery` — round out the
-coverage; run `pytest tests/ -q` for the full picture.)
+Run `pytest tests/ -q --collect-only` (or read the filenames) for what is covered.
