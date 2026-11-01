@@ -20,7 +20,7 @@ def test_added_tools_load_and_categorize():
     for rid, (category, _bin) in ADDED.items():
         recipe = server._load_recipe(rid)  # raises if malformed
         assert recipe["kind"] == "cli-tool"
-        assert server._categorize(recipe)[0] == category, f"{rid} category"
+        assert server._categorize(recipe) == category, f"{rid} category"
 
 
 def test_added_tools_verify_by_running_their_binary():

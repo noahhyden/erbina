@@ -10,7 +10,6 @@ description: >
 
 detect:
   command: "claude mcp get git"
-  expect_exit: 0
   needs_project_dir: true
 
 # 2. INSTALL — nothing to download; just confirm the runtime that launches it.
@@ -29,7 +28,6 @@ configure:
 # 4. VERIFY — Claude Code can see the server at the chosen scope.
 verify:
   - command: "claude mcp get git"
-    expect_exit: 0
     needs_project_dir: true
 
 scope: project

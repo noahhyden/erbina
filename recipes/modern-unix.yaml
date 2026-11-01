@@ -14,5 +14,3 @@ requires:
   - eza
   - dust
   - zoxide
-
-scope: user

@@ -22,7 +22,7 @@ def test_counts_sum_to_every_recipe():
     # each recipe has exactly one category, so the counts partition the registry.
     cats = call_tool("list_categories", {})
     total = sum(c["count"] for c in cats["categories"])
-    assert total == len(call_tool("list_recipes", {}))
+    assert total == len(call_tool("search_recipes", {"limit": 1000})["results"])
 
 
 def test_only_nonempty_categories_are_listed():
@@ -47,7 +47,7 @@ def test_counts_agree_with_search_recipes_filter():
 
 
 def test_examples_belong_to_their_category():
-    all_ids = {r["id"] for r in call_tool("list_recipes", {})}
+    all_ids = {r["id"] for r in call_tool("search_recipes", {"limit": 1000})["results"]}
     for c in call_tool("list_categories", {})["categories"]:
         for ex in c["examples"]:
             assert ex in all_ids

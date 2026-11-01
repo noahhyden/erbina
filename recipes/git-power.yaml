@@ -16,5 +16,3 @@ requires:
   - git-lfs
   - tig
   - git-cliff
-
-scope: user

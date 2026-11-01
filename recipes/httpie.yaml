@@ -9,7 +9,6 @@ description: >
 # 1. DETECT — already installed? `http --version` exits 0 when present.
 detect:
   command: "http --version"
-  expect_exit: 0
 
 # 2. INSTALL — first guard to pass wins. Prefer brew; fall back to pipx.
 install:
@@ -24,7 +23,6 @@ install:
 # 3. VERIFY — prove it actually runs.
 verify:
   - command: "http --version"
-    expect_exit: 0
 
 # 4. VERSION — powers check_updates (installed `--version` vs the GitHub release tag).
 version:
@@ -53,5 +51,3 @@ uninstall:
     - id: rm
       when: "command -v http"
       run: "rm -f \"$(command -v http)\""
-
-scope: user

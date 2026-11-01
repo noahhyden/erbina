@@ -9,8 +9,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-from _harvest import (CONF_RANK, apply_keys, base_parser, load_tools, norm,  # noqa: F401
-                      report, resolve_rows, stage)
+from _harvest import base_parser, load_tools, norm, report, resolve_rows, stage
 
 # The winget community source is a signed MSIX (zip) holding a SQLite catalog; this is its CDN URL.
 WINGET_SOURCE_URL = "https://cdn.winget.microsoft.com/cache/source2.msix"
@@ -138,11 +137,6 @@ def resolve_all(tools: list[dict], index: WingetIndex, min_confidence: str = "hi
     """Resolve every winget-less row at or above `min_confidence`, sorted by id."""
     return resolve_rows(rows_missing_winget(tools), lambda t: resolve(t, index),
                         min_confidence, ids)
-
-
-def apply_proposals(source_text: str, proposals: list[dict]) -> tuple[str, list[str], list[str]]:
-    """Stage `winget` after each row's id; see _harvest.apply_keys."""
-    return apply_keys(source_text, proposals, ("winget",))
 
 
 # I/O + CLI

@@ -138,16 +138,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.local/bin" "$HOME/claude-stub-store"
-          cat > "$HOME/.local/bin/claude" <<'STUB'
-          #!/usr/bin/env bash
-          STORE="${CLAUDE_STUB_STORE:-$HOME/claude-stub-store}"
-          mkdir -p "$STORE"
-          if [ "$1" = "mcp" ] && [ "$2" = "add" ]; then echo "$*" > "$STORE/$3"; exit 0; fi
-          if [ "$1" = "mcp" ] && [ "$2" = "get" ]; then [ -f "$STORE/$3" ] && exit 0 || exit 1; fi
-          if [ "$1" = "mcp" ] && [ "$2" = "list" ]; then ls "$STORE" 2>/dev/null; exit 0; fi
-          exit 0
-          STUB
-          chmod +x "$HOME/.local/bin/claude"
+          STUB_BIN="$HOME/.local/bin" python3 -c "import sys; sys.path.insert(0, 'tests'); import stubs, os; stubs.write_claude_stub(os.environ['STUB_BIN'])"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Wire every mcp-server recipe for real (stub claude, uvx + npx present)
         run: |

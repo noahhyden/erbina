@@ -8,10 +8,9 @@ description: >
   tracked dev processes from it — so parallel agents/branches never stomp each
   other. https://github.com/noahhyden/ataegina-cli
 
-# 1. DETECT — runs FIRST. exit == expect_exit ⇒ already installed ⇒ skip install.
+# 1. DETECT — runs FIRST. exit 0 ⇒ already installed ⇒ skip install.
 detect:
   command: "ataegina --version"
-  expect_exit: 0
 
 # 2. INSTALL — only if detect failed. First method whose `when:` guard exits 0 wins.
 install:
@@ -31,9 +30,7 @@ configure:
 
 verify:
   - command: "ataegina --version"
-    expect_exit: 0
   - command: "ataegina doctor"
-    expect_exit: 0
     optional: true # doctor is meaningful only inside a configured worktree
 
 version:
@@ -58,6 +55,3 @@ uninstall:
     - id: rm
       when: "command -v ataegina"
       run: "rm -f \"$(command -v ataegina)\""
-
-# scope is informational for cli-tool recipes; load-bearing for mcp-server recipes.
-scope: user

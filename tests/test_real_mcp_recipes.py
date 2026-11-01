@@ -7,6 +7,7 @@ import pytest
 
 import server
 from helpers import call_tool
+from stubs import write_claude_stub
 
 # (recipe id -> the exact server launch command its configure step must register)
 REAL_MCP_RECIPES = {
@@ -21,14 +22,6 @@ REAL_MCP_RECIPES = {
     "time": "uvx mcp-server-time",
 }
 
-_STUB_CLAUDE = """#!/usr/bin/env bash
-STORE="${CLAUDE_STUB_STORE}"
-mkdir -p "$STORE"
-if [ "$1" = "mcp" ] && [ "$2" = "add" ]; then echo "$*" > "$STORE/$3"; exit 0; fi
-if [ "$1" = "mcp" ] && [ "$2" = "get" ]; then [ -f "$STORE/$3" ] && exit 0 || exit 1; fi
-exit 0
-"""
-
 
 @pytest.fixture
 def stub_env(tmp_path, monkeypatch):
@@ -36,7 +29,7 @@ def stub_env(tmp_path, monkeypatch):
     bindir = tmp_path / "bin"
     bindir.mkdir()
     store = tmp_path / "store"
-    (bindir / "claude").write_text(_STUB_CLAUDE)
+    write_claude_stub(bindir)
     for name in ("uvx", "npx"):
         (bindir / name).write_text("#!/usr/bin/env bash\nexit 0\n")
     for f in bindir.iterdir():

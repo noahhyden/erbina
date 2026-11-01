@@ -1,4 +1,4 @@
-"""Tool-surface tests for `search_recipes` and the enriched `list_recipes`, via the in-memory FastMCP client, read-only."""
+"""Tool-surface tests for `search_recipes` and via the in-memory FastMCP client, read-only."""
 from __future__ import annotations
 
 from helpers import call_tool
@@ -6,14 +6,11 @@ from helpers import call_tool
 from server import CATEGORIES
 
 
-# list_recipes is now enriched with category + tags
-def test_list_recipes_includes_category_and_tags_for_every_recipe():
-    recipes = call_tool("list_recipes", {})
+def test_search_includes_category_for_every_recipe():
+    recipes = call_tool("search_recipes", {"limit": 1000})["results"]
     assert recipes
     for r in recipes:
         assert r["category"] in CATEGORIES, f"{r['id']}: bad category {r['category']!r}"
-        assert isinstance(r["tags"], list)
-        assert all(isinstance(t, str) for t in r["tags"])
 
 
 # search_recipes — query relevance
@@ -43,7 +40,7 @@ def test_search_results_carry_full_metadata():
     out = call_tool("search_recipes", {"query": "kubernetes"})
     assert out["results"]
     r = out["results"][0]
-    for key in ("id", "kind", "title", "description", "category", "tags", "score"):
+    for key in ("id", "kind", "title", "description", "category", "score"):
         assert key in r
 
 
@@ -68,9 +65,8 @@ def test_query_and_filter_compose():
 
 
 def test_empty_query_no_filter_returns_everything():
-    all_recipes = call_tool("list_recipes", {})
-    out = call_tool("search_recipes", {})
-    assert out["count"] == len(all_recipes)
+    out = call_tool("search_recipes", {"limit": 1000})
+    assert out["count"] == len(out["results"])
 
 
 def test_limit_caps_result_count():

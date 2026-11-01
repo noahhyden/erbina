@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from helpers import call_tool
-from prototype import FALSE, TRUE, cli_recipe, exit_code, mcp_recipe, registry
+from prototype import FALSE, TRUE, cli_recipe, mcp_recipe, registry
 
 
 def _boot(recipe, **kwargs):
@@ -24,13 +24,6 @@ def test_detect_absent_runs_install():
     assert out["phases"]["detect"]["present"] is False
     assert out["phases"]["install"]["status"] == "ok"
     assert out["phases"]["install"]["method"] == "always"
-
-
-def test_detect_expect_exit_custom_code():
-    # A recipe can declare a non-zero "present" exit code; detect honors it.
-    out = _boot(cli_recipe(detect={"command": exit_code(3), "expect_exit": 3}))
-    assert out["phases"]["detect"]["present"] is True
-    assert out["phases"]["install"]["status"] == "skipped"
 
 
 # guarded, ordered install-method selection
@@ -152,13 +145,6 @@ def test_optional_verify_failure_does_not_fail_bootstrap():
     statuses = [v["status"] for v in out["phases"]["verify"]]
     assert statuses == ["ok", "failed"]
     assert out["ok"] is True  # the failing verify was optional
-
-
-def test_verify_expect_exit_custom_code_passes():
-    recipe = cli_recipe(detect={"command": TRUE}, verify=[{"command": exit_code(7), "expect_exit": 7}])
-    out = _boot(recipe)
-    assert out["phases"]["verify"][0]["status"] == "ok"
-    assert out["ok"] is True
 
 
 # mcp-server specifics

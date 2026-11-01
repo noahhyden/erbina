@@ -47,6 +47,18 @@ REAL_OUTPUTS = [
     ("Client Version: v1.29.2\nKustomize Version: v5.0.4", "1.29.2"),
     # azure-cli `az version` prints JSON; no "version" word, first token wins.
     ('{\n  "azure-cli": "2.57.0",\n  "azure-cli-core": "2.57.0"\n}', "2.57.0"),
+    # tool strings folded in from the recipe version samples, plus release-tag lines
+    ("ripgrep 14.1.1\nfeatures:+pcre2\nsimd(compile):+SSE2", "14.1.1"),
+    ("Dust 1.1.1", "1.1.1"),
+    ("tealdeer 1.7.0", "1.7.0"),
+    ("gh version 2.62.0 (2024-11-27)\nhttps://github.com/cli/cli/releases/tag/v2.62.0", "2.62.0"),
+    ("commit=abcdef0, build date=2024-11-20, build source=binaryRelease, version=0.44.1, os=darwin, arch=arm64", "0.44.1"),
+    ("yq (https://github.com/mikefarah/yq/) version v4.44.3", "4.44.3"),
+    ("Difftastic 0.61.0", "0.61.0"),
+    ("3.2.4", "3.2.4"),                                     # httpie: bare version
+    ('  "tag_name": "v10.1.0",', "10.1.0"),
+    ('  "tag_name": "jq-1.7.1",', "1.7.1"),
+    ('  "tag_name": "14.1.1",', "14.1.1"),
 ]
 
 

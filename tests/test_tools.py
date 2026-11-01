@@ -4,7 +4,6 @@ from __future__ import annotations
 from helpers import call_tool, list_tool_names
 
 EXPECTED_TOOLS = {
-    "list_recipes",
     "search_recipes",
     "list_categories",
     "inspect_recipe",
@@ -24,8 +23,8 @@ def test_exactly_expected_tools_register():
     assert list_tool_names() == EXPECTED_TOOLS
 
 
-def test_list_recipes_includes_both_real_recipes():
-    recipes = call_tool("list_recipes", {})
+def test_search_recipes_includes_both_real_recipes():
+    recipes = call_tool("search_recipes", {"limit": 1000})["results"]
     ids = {r["id"] for r in recipes}
     assert "ataegina" in ids
     assert "fetch" in ids

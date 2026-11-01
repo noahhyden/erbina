@@ -10,7 +10,6 @@ description: >
 # 1. DETECT — already installed? The binary is `btm`, so detect on `btm`.
 detect:
   command: "btm --version"
-  expect_exit: 0
 
 # Formula and crate are `bottom`; the binary is `btm`.
 install:
@@ -28,7 +27,6 @@ install:
 # 3. VERIFY — prove it actually runs (binary name `btm`).
 verify:
   - command: "btm --version"
-    expect_exit: 0
 
 # Tags have no v prefix (0.10.2).
 version:
@@ -48,6 +46,5 @@ update:
       when: "command -v cargo"
       run: "cargo install bottom --locked"
 
-scope: user
 # a system/process monitor (btm); inference reads "network" usage as networking.
 category: monitoring

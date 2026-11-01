@@ -9,7 +9,6 @@ description: >
 
 detect:
   command: "claude mcp get fetch"
-  expect_exit: 0
   needs_project_dir: true
 
 install:
@@ -26,7 +25,6 @@ configure:
 # 4. VERIFY — Claude Code can see the server at the chosen scope.
 verify:
   - command: "claude mcp get fetch"
-    expect_exit: 0
     needs_project_dir: true
 
 scope: project

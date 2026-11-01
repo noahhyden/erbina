@@ -10,7 +10,6 @@ description: >
 # 1. DETECT — already installed? The binary is `tldr`, so detect on `tldr`.
 detect:
   command: "tldr --version"
-  expect_exit: 0
 
 # Formula and crate are `tealdeer`; the binary is `tldr`.
 install:
@@ -25,7 +24,6 @@ install:
 # 3. VERIFY — prove it actually runs (binary name `tldr`).
 verify:
   - command: "tldr --version"
-    expect_exit: 0
 
 version:
   current: "tldr --version"
@@ -40,5 +38,3 @@ update:
     - id: cargo
       when: "command -v cargo"
       run: "cargo install tealdeer"
-
-scope: user
